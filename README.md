@@ -169,6 +169,8 @@ omnarc-node create --name "Home cluster"   # on the first device: it becomes the
 omnarc-node invite                         # prints a QR code and a ticket, valid for 10 minutes
 omnarc-node join OMNARC:...                # on the new device; both screens show the same four symbols
 omnarc-node members
+omnarc-node serve                          # on every device: it hears the others and shows their load
+omnarc-node serve --invite                 # the admin's service can invite while it runs
 ```
 
 Run a ring of two devices (stage B1 wires it by hand; `omnarc-engine` must sit next to `omnarc-node`):

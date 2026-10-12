@@ -2,4 +2,5 @@
 
 pub mod pairing;
 pub mod ring;
+pub mod service;
 pub mod state;

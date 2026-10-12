@@ -12,4 +12,6 @@ message Member {
   // Its Biscuit membership token.
   bytes membership_token = 3;
   int64 joined_unix_ms = 4;
+  // The last addresses the device was reached at, to dial it again after a restart.
+  repeated string direct_addresses = 5;
 }

@@ -89,7 +89,7 @@ where
         let Ok(connection) = incoming.await else { continue };
         match join::admit(connection, &invitation, &context, now_unix_ms, &confirm).await {
             Ok(Some(Admitted { joiner, device, token })) => {
-                let member = Member { id: joiner, device, token, joined_unix_ms: now_unix_ms() };
+                let member = Member { id: joiner, device, token, joined_unix_ms: now_unix_ms(), addrs: vec![] };
                 store.put_member(&member)?;
                 break Ok(member);
             }
@@ -127,7 +127,10 @@ pub async fn join(
     let device = with_id(device, me);
     let joined = join::join(&endpoint, ticket, device.clone(), show_emoji).await;
     endpoint.close().await;
-    Ok(store.save_joined(&joined?, me, device, now_unix_ms())?)
+    let cluster = store.save_joined(&joined?, me, device, now_unix_ms())?;
+    // the inviter is the one member this device can dial until gossip tells it more
+    store.update_member(ticket.inviter, None, Some(ticket.direct_addrs.clone()))?;
+    Ok(cluster)
 }
 
 /// The four emoji as a line: symbol and name.

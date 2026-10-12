@@ -3,6 +3,7 @@
 //! `cluster.key` next to it, readable only by the user.
 
 use std::fmt;
+use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 
 use omnarc_network::EndpointId;
@@ -54,6 +55,8 @@ pub struct Member {
     pub device: v1::DeviceInfo,
     pub token: Vec<u8>,
     pub joined_unix_ms: i64,
+    /// The last addresses the device was reached at.
+    pub addrs: Vec<SocketAddr>,
 }
 
 /// The node's state on disk.
@@ -134,7 +137,7 @@ impl Store {
             .map_err(|e| Error::new("writing cluster.key", e))?;
         let cluster = Cluster { id: key.id(), name: name.to_owned(), token: token.clone() };
         self.save_cluster(&cluster)?;
-        self.put_member(&Member { id: me, device, token, joined_unix_ms: now_unix_ms })?;
+        self.put_member(&Member { id: me, device, token, joined_unix_ms: now_unix_ms, addrs: vec![] })?;
         Ok(cluster)
     }
 
@@ -159,9 +162,21 @@ impl Store {
                 continue;
             }
             // tokens and devices of the others arrive through gossip
-            self.put_member(&Member { id: *id, device: v1::DeviceInfo::default(), token: vec![], joined_unix_ms: 0 })?;
+            self.put_member(&Member {
+                id: *id,
+                device: v1::DeviceInfo::default(),
+                token: vec![],
+                joined_unix_ms: 0,
+                addrs: vec![],
+            })?;
         }
-        self.put_member(&Member { id: me, device, token: joined.token.clone(), joined_unix_ms: now_unix_ms })?;
+        self.put_member(&Member {
+            id: me,
+            device,
+            token: joined.token.clone(),
+            joined_unix_ms: now_unix_ms,
+            addrs: vec![],
+        })?;
         Ok(cluster)
     }
 
@@ -175,6 +190,7 @@ impl Store {
             device: Some(member.device.clone()),
             membership_token: member.token.clone(),
             joined_unix_ms: member.joined_unix_ms,
+            direct_addresses: member.addrs.iter().map(ToString::to_string).collect(),
         };
         let tx = self.db.begin_write().map_err(|e| Error::new("state", e))?;
         {
@@ -208,9 +224,45 @@ impl Store {
                 device: record.device.unwrap_or_default(),
                 token: record.membership_token,
                 joined_unix_ms: record.joined_unix_ms,
+                addrs: record.direct_addresses.iter().filter_map(|addr| addr.parse().ok()).collect(),
             });
         }
         Ok(members)
+    }
+
+    /// The member with this id, if this node knows it.
+    ///
+    /// # Errors
+    /// The state cannot be read.
+    pub fn member(&self, id: EndpointId) -> Result<Option<Member>> {
+        Ok(self.members()?.into_iter().find(|member| member.id == id))
+    }
+
+    /// Updates what this node knows about a member: its device and its addresses, keeping the rest; a member it did
+    /// not know is added with an empty token.
+    ///
+    /// # Errors
+    /// The state cannot be read or written.
+    pub fn update_member(
+        &self,
+        id: EndpointId,
+        device: Option<v1::DeviceInfo>,
+        addrs: Option<Vec<SocketAddr>>,
+    ) -> Result<()> {
+        let mut member = self.member(id)?.unwrap_or(Member {
+            id,
+            device: v1::DeviceInfo::default(),
+            token: vec![],
+            joined_unix_ms: 0,
+            addrs: vec![],
+        });
+        if let Some(device) = device {
+            member.device = device;
+        }
+        if let Some(addrs) = addrs {
+            member.addrs = addrs;
+        }
+        self.put_member(&member)
     }
 
     fn save_cluster(&self, cluster: &Cluster) -> Result<()> {

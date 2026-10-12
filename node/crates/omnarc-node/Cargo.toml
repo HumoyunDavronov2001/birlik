@@ -33,6 +33,7 @@ serde_json.workspace = true
 prost.workspace = true
 redb.workspace = true
 qrcode.workspace = true
+n0-future.workspace = true
 
 [lints]
 workspace = true

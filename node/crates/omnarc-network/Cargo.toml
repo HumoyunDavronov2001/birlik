@@ -14,6 +14,7 @@ biscuit-auth.workspace = true
 blake3.workspace = true
 data-encoding.workspace = true
 getrandom.workspace = true
+iroh-gossip.workspace = true
 # no relays, no address lookup, no port mapping: nothing leaves the device unless a peer is dialed
 iroh = { version = "1.3", default-features = false, features = ["tls-ring", "fast-apple-datapath"] }
 tokio = { workspace = true }

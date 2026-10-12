@@ -5,6 +5,7 @@
 //! - `omnarc-node id` prints this node's id, the public half of its key.
 //! - `omnarc-node ring` runs windows of a model as one node of a ring of devices given by hand (stage B1).
 //! - `omnarc-node create`, `invite`, `join` and `members` form a cluster (stage B2, `protocol/CLUSTER.md`).
+//! - `omnarc-node serve` runs the device's service: gossip with the cluster, and devices invited while it runs.
 
 use std::io::Write as _;
 use std::net::SocketAddr;
@@ -76,6 +77,15 @@ enum Command {
     },
     /// List the members of this device's cluster.
     Members,
+    /// Run this device's service: talk to the cluster and show what its devices do; Ctrl-C stops it.
+    Serve {
+        /// Where the service listens.
+        #[arg(long, default_value = "0.0.0.0:7700")]
+        listen: SocketAddr,
+        /// Open an invitation for one device right away and show its QR code.
+        #[arg(long)]
+        invite: bool,
+    },
 }
 
 #[derive(Debug, clap::Args)]
@@ -252,6 +262,65 @@ fn ask_owner(attempt: &omnarc_network::join::JoinAttempt) -> bool {
     std::io::stdin().read_line(&mut answer).is_ok() && answer.trim().eq_ignore_ascii_case("y")
 }
 
+fn print_ticket(ticket: &Ticket) {
+    let text = ticket.encode();
+    println!("{}", qr_code(&text));
+    println!("On the new device run:\n\n  omnarc-node join {text}\n");
+}
+
+async fn serve(data: &Path, listen: SocketAddr, invite: bool) -> Result<(), ring::BoxError> {
+    use omnarc_node::service::{Config, Event, Service};
+    let config =
+        Config { data: data.to_path_buf(), listen, device: describe(), telemetry_every: Duration::from_secs(1) };
+    let service = Service::start(config).await?;
+    let mut events = service.events();
+    println!(
+        "{} — {} members. This device is {}.",
+        service.cluster().name,
+        service.members().len(),
+        service.id().fmt_short()
+    );
+    if invite {
+        print_ticket(&service.invite(Duration::from_secs(600), vec![])?);
+        println!("Waiting for the device (the ticket is valid for 10 min)...");
+    }
+    let names = |id: EndpointId, service: &Service| {
+        service.devices().get(&id).map_or_else(|| id.fmt_short().to_string(), |device| device.name.clone())
+    };
+    let mut summary = tokio::time::interval(Duration::from_secs(10));
+    loop {
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => break,
+            _ = summary.tick() => {
+                let devices = service.devices();
+                for (id, telemetry) in service.telemetry() {
+                    let name = devices.get(&id).map_or_else(|| id.fmt_short().to_string(), |device| device.name.clone());
+                    println!("  {:<24} CPU {:>3.0} %   memory {:.1} GiB", name, telemetry.cpu_load * 100.0, gib(telemetry.memory_used_bytes));
+                }
+            }
+            event = events.recv() => match event {
+                Ok(Event::Device(_, device)) => {
+                    println!("{} ({}) is in the cluster.", device.name, platform_name(device.platform));
+                }
+                Ok(Event::MemberJoined(id)) => println!("A new device joined: {}.", names(id, &service)),
+                Ok(Event::MemberLeft(id)) => println!("{} left.", names(id, &service)),
+                Ok(Event::Neighbor { id, up }) => println!("{} {}.", names(id, &service), if up { "connected" } else { "disconnected" }),
+                Ok(Event::JoinAttempt(attempt)) => {
+                    let joiner = attempt.joiner;
+                    let matches = tokio::task::spawn_blocking(move || ask_owner(&attempt)).await.unwrap_or(false);
+                    if !service.answer_join(joiner, matches) {
+                        println!("The device stopped waiting before the answer.");
+                    }
+                }
+                Ok(Event::Telemetry(..)) | Err(_) => {}
+            },
+        }
+    }
+    println!("Stopping.");
+    service.shutdown().await;
+    Ok(())
+}
+
 fn cluster_command(data: &Path, command: Command) -> Result<(), ring::BoxError> {
     match command {
         Command::Create { name } => {
@@ -266,9 +335,7 @@ fn cluster_command(data: &Path, command: Command) -> Result<(), ring::BoxError> 
                 data,
                 options,
                 |ticket: &Ticket| {
-                    let text = ticket.encode();
-                    println!("{}", qr_code(&text));
-                    println!("On the new device run:\n\n  omnarc-node join {text}\n");
+                    print_ticket(ticket);
                     println!("Waiting for the device (the ticket is valid for {} min)...", minutes.clamp(1, 10));
                 },
                 |attempt| {
@@ -300,6 +367,10 @@ fn cluster_command(data: &Path, command: Command) -> Result<(), ring::BoxError> 
                 println!("  {:<24} {:<8} {}", name, platform_name(member.device.platform), member.id.fmt_short());
             }
         }
+        Command::Serve { listen, invite } => {
+            let runtime = tokio::runtime::Runtime::new()?;
+            runtime.block_on(serve(data, listen, invite))?;
+        }
         Command::Info { .. } | Command::Id { .. } | Command::Ring(_) => unreachable!("not a cluster command"),
     }
     Ok(())
@@ -309,7 +380,11 @@ fn main() {
     let cli = Cli::parse();
     let data = data_dir(cli.data);
     match cli.command {
-        command @ (Command::Create { .. } | Command::Invite { .. } | Command::Join { .. } | Command::Members) => {
+        command @ (Command::Create { .. }
+        | Command::Invite { .. }
+        | Command::Join { .. }
+        | Command::Members
+        | Command::Serve { .. }) => {
             if let Err(e) = cluster_command(&data, command) {
                 eprintln!("omnarc-node: {e}");
                 std::process::exit(1);

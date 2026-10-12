@@ -4,9 +4,10 @@
 //! without relays or address lookup, and links — unidirectional streams of tensor frames
 //! (`protocol/FRAME.md`) that feed one window of layers on the next device. Stage B2 adds clusters
 //! (`protocol/CLUSTER.md`): the cluster key and membership tokens ([`cluster`]), the ticket and four-emoji check of
-//! joining ([`ticket`]) and the join conversation itself ([`join`]); discovery, relays and gossip follow.
+//! joining ([`ticket`]), the join conversation itself ([`join`]) and the signed gossip of a cluster ([`gossip`]).
 
 pub mod cluster;
+pub mod gossip;
 pub mod join;
 pub mod ticket;
 
@@ -15,9 +16,11 @@ use std::net::SocketAddr;
 use std::path::Path;
 use std::str::FromStr;
 
+pub use iroh::address_lookup::memory::MemoryLookup;
 pub use iroh::endpoint::{Connection, RecvStream, SendStream};
-pub use iroh::{Endpoint, EndpointId, SecretKey};
-use iroh::{EndpointAddr, RelayMode, TransportAddr, endpoint::presets};
+pub use iroh::protocol::{self, Router};
+pub use iroh::{Endpoint, EndpointAddr, EndpointId, SecretKey, TransportAddr};
+use iroh::{RelayMode, endpoint::presets};
 use omnarc_protocol::frame::{FrameError, FrameHeader, HEADER_LEN};
 
 /// ALPN of the tensor streams between neighbors on a ring.
@@ -132,6 +135,24 @@ pub async fn bind_with(key: SecretKey, listen: SocketAddr, alpns: Vec<Vec<u8>>) 
     Endpoint::builder(presets::Minimal)
         .secret_key(key)
         .alpns(alpns)
+        .relay_mode(RelayMode::Disabled)
+        .clear_ip_transports()
+        .bind_addr(listen)
+        .map_err(|e| Error::new("listen address", e))?
+        .bind()
+        .await
+        .map_err(|e| Error::new("binding the endpoint", e))
+}
+
+/// Binds the endpoint of a cluster node on `listen`: no public relays and no public address lookup; members are
+/// found through `lookup`, which the node fills with the addresses it learns from tickets and gossip.
+///
+/// # Errors
+/// The address cannot be bound.
+pub async fn bind_cluster(key: SecretKey, listen: SocketAddr, lookup: MemoryLookup) -> Result<Endpoint> {
+    Endpoint::builder(presets::Minimal)
+        .secret_key(key)
+        .address_lookup(lookup)
         .relay_mode(RelayMode::Disabled)
         .clear_ip_transports()
         .bind_addr(listen)

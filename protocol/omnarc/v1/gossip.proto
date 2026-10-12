@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package omnarc.v1;
 
+import "omnarc/v1/cluster.proto";
 import "omnarc/v1/device.proto";
 import "omnarc/v1/telemetry.proto";
 
@@ -14,6 +15,8 @@ message GossipPayload {
     DeviceInfo device = 2;
     // The device is leaving the cluster on purpose.
     LeaveNotice leave = 3;
+    // A device an admin has just admitted, with its token: any member can check the token against the cluster id.
+    Member member = 4;
   }
 }
 

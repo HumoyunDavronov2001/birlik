@@ -72,4 +72,6 @@ message DeviceInfo {
   float measured_disk_read_mbps = 9;
   // Version of the omnarc-node agent, e.g. "0.1.0".
   string agent_version = 10;
+  // Where the device listens on its networks ("192.168.1.20:7700"); announced over gossip so members can dial it.
+  repeated string direct_addresses = 11;
 }
