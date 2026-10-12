@@ -11,7 +11,7 @@ from the devices in one home to idle devices around the world.
 
 [![CI](https://github.com/HumoyunDavronov2001/birlik/actions/workflows/ci.yml/badge.svg)](https://github.com/HumoyunDavronov2001/birlik/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-3dd7cf)](LICENSE)
-![Status: pre-alpha, stage B1 next](https://img.shields.io/badge/status-pre--alpha%20%C2%B7%20B0%20done-f2c156)
+![Status: pre-alpha, stage B1 in progress](https://img.shields.io/badge/status-pre--alpha%20%C2%B7%20B1%20in%20progress-f2c156)
 
 [Plan](PLAN.md) · [Requirements](REQUIREMENTS.md) · [Design concept](design/concept.html) · [Protocol](protocol/README.md) · [Contributing](CONTRIBUTING.md)
 
@@ -85,7 +85,17 @@ See the full [design concept](design/concept.html) (download it and open it in a
 
 ## Status
 
-**Pre-alpha.** Stage B0 (foundation) is complete; stage B1 (engine) is next. Nothing runs as a cluster yet.
+**Pre-alpha.** Stage B0 (foundation) is complete; stage B1 (engine) is in progress. Nothing runs as a cluster yet.
+
+Stage B1 so far:
+
+- [`engine/`](engine) — libbirlik on llama.cpp: a model splits into **windows of layers** that run as separate
+  shards, with hidden states passed between them ([`engine/patches`](engine/patches/README.md)). The accuracy gate,
+  `birlik-gate`, checks every split against the whole model: on the CPU the split run is bit for bit the whole run,
+  and with the hidden state sent as `f16` the perplexity stays within 0.2%.
+- The engine runs in **its own process**, driven by the agent through shared memory
+  ([`engine/HOST.md`](engine/HOST.md), [`birlik-engine-host`](node/crates/birlik-engine-host)).
+
 Stage B0 delivered:
 
 - [`protocol/`](protocol) — `birlik.v1` messages and the tensor frame spec, with a Rust implementation and property tests.
@@ -100,7 +110,7 @@ Stage B0 delivered:
 | Stage | Scope | Gate |
 |---|---|---|
 | **B0 Foundation** ✓ done | monorepo, CI, protocol v1, design system | CI green on 6 platforms; visual and accessibility checks |
-| **B1 Engine** ← next | llama.cpp + prima.cpp piped-ring, Windows, Vulkan | a 70B model across Linux and Windows machines |
+| **B1 Engine** ← in progress | llama.cpp + prima.cpp piped-ring, Windows, Vulkan | a 70B model across Linux and Windows machines |
 | B2 Network | iroh P2P, QR pairing, peer-to-peer model distribution | two networks behind NAT form one cluster |
 | B3 Scheduler | placement, live join and leave, replicas | recovery within 1 s |
 | B4 Speed | pipelined speculation, MoE, sparse FFN | single-request speed grows with the device count |
@@ -119,7 +129,8 @@ Details: [PLAN.md](PLAN.md) and [REQUIREMENTS.md](REQUIREMENTS.md).
 cargo test --workspace
 cargo run -p birlik-node -- info
 
-# Engine (C++20 with a C ABI)
+# Engine (C++20 on llama.cpp, a git submodule; the tests need Python with numpy)
+git submodule update --init
 cmake -S engine -B build/engine && cmake --build build/engine && ctest --test-dir build/engine
 
 # Design tokens and the concept page
@@ -135,8 +146,8 @@ With [just](https://github.com/casey/just) installed, `just check` runs all of i
 
 ```
 protocol/   Protobuf messages (birlik.v1) and the tensor frame spec
-node/       Rust workspace: birlik-protocol, birlik-node
-engine/     libbirlik — C++20 engine with a C ABI
+node/       Rust workspace: birlik-protocol, birlik-engine-host, birlik-node
+engine/     libbirlik — C++20 engine on llama.cpp with a C ABI
 design/     design tokens, the living ring, the design concept
 web/        Svelte 5 component library (Storybook)
 docs/uz/    Uzbek reading copy of the plan

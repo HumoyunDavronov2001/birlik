@@ -8,8 +8,8 @@ is written in English. The product itself is translated (Uzbek, Russian and more
 | Path | What | Check it with |
 |---|---|---|
 | `protocol/` | Protobuf messages and the tensor frame spec | `buf lint` (run inside `protocol/`) |
-| `node/` | Rust workspace: protocol crate and the node agent | `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace` |
-| `engine/` | C++20 engine with a C ABI | `cmake -S engine -B build/engine && cmake --build build/engine && ctest --test-dir build/engine` |
+| `node/` | Rust workspace: protocol, engine host, node agent | `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, `cargo test --workspace` |
+| `engine/` | C++20 engine on llama.cpp (submodule + `engine/patches`) with a C ABI | `git submodule update --init`, then `cmake -S engine -B build/engine && cmake --build build/engine && ctest --test-dir build/engine` |
 | `design/` | tokens, the living ring, the design concept | `python3 design/colors.py && python3 design/build.py` — generated files must be committed |
 | `web/` | Svelte 5 component library with Storybook | `pnpm install`, `pnpm check`, `pnpm test`, `pnpm build-storybook`, `pnpm test:visual` (inside `web/`) |
 

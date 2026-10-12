@@ -3,9 +3,18 @@ Copyright 2026 Humoyun Davronov and the BIRLIK contributors
 
 Licensed under the Apache License, Version 2.0 (see LICENSE).
 
-No third-party source code is vendored in this repository yet. Each project whose code is
-brought in later is added here with its copyright notice and license, and to UPSTREAM.md
-with the exact upstream commit and the list of our changes.
+Each project whose code is brought in is listed here with its copyright notice and license,
+and in UPSTREAM.md with the exact upstream commit and the list of our changes.
+
+llama.cpp and ggml (engine/third_party/llama.cpp, a git submodule, built into the engine with the
+changes in engine/patches)
+  Copyright (c) 2023-2026 The ggml authors
+  MIT License, see engine/third_party/llama.cpp/LICENSE
+  engine/src/system.cpp adapts common_cpu_get_num_physical_cores from llama.cpp common/common.cpp.
+
+prima.cpp (ideas reimplemented in engine/src: piped-ring windows, prefetching of a window's weights)
+  Copyright (c) 2023-2024 The ggml authors and 2024-2025 the prima.cpp authors
+  MIT License, https://github.com/OpenCPIL/prima.cpp/blob/main/LICENSE
 
 Bundled at build time through npm (not vendored):
   - Inter, (c) The Inter Project Authors, SIL Open Font License 1.1 (@fontsource-variable/inter)
