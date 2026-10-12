@@ -1,6 +1,6 @@
-# Omnarc — to'liq reja (v3, 12.10.2026)
+# Omnarc — to'liq reja (v3.1, 13.10.2026)
 
-> **Oʻzbekcha oʻqish nusxasi (12.10.2026, v3).** Loyihaning asosiy hujjatlari endi ingliz tilida:
+> **Oʻzbekcha oʻqish nusxasi (13.10.2026, v3.1).** Loyihaning asosiy hujjatlari endi ingliz tilida:
 > [PLAN.md](../../PLAN.md) va [REQUIREMENTS.md](../../REQUIREMENTS.md). Bu nusxa siz oʻqishingiz uchun saqlangan.
 > Loyihadagi fayl va token nomlari ham inglizchaga oʻtdi: `dizayn/` → `design/`, `konsepsiya.html` → `concept.html`,
 > `tirik-halqa.js` → `living-ring.js`, `ranglar.py` → `colors.py`, `tokenlar.*` → `tokens.*`, `manba/` → `upstream/`;
@@ -17,9 +17,10 @@
 ## 0. Qisqacha
 
 Omnarc istalgan qurilmani — kompyuter, telefon, server, brauzer — bitta AI klasterga birlashtiradi.
-Qurilma qo'shilgan sari uchta narsa o'sadi: sig'adigan model hajmi, bir vaqtda xizmat qilinadigan
-foydalanuvchilar soni va bitta javobning tezligi. Tizim uydan dunyo miqyosigacha ishlaydi; u javob beradi
-va modelni o'qitadi ham.
+Qurilma qo'shilgan sari to'rtta narsa o'sadi: sig'adigan model hajmi, bir vaqtda xizmat qilinadigan
+foydalanuvchilar soni, bitta javobning tezligi va aniqligi. Tizim uydan dunyo miqyosigacha ishlaydi; u javob beradi
+va modelni o'qitadi ham. Avvalo uchta qo'llanish uchun quriladi ([TALABLAR §1](TALABLAR.md)): o'z modelingizda
+agentlar, oila halqasi va aniqlik rejimi.
 
 ## 1. Arxitektura
 
@@ -54,7 +55,7 @@ flowchart LR
 | `orollar/mlx` | Python | Mac guruhi, RDMA Thunderbolt 5 | exo `worker/engines/mlx` |
 | `orollar/gpu` | Python | NVIDIA/AMD server: vLLM, SGLang | GPUStack `worker/backends` |
 | `omnarc-rele` | Rust | rele, WebRTC signal, ommaviy tarmoq katalogi | iroh-relay |
-| `omnarc-olchov` | Rust + Python | W1–W10 o'lchovi, raqiblar bilan solishtirish | — |
+| `omnarc-olchov` | Rust + Python | W1–W13 o'lchovi, raqiblar bilan solishtirish | — |
 
 Olingan kod `MANBA.md` bilan saqlanadi: upstream manzili, commit va bizning o'zgartirishlar ro'yxati.
 
@@ -132,10 +133,14 @@ Telemetriya: sukut bo'yicha tashqariga **hech narsa** yuborilmaydi.
   NPU amallari o'lchanadi.
 - **Joylashtirish.** HiGHS MILP koordinatorda ishlaydi: ≤ 64 tugun uchun ≤ 1 s. Katta tarmoq 64 tugunli
   guruhlarga bo'linadi va ierarxik rejalanadi.
+- **Hech qachon sekinlashtirmaydi (R6).** Bitta qurilmaga sig'adigan model sekinroq havola orqali bo'linmaydi: ochiq
+  sinovda bunday modelni Wi-Fi orqali bo'lish uni 3–5 marta sekinlashtirdi (Mesh LLM: 1 → 2 → 3 Mac'da
+  68 → 21 → 12–13 token/s). Qo'shimcha qurilmalar butun nusxa oladi — bir vaqtda ko'proq odam, aniqlik rejimi,
+  prefill GPU yoki NPU'li qurilmada. Qatlamlar faqat model sig'magandagina bo'linadi.
 - **Marshrut.** Har bir so'rov uchun Parallax DP replikalar grafidan eng tez yo'lni tanlaydi.
 - **Hodisalar.** Qurilma qo'shilsa, chiqsa, qizisa yoki batareyasi tushsa — oldindan hisoblangan zaxira reja
   ≤ 1 s ichida ishga tushadi; to'liq qayta yechim fonda hisoblanadi.
-- **Maqsad funksiyasi** rejimga qarab tanlanadi: tezlik (TPOT), o'tkazuvchanlik (token/s), tejamkorlik (J/token).
+- **Maqsad funksiyasi** rejimga qarab tanlanadi: tezlik (TPOT), o'tkazuvchanlik (token/s), tejamkorlik (J/token), aniqlik (Y10).
 - **MoE.** Ekspertlar birga faollashish statistikasiga ko'ra joylanadi; issiq ekspertlar EPLB bilan nusxalanadi.
 
 ## 6. Qurilma ilovalari
@@ -278,7 +283,7 @@ Ishlatiladigan joylar: ochiq sahifa, ilovaning ochilish ekrani, birinchi ishga t
 | Halqa | jonli klaster, asosiy raqam, qurilmalar ro'yxati | model tanlash, rejim |
 | Qurilmalar | har qurilma: backend, xotira, harorat, ulush, havolalar | ulush va jadval, chiqarish |
 | Modellar | katalog, «Sig'adimi?», P2P yuklash | ishga tushirish |
-| Suhbat | sinov maydoni, token qaysi qurilmada hisoblangani | savol berish |
+| Suhbat | sinov maydoni, token qaysi qurilmada hisoblangani, aniqlik rejimida — nechta qurilma rozi bo'lgani | savol berish |
 | Kuzatuv | token yo'li vaqt chizig'i, havolalar matritsasi, izlar | sekin joyni topish |
 | O'qitish | LoRA va RL ishlari, raundlar, loss | ish boshlash |
 | Tarmoq | ommaviy tarmoq globusi, kredit | qo'shilish, chiqish |
@@ -306,6 +311,8 @@ yorliqlari bor. Panel jonli ma'lumotni Connect oqimi orqali oladi.
 5. **Uzilish.**
    - Qurilma chiqsa, uning yoyi so'nadi va zaxira yonadi.
    - Bildirishnoma chiqadi: «Telefon uzildi — zaxira davom ettirdi (0,8 s)».
+6. **Kuchsiz telefon — ovozli mijoz (Q6).** Telefon halqaning QR kodini skanerlab mijoz bo'lib qo'shiladi; bitta tugma —
+   bosib turib gapiriladi — javob ovoz bilan qaytadi.
 
 ### 9.7 Platformaga xos tajriba
 
@@ -359,13 +366,13 @@ UI har bosqich bilan birga quriladi — oxiriga qoldirilmaydi.
 | **B0 Poydevor** | monorepo, CI matritsasi, `protokol/` v1, dizayn tokenlari → CSS/Swift/Kotlin, Svelte komponent kutubxonasi (Storybook), NOTICE/MANBA.md | 6 platformada CI yashil; komponentlar vizual regressiyadan o'tadi; axe — 0 xato |
 | **B1 Dvigatel** | libomnarc: yamoqlar, prima piped-ring + oldindan o'qish, CUDA/Vulkan/Metal/CPU, Windows, alohida jarayon | aniqlik darvozasi (Llama 3.x 8B, Qwen3 32B, R1-Distill 70B); Linux + Windows kompyuterlarda 70B ishlaydi; bir xil apparatda TPOT prima.cpp'dan yomon emas |
 | **B2 Tarmoq** | iroh, gossip, Raft, QR + SAS, iroh-blobs, havolalarni o'lchash; panel: birinchi ishga tushirish, Halqa, Qurilmalar | NAT ortidagi 2 xil tarmoqdagi qurilmalar bitta klasterda; 70B bo'laklari P2P tarqaladi (internetdan 1 marta); turmoil'da 1000 ssenariy |
-| **B3 Rejalashtiruvchi** | profiler, HiGHS, marshrut, zaxira reja, KV nusxa, jonli qo'shilish/chiqish, TLA+; panel: «Sig'adimi?», reja ko'rinishi | W6 (≤ 1 s); TLC xossalari; 8 qurilmaga joylashtirish ≤ 1 s |
-| **B4 Tezlik** | pipeline taxminiy dekodlash, MTP/EAGLE-3, PowerInfer, MoE + EPLB, f8 faollashuv, ring attention, radix kesh, batching, prefill/dekod ajratish; panel: token yo'li, havolalar matritsasi | W1, W2, W3 |
-| **B5 Qurilmalar** | Tauri, Android (Compose, Hexagon, `specialUse`), iOS (SwiftUI, Metal, Tun rejimi, Live Activity), brauzer PWA (WASM + WebGPU, WebRTC), NPU darvozasi | W4, W5, W8; Maestro oqimlari; Android API 26–36 |
+| **B3 Rejalashtiruvchi** | profiler, HiGHS, marshrut, zaxira reja, KV nusxa, jonli qo'shilish/chiqish, TLA+, sekinlashtirmaslik qoidasi (R6); panel: «Sig'adimi?», reja ko'rinishi | W6 (≤ 1 s); W11; TLC xossalari; 8 qurilmaga joylashtirish ≤ 1 s |
+| **B4 Tezlik va aniqlik** | pipeline taxminiy dekodlash, MTP/EAGLE-3, PowerInfer, MoE + EPLB, f8 faollashuv, ring attention, radix kesh, batching, prefill/dekod ajratish, aniqlik rejimi (Y10); panel: token yo'li, havolalar matritsasi | W1, W2, W3, W12 |
+| **B5 Qurilmalar** | Tauri, Android (Compose, Hexagon, `specialUse`), iOS (SwiftUI, Metal, Tun rejimi, Live Activity), brauzer PWA (WASM + WebGPU, WebRTC), faqat mijoz telefonlar (Q6), NPU darvozasi | W4, W5, W8; Maestro oqimlari; Android API 26–36 |
 | **B6 Miqyos** | markaz (OIDC/LDAP, RBAC, kvota, jadval, audit), ommaviy tarmoq (katalog, TOPLOC, kredit jurnali); panel: Tashkilot, Tarmoq, Kredit | W7; aldovchi tugunlar 100 % aniqlanadi |
-| **B7 Modallik va o'qitish** | STT, TTS, rasm (stable-diffusion.cpp), embedding; LoRA (DiLoCo), RL rollout; panel: O'qitish | internet orqali 4+ tugunda o'zbekcha LoRA o'qitiladi; audio va rasm API'lari ishlaydi |
-| **B8 Orollar va API** | MLX oroli (RDMA TB5), GPU oroli (vLLM/SGLang), to'liq API moslik; panel: Modellar katalogi | W9; rasmiy SDK'lar (openai, anthropic, ollama) bilan moslik sinovlari |
-| **B9 Jahon o'lchovi va reliz** | omnarc-olchov (exo, prima, Parallax, distributed-llama, llama.cpp RPC bilan bir xil apparatda), natijalar sayti, hujjatlar 4 tilda, imzoli relizlar, do'konlar | W10; v1.0 |
+| **B7 Modallik va o'qitish** | STT, TTS, rasm (stable-diffusion.cpp), embedding; LoRA (DiLoCo), RL rollout; panel: O'qitish | internet orqali 4+ tugunda kam resursli til uchun LoRA o'qitiladi; audio va rasm API'lari ishlaydi; oila halqasi: kuchsiz telefondan (≤ 4 GB) ovozli savolga ovozli javob, birinchi tovush savol tugagach ≤ 3 s, internet o'chiq bo'lsa ham |
+| **B8 Orollar va API** | MLX oroli (RDMA TB5), GPU oroli (vLLM/SGLang), to'liq API moslik, agentlar uchun backend (A4); panel: Modellar katalogi | W9; W13; rasmiy SDK'lar (openai, anthropic, ollama) bilan moslik sinovlari |
+| **B9 Jahon o'lchovi va reliz** | omnarc-olchov (exo, prima, Parallax, distributed-llama, llama.cpp RPC, Mesh LLM, colibri bilan bir xil apparatda), natijalar sayti, hujjatlar 4 tilda, imzoli relizlar, do'konlar | W10; v1.0 |
 
 ## 12. Tarqatish
 

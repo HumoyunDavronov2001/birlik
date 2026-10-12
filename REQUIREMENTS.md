@@ -1,6 +1,6 @@
 # Omnarc — turning every device in the world into one AI
 
-> *Omnarc* = *omni* (all) + *arc*: every device is an arc of one ring. Open source, Apache-2.0. Version 3 (October 12, 2026).
+> *Omnarc* = *omni* (all) + *arc*: every device is an arc of one ring. Open source, Apache-2.0. Version 3.1 (October 13, 2026).
 > Upstream source code lives in `upstream/`. All reused code is MIT or Apache-2.0 (table in §7).
 > **How it gets built** (architecture, technologies, design system, stages) — [PLAN.md](PLAN.md).
 > An Uzbek reading copy of these documents is kept in [docs/uz/](docs/uz/).
@@ -20,6 +20,24 @@ It works at three scales:
 
 It covers inference (answering), training (fine-tuning, RL) and many model types (text, speech, images, embeddings).
 
+### What people use it for
+
+Three uses come first. Each one needs a cluster: one device cannot give it, and a paid cloud gives it only on its own
+terms.
+
+1. **Agents on your own model.** Coding and personal agents (OpenClaw, OpenCode and others) run on a frontier-class
+   open model — Qwen3.5-397B, DeepSeek-V4-Flash or GLM-5.2 class — spread over the owner's computers: no per-token
+   bill, no rate limit, no account that can be closed. At 4 bits such a model needs about 150–400 GB of memory. One
+   computer can only stream it from disk: colibri runs GLM-5.2 at 0.05–0.1 tokens/s on a 25 GB laptop and
+   1.83 tokens/s with 128 GB (its README, October 2026). A cluster keeps the whole model in memory (A4, W13).
+2. **The family ring.** The devices of a family, a class or a team share one assistant that listens and speaks in
+   their own language, including languages that small models handle poorly. A weak phone uses it by voice without
+   computing anything (Q6); every device the family adds lets a stronger model fit. No subscription, and the data
+   stays with the family. Where the internet is cut, nearby devices keep the ring going over a local network or
+   Wi-Fi Direct (Y6).
+3. **Accuracy mode.** For a question where a mistake is costly, several devices work on it in parallel and check each
+   other; the answer shows how many of them agreed (Y10, W12).
+
 ## 2. World-class competitors and their limits
 
 | System | Strength | Limit |
@@ -31,11 +49,13 @@ It covers inference (answering), training (fine-tuning, RL) and many model types
 | Petals | BitTorrent-style public network | inactive since 2024; GPUs only |
 | distributed-llama | tensor parallelism on CPUs | identical devices only, LAN |
 | Prime Intellect / Psyche | training over the internet | data-center GPUs only; no inference |
+| Mesh LLM (July 2026) | splits a model across computers on a LAN or over the internet (iroh, Rust); OpenAI-compatible API | macOS and Linux; no phones yet, no browsers, no training; in a public test, splitting a model that already fit on one Mac made it 3–5× slower (68 → 21 → 12–13 tokens/s on 1 → 2 → 3 Macs over Wi-Fi) |
+| colibri (July 2026) | 744B MoE models on one machine, streaming experts from disk (pure C) | one machine only, bound by its disk: GLM-5.2 at 0.05–0.1 tokens/s on a 25 GB laptop, 1.83 tokens/s with 128 GB |
 
 **None of them does three things at once: any device (phone, browser, NPU), any scale (from one home to the whole
 world), and inference together with training.** Omnarc brings all three together.
 
-## 3. Nine ideas that make it world-class
+## 3. Ten ideas that make it world-class
 
 ### Y1. More devices make a single answer faster too
 In a plain pipeline a token visits the devices one by one while the rest wait.
@@ -96,6 +116,14 @@ phone takes Q4.
 A phone's KV cache fills up quickly. For very long inputs the sequence is split across devices (ring attention),
 so the context length grows with the number of devices.
 
+### Y10. More devices make an answer more accurate too
+Accuracy can be bought with compute. PaCoRe (January 2026) let an open 8B model reason along many parallel paths that
+exchange short messages — about two million tokens per problem — and it scored 94.5% on HMMT 2025, above GPT-5
+(93.2%).
+**Solution:** in accuracy mode, devices that each hold a whole copy of a model reason along different paths at the same
+time, exchange short summaries and compose one answer; the answer shows how many devices agreed. Only short messages
+cross the network, so phones and internet links work as well as a LAN.
+
 ## 4. Trust and privacy (decisions for the public network)
 
 - **Raw text never leaves the device.** On the public network the first and last layers (embedding and output)
@@ -121,6 +149,8 @@ so the context length grows with the number of devices.
 - D5 — Y3: CPU+GPU+NPU working together, with the accuracy gate.
 - D6 — Dynamic batching, prefill/decode disaggregation (exo `disaggregated`), per-device quantization.
 - D7 — Beyond text: speech-to-text, text-to-speech, images, embeddings. Small models are given to phones whole.
+- D8 — Y10: accuracy mode — parallel reasoning on whole copies of a model, short messages between the paths, one
+  answer composed from them together with the number of devices that agreed.
 
 **Network (T)**
 - T1 — The node agent is a single Rust binary for Linux, Windows, macOS, Android and iOS.
@@ -134,8 +164,11 @@ so the context length grows with the number of devices.
   links, battery, heat and energy (joules per token).
 - R2 — When a device joins or leaves at runtime, the plan is rebuilt without stopping.
 - R3 — Y7: replica layers, KV cache copies, recovery within ≤ 1 s.
-- R4 — The mode is picked automatically per request: latency / throughput / capacity.
+- R4 — The mode is picked automatically per request: latency / throughput / capacity / accuracy.
 - R5 — Tensor-parallel groups form only over ≤ 1 ms links; between groups, pipelining.
+- R6 — Never slower: a model that fits on one device is never split over a slower link. Extra devices hold whole
+  copies instead — more people served at once, accuracy mode (Y10), prefill on a GPU or NPU device (D6). Layers are
+  split only when a model does not fit.
 
 **Devices (Q)**
 - Q1 — A tray app for Linux, Windows and macOS; the owner sets the resource share and working hours.
@@ -148,9 +181,12 @@ so the context length grows with the number of devices.
   so the page is loaded from the project domain and cached. On a network with no internet at all, a browser node
   works only if the page was cached before.
 - Q5 — Battery and heat limits: a device hands its work to a replica when it reaches them.
+- Q6 — A weak phone (≤ 4 GB of memory) can join as a client only: it sends speech or text and plays the answer; it
+  holds no layers.
 
 **Scale (K)**
-- K1 — Personal cluster.
+- K1 — Personal cluster, including the family ring (§1): the members of a family or a team share one assistant, and
+  each member's chat history stays on that member's device.
 - K2 — Organization cluster: working-hours schedule, sign-in through Active Directory/LDAP, central policy.
 - K3 — Public network: the trust, privacy and credit rules of §4.
 
@@ -162,6 +198,8 @@ so the context length grows with the number of devices.
 - A1 — Compatible with the OpenAI, Claude Messages and Ollama APIs (exo `api/adapters`).
 - A2 — A live world map: nodes, flows, the layers on each device, energy.
 - A3 — Users, keys, token accounting, Prometheus (GPUStack).
+- A4 — Agent backend: OpenClaw, OpenCode and other agents connect through A1. The prefix cache keeps their long,
+  repeated instructions, so a turn computes only its new tokens; tool calls, structured output and long contexts work.
 
 **UI/UX (U)** — details in [PLAN.md §9](PLAN.md)
 - U1 — The **Ring** home screen. Every device is one arc; the arc length equals its share of layers and its color
@@ -192,7 +230,7 @@ so the context length grows with the number of devices.
 | # | Criterion |
 |---|---|
 | W1 | Single-request speed grows with the number of devices (measured on 2 → 4 → 8 → 16 devices) |
-| W2 | On the same hardware, faster than exo, prima.cpp, Parallax and distributed-llama on a 70B model |
+| W2 | On the same hardware, faster than exo, prima.cpp, Parallax, distributed-llama and Mesh LLM on a 70B model |
 | W3 | A 1T MoE (Kimi K2 class) runs on a set of ordinary devices with ≤ 32 GB of memory each |
 | W4 | Six node types: Linux, Windows, macOS, Android, iOS, browser |
 | W5 | Compute units: CUDA, ROCm/Vulkan, Metal, OpenCL, NPU |
@@ -201,6 +239,9 @@ so the context length grows with the number of devices.
 | W8 | Joining from a browser via QR ≤ 30 s |
 | W9 | Throughput on an NVIDIA server is no worse than vLLM's |
 | W10 | Every benchmark script is open; anyone can reproduce the results |
+| W11 | Adding a device never makes a request slower: for a model that fits on one device, TPOT on 1 → 2 → 4 devices over Wi-Fi is never worse than on the best single device |
+| W12 | Accuracy mode: 8 devices running the same small model (≤ 4B parameters) score at least 5 points higher than one device on a public maths benchmark (AIME class), with ≤ 1 MB of network traffic per question |
+| W13 | Agents on a frontier-class open model: OpenClaw and OpenCode finish a fixed task set on a ≥ 280B open MoE spread over ordinary computers (≤ 64 GB of memory each), faster end to end than colibri and Mesh LLM on the same computers |
 
 ## 7. Open-source code we reuse
 
@@ -228,13 +269,13 @@ stage (U1–U11), never left for the end.
 | B0 Foundation | U2, U3, U4 (design system, components), CI, protocol v1 |
 | B1 Engine | D1, D2 |
 | B2 Network | T1–T5, U1, U6, U11 |
-| B3 Scheduler | R1–R5 |
-| B4 Speed | D3, D4, D6, Y9 |
-| B5 Devices | Q1–Q5, D5, U8, U10 |
+| B3 Scheduler | R1–R6 |
+| B4 Speed and accuracy | D3, D4, D6, D8, Y9 |
+| B5 Devices | Q1–Q6, D5, U8, U10 |
 | B6 Scale | K1–K3 |
 | B7 Modalities and training | D7, O1, O2 |
-| B8 Islands and API | A1–A3, U7 |
-| B9 World benchmark | W1–W10, U9 |
+| B8 Islands and API | A1–A4, U7 |
+| B9 World benchmark | W1–W13, U9 |
 
 ## 9. GitHub
 

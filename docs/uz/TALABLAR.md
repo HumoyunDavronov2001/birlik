@@ -1,6 +1,6 @@
 # Omnarc — dunyodagi har qanday qurilmani bitta AI kuchiga aylantirish
 
-> **Oʻzbekcha oʻqish nusxasi (12.10.2026, v3).** Loyihaning asosiy hujjatlari endi ingliz tilida:
+> **Oʻzbekcha oʻqish nusxasi (13.10.2026, v3.1).** Loyihaning asosiy hujjatlari endi ingliz tilida:
 > [PLAN.md](../../PLAN.md) va [REQUIREMENTS.md](../../REQUIREMENTS.md). Bu nusxa siz oʻqishingiz uchun saqlangan.
 > Loyihadagi fayl va token nomlari ham inglizchaga oʻtdi: `dizayn/` → `design/`, `konsepsiya.html` → `concept.html`,
 > `tirik-halqa.js` → `living-ring.js`, `ranglar.py` → `colors.py`, `tokenlar.*` → `tokens.*`, `manba/` → `upstream/`;
@@ -8,7 +8,8 @@
 > `--oltin` → `--gold`, `--oltin-belgi` → `--gold-mark`, `--lojuvard` → `--lapis`, `--yuklama-N` → `--load-N`.
 > Interfeysning asosiy tili — ingliz tili; oʻzbekcha (lotin, kirill) va ruscha — tarjima.
 
-> *Omnarc* = *omni* (hammasi) + *arc* (yoy): har bir qurilma — bitta halqaning yoyi. Ochiq loyiha, Apache-2.0. Versiya 3 (12.10.2026): texnologiya, dizayn va UI/UX talablari qo'shildi.
+> *Omnarc* = *omni* (hammasi) + *arc* (yoy): har bir qurilma — bitta halqaning yoyi. Ochiq loyiha, Apache-2.0. Versiya 3.1 (13.10.2026): uchta asosiy qo'llanish, aniqlik rejimi (Y10) va «hech qachon sekinlashtirmaydi»
+> qoidasi (R6) qo'shildi.
 > Manba kodlar `manba/` ichida. Ishlatiladigan kodlarning litsenziyalari Apache-2.0 bilan mos (jadval 7-bo'limda).
 > **Qanday qilinadi** (arxitektura, texnologiyalar, dizayn tizimi, bosqichlar) — [REJA.md](REJA.md).
 
@@ -28,6 +29,24 @@ U uch miqyosda ishlaydi:
 
 Ishlatilishi: inference (javob berish), o'qitish (fine-tuning, RL) va har xil modellar (matn, nutq, rasm, embedding).
 
+### Nima uchun ishlatiladi
+
+Avvalo uchta qo'llanish. Har biriga klaster kerak: bitta qurilma buni bera olmaydi, pullik bulut esa faqat o'z
+shartlari bilan beradi.
+
+1. **Agentlar o'z modelida.** Dasturlash va shaxsiy agentlar (OpenClaw, OpenCode va boshqalar) egasining
+   kompyuterlariga yoyilgan eng kuchli ochiq modelda ishlaydi — Qwen3.5-397B, DeepSeek-V4-Flash yoki GLM-5.2 sinfi:
+   token uchun to'lov yo'q, cheklov yo'q, yopib qo'yiladigan hisob yo'q. 4 bitda bunday model taxminan 150–400 GB
+   xotira talab qiladi. Bitta kompyuter uni faqat diskdan o'qiy oladi: colibri GLM-5.2 ni 25 GB li noutbukda
+   soniyasiga 0,05–0,1 token, 128 GB da 1,83 token tezlikda ishlatadi (README, 2026-yil oktabr). Klaster esa butun
+   modelni xotirada ushlaydi (A4, W13).
+2. **Oila halqasi.** Oila, sinf yoki jamoa qurilmalari bitta umumiy yordamchini ishlatadi; u o'z tilida tinglaydi va
+   gapiradi, kichik modellar yomon biladigan tillarda ham. Kuchsiz telefon unga hech narsa hisoblamasdan ovoz bilan
+   murojaat qiladi (Q6); oila qo'shgan har qurilma kuchliroq modelni sig'diradi. Obuna yo'q, ma'lumot oilada qoladi.
+   Internet uzilgan joyda yaqin qurilmalar halqani mahalliy tarmoq yoki Wi-Fi Direct orqali davom ettiradi (Y6).
+3. **Aniqlik rejimi.** Xatosi qimmat savolda bir nechta qurilma parallel ishlaydi va bir-birini tekshiradi; javobda
+   nechta qurilma rozi bo'lgani ko'rsatiladi (Y10, W12).
+
 ## 2. Jahon darajasidagi raqiblar va ularning chegarasi
 
 | Tizim | Kuchi | Chegarasi |
@@ -39,11 +58,13 @@ Ishlatilishi: inference (javob berish), o'qitish (fine-tuning, RL) va har xil mo
 | Petals | BitTorrent uslubidagi ommaviy tarmoq | 2024 yildan beri to'xtagan; faqat GPU |
 | distributed-llama | CPU'da tensor parallel | faqat bir xil qurilmalar, LAN |
 | Prime Intellect / Psyche | internet orqali o'qitish | faqat ma'lumot markazi GPU'lari, inference emas |
+| Mesh LLM (2026-yil iyul) | modelni LAN yoki internet orqali kompyuterlarga bo'ladi (iroh, Rust); OpenAI'ga mos API | macOS va Linux; telefon hali yo'q, brauzer va o'qitish yo'q; ochiq sinovda bitta Mac'ga sig'ib turgan modelni bo'lish uni 3–5 marta sekinlashtirdi (Wi-Fi'da 1 → 2 → 3 Mac: 68 → 21 → 12–13 token/s) |
+| colibri (2026-yil iyul) | 744B MoE modellarni bitta kompyuterda, ekspertlarni diskdan o'qib ishlatadi (sof C) | faqat bitta kompyuter, disk tezligiga bog'liq: GLM-5.2 25 GB li noutbukda 0,05–0,1 token/s, 128 GB da 1,83 token/s |
 
 **Hech biri bir vaqtda uchta narsani qila olmaydi: istalgan qurilma (telefon, brauzer, NPU), istalgan miqyos
 (uydan dunyogacha) va inference bilan o'qitish birgalikda.** Omnarc shu uchalasini birlashtiradi.
 
-## 3. Jahon darajasiga olib chiqadigan 8 ta yechim
+## 3. Jahon darajasiga olib chiqadigan 10 ta yechim
 
 ### Y1. Qurilma ko'paygan sari bitta javob ham tezlashadi
 Oddiy pipeline'da token qurilmalardan navbat bilan o'tadi, qolgan qurilmalar kutib turadi.
@@ -104,6 +125,14 @@ formatiga o'girilgan qatlamlarni oladi. Kuchli qurilmaga Q8, kuchsiz telefonga Q
 Telefonlarda KV kesh tez to'ladi. Juda uzun matnlar uchun ketma-ketlik qurilmalarga bo'linadi (ring attention).
 Shunda kontekst uzunligi qurilmalar soniga qarab o'sadi.
 
+### Y10. Qurilma ko'paygan sari javob aniqroq ham bo'ladi
+Aniqlikni hisoblash bilan sotib olish mumkin. PaCoRe (2026-yil yanvar) ochiq 8B modelga qisqa xabar almashadigan ko'p
+parallel yo'l bilan o'ylashga imkon berdi — har masalaga taxminan ikki million token — va u HMMT 2025 da 94,5 % oldi,
+GPT-5 dan (93,2 %) yuqori.
+**Yechim:** aniqlik rejimida har biri modelning butun nusxasini ushlagan qurilmalar bir vaqtda turli yo'llar bilan
+o'ylaydi, qisqa xulosalar almashadi va bitta javob tuzadi; javobda nechta qurilma rozi bo'lgani ko'rsatiladi.
+Tarmoqdan faqat qisqa xabarlar o'tadi, shuning uchun telefonlar va internet ham LAN kabi yaxshi ishlaydi.
+
 ## 4. Ishonch va maxfiylik (ommaviy tarmoq uchun qarorlar)
 
 - **Xom matn tarmoqqa chiqmaydi.** Ommaviy tarmoqda birinchi va oxirgi qatlamlar (embedding va chiqish)
@@ -130,6 +159,8 @@ Shunda kontekst uzunligi qurilmalar soniga qarab o'sadi.
 - D5 — Y3: CPU+GPU+NPU birga ishlashi va aniqlik darvozasi.
 - D6 — Dinamik batching, prefill/dekod ajratish (exo `disaggregated`), har qurilmaga o'z kvantlashi.
 - D7 — Matndan tashqari modellar: STT, TTS, rasm, embedding. Kichik modellar telefonlarga butunligicha beriladi.
+- D8 — Y10: aniqlik rejimi — modelning butun nusxalarida parallel o'ylash, yo'llar orasida qisqa xabarlar, ulardan
+  tuzilgan bitta javob va nechta qurilma rozi bo'lgani.
 
 **Tarmoq (T)**
 - T1 — Tugun agenti — bitta Rust ikkilik fayl: Linux, Windows, macOS, Android, iOS.
@@ -143,8 +174,11 @@ Shunda kontekst uzunligi qurilmalar soniga qarab o'sadi.
   xotira, hisoblash, disk, havola, batareya, qizish, energiya (joul/token).
 - R2 — Qurilma ish paytida qo'shilsa yoki chiqsa, reja to'xtamasdan qayta tuziladi.
 - R3 — Y7: zaxira qatlamlar, KV kesh nusxasi, ≤ 1 s ichida davom etish.
-- R4 — Rejim so'rovga qarab avtomatik tanlanadi: tezlik / o'tkazuvchanlik / sig'im.
+- R4 — Rejim so'rovga qarab avtomatik tanlanadi: tezlik / o'tkazuvchanlik / sig'im / aniqlik.
 - R5 — Tensor parallel guruhlari faqat ≤ 1 ms havolalarda tuziladi, guruhlar orasida pipeline.
+- R6 — Hech qachon sekinlashtirmaydi: bitta qurilmaga sig'adigan model sekinroq havola orqali hech qachon bo'linmaydi.
+  Qo'shimcha qurilmalar uning butun nusxasini oladi — bir vaqtda ko'proq odamga xizmat, aniqlik rejimi (Y10),
+  prefill GPU yoki NPU'li qurilmada (D6). Qatlamlar faqat model sig'magandagina bo'linadi.
 
 **Qurilmalar (Q)**
 - Q1 — Linux, Windows va macOS uchun tray ilova; foydalanuvchi resurs ulushini va ish vaqtini o'zi belgilaydi.
@@ -157,9 +191,12 @@ Shunda kontekst uzunligi qurilmalar soniga qarab o'sadi.
   WebGPU faqat HTTPS sahifada ishlaydi, shuning uchun sahifa loyiha domenidan yuklanib keshda qoladi.
   Internet umuman yo'q tarmoqda brauzer tuguni faqat oldin keshlangan bo'lsa ishlaydi.
 - Q5 — Batareya va qizish chegarasi: qurilma yukini zaxiraga bo'shatib beradi.
+- Q6 — Kuchsiz telefon (xotirasi ≤ 4 GB) faqat mijoz bo'lib qo'shila oladi: ovoz yoki matn yuboradi va javobni
+  eshittiradi; qatlam ushlamaydi.
 
 **Miqyos (M)**
-- K1 — Shaxsiy klaster.
+- K1 — Shaxsiy klaster, oila halqasi bilan (§1): oila yoki jamoa a'zolari bitta yordamchini ishlatadi, har a'zoning
+  suhbatlari faqat o'z qurilmasida saqlanadi.
 - K2 — Tashkilot klasteri: ish vaqti jadvali, Active Directory/LDAP orqali kirish, markaziy siyosat.
 - K3 — Ommaviy tarmoq: 4-bo'limdagi ishonch, maxfiylik va kredit qoidalari.
 
@@ -171,6 +208,9 @@ Shunda kontekst uzunligi qurilmalar soniga qarab o'sadi.
 - A1 — OpenAI, Claude Messages va Ollama API'lariga mos (exo `api/adapters`).
 - A2 — Jonli dunyo xaritasi: tugunlar, oqimlar, har qurilmadagi qatlamlar, energiya.
 - A3 — Foydalanuvchilar, kalitlar, token hisobi, Prometheus (GPUStack).
+- A4 — Agentlar uchun backend: OpenClaw, OpenCode va boshqa agentlar A1 orqali ulanadi. Prefiks keshi ularning uzun,
+  takrorlanadigan ko'rsatmalarini saqlaydi — har navbatda faqat yangi tokenlar hisoblanadi; asbob chaqiruvlari,
+  tuzilgan javob va uzun kontekst ishlaydi.
 
 **UI/UX (U)** — batafsil [REJA.md §9](REJA.md)
 - U1 — «Halqa» bosh ekrani. Har qurilma — bitta yoy; yoy uzunligi qatlamlar ulushiga teng, rangi joriy yuklamani
@@ -201,7 +241,7 @@ Shunda kontekst uzunligi qurilmalar soniga qarab o'sadi.
 | # | Mezon |
 |---|---|
 | W1 | Bitta so'rov tezligi qurilma soni oshgan sari o'sadi (2 → 4 → 8 → 16 qurilmada o'lchanadi) |
-| W2 | Bir xil apparatda 70B modelda exo, prima.cpp, Parallax va distributed-llama'dan tezroq |
+| W2 | Bir xil apparatda 70B modelda exo, prima.cpp, Parallax, distributed-llama va Mesh LLM'dan tezroq |
 | W3 | 1T MoE (Kimi K2 sinfi) xotirasi ≤ 32 GB bo'lgan oddiy qurilmalar to'plamida ishlaydi |
 | W4 | 6 xil tugun turi: Linux, Windows, macOS, Android, iOS, brauzer |
 | W5 | Hisoblash bloklari: CUDA, ROCm/Vulkan, Metal, OpenCL, NPU |
@@ -210,6 +250,9 @@ Shunda kontekst uzunligi qurilmalar soniga qarab o'sadi.
 | W8 | Brauzerdan QR orqali qo'shilish ≤ 30 s |
 | W9 | NVIDIA serverda o'tkazuvchanlik vLLM'nikidan kam emas |
 | W10 | Barcha o'lchov skriptlari ochiq; istalgan odam natijani takrorlay oladi |
+| W11 | Qurilma qo'shish so'rovni hech qachon sekinlashtirmaydi: bitta qurilmaga sig'adigan modelda Wi-Fi orqali 1 → 2 → 4 qurilmada TPOT eng yaxshi bitta qurilmadagidan yomon emas |
+| W12 | Aniqlik rejimi: bir xil kichik modelni (≤ 4B parametr) ishlatgan 8 ta qurilma ochiq matematika testida (AIME sinfi) bitta qurilmadan kamida 5 ball ko'p oladi; har savolga tarmoq trafigi ≤ 1 MB |
+| W13 | Eng kuchli ochiq modelda agentlar: OpenClaw va OpenCode oddiy kompyuterlarga (har biri ≤ 64 GB xotira) yoyilgan ≥ 280B ochiq MoE modelda belgilangan topshiriqlar to'plamini o'sha kompyuterlardagi colibri va Mesh LLM'dan tezroq bajaradi |
 
 ## 7. Ishlatiladigan ochiq kodlar
 
@@ -237,13 +280,13 @@ quriladi (U1–U10), oxirga qoldirilmaydi.
 | B0 Poydevor | U2, U3, U4 (dizayn tizimi, komponentlar), CI, protokol v1 |
 | B1 Dvigatel | D1, D2 |
 | B2 Tarmoq | T1–T5, U1, U6 |
-| B3 Rejalashtiruvchi | R1–R5 |
-| B4 Tezlik | D3, D4, D6, Y9 |
-| B5 Qurilmalar | Q1–Q5, D5, U8, U10 |
+| B3 Rejalashtiruvchi | R1–R6 |
+| B4 Tezlik va aniqlik | D3, D4, D6, D8, Y9 |
+| B5 Qurilmalar | Q1–Q6, D5, U8, U10 |
 | B6 Miqyos | K1–K3 |
 | B7 Modallik va o'qitish | D7, O1, O2 |
-| B8 Orollar va API | A1–A3, U7 |
-| B9 Jahon o'lchovi | W1–W10, U9 |
+| B8 Orollar va API | A1–A4, U7 |
+| B9 Jahon o'lchovi | W1–W13, U9 |
 
 ## 9. GitHub
 

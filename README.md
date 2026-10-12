@@ -36,12 +36,26 @@ tools each cover only one corner of it:
 
 The Omnarc column lists goals of the [roadmap](#roadmap), not shipped features.
 
+## What it is for
+
+- **Agents on your own model.** OpenClaw, OpenCode and other agents run on a frontier-class open model spread over
+  your own computers — no per-token bill and no rate limit. One computer can only stream such a model from disk; a
+  cluster keeps all of it in memory.
+- **The family ring.** A family or a team shares one assistant that speaks their language; a weak phone joins by voice
+  and computes nothing.
+- **Accuracy mode.** Several devices answer the same question in parallel and check each other, and the answer shows
+  how many of them agreed.
+
+These are goals of the [roadmap](#roadmap), stages B4, B7 and B8.
+
 ## How it works
 
 - **Every device is an arc on the ring.** A model's layers are split across devices in proportion to their measured
   power, and a token travels around the ring through each of them.
 - **More devices make a single answer faster, too.** A continuous pipeline with speculative decoding keeps every
   device busy at the same time instead of waiting for its turn.
+- **Adding a device never slows you down.** A model that fits on one device gets whole copies on the others, not
+  slices; layers are split only when a model does not fit.
 - **Only what is active is computed.** MoE experts and hot/cold neurons are spread across devices, so
   trillion-parameter models fit on ordinary hardware.
 - **Nothing stops when a device leaves.** Layer replicas and continuously copied KV caches take over within a second.
@@ -117,13 +131,13 @@ Stage B0 delivered:
 | **B0 Foundation** ✓ done | monorepo, CI, protocol v1, design system | CI green on 6 platforms; visual and accessibility checks |
 | **B1 Engine** ← in progress | llama.cpp + prima.cpp piped-ring, Windows, Vulkan | a 70B model across Linux and Windows machines |
 | B2 Network | iroh P2P, QR pairing, peer-to-peer model distribution | two networks behind NAT form one cluster |
-| B3 Scheduler | placement, live join and leave, replicas | recovery within 1 s |
-| B4 Speed | pipelined speculation, MoE, sparse FFN | single-request speed grows with the device count |
+| B3 Scheduler | placement, live join and leave, replicas | recovery within 1 s; adding a device never slows a request |
+| B4 Speed and accuracy | pipelined speculation, MoE, sparse FFN, accuracy mode | single-request speed grows with the device count; 8 devices answer more accurately than one |
 | B5 Devices | desktop, Android, iOS, browser, NPU | six node types; joining from a browser in 30 s |
 | B6 Scale | organizations, public network, credits | 1,000+ nodes |
-| B7 Modalities and training | speech, images, LoRA, RL | distributed LoRA over the internet |
-| B8 Islands and API | MLX, vLLM/SGLang, OpenAI/Claude/Ollama APIs | throughput on par with vLLM on NVIDIA |
-| B9 World benchmark | open benchmarks against exo, prima.cpp, Parallax and others | v1.0 |
+| B7 Modalities and training | speech, images, LoRA, RL, the family ring | distributed LoRA over the internet; spoken answers on a weak phone |
+| B8 Islands and API | MLX, vLLM/SGLang, OpenAI/Claude/Ollama APIs, agent backend | throughput on par with vLLM on NVIDIA; agents on a frontier-class open model |
+| B9 World benchmark | open benchmarks against exo, prima.cpp, Parallax, Mesh LLM, colibri and others | v1.0 |
 
 Details: [PLAN.md](PLAN.md) and [REQUIREMENTS.md](REQUIREMENTS.md).
 
@@ -158,7 +172,7 @@ omnarc-node ring --model model.gguf --layers 40:80 --listen 0.0.0.0:7700 \
 
 # the head: layers 0–39 and the output head (layer 80); it generates and prints the time per token
 omnarc-node ring --model model.gguf --layers 0:40,80:81 --listen 0.0.0.0:7700 \
-  --next <worker id>@<worker ip>:7700 --prev <worker id> --prompt "Tell me about Samarkand." --generate 64
+  --next <worker id>@<worker ip>:7700 --prev <worker id> --prompt "Explain how a ring of devices runs one model." --generate 64
 ```
 
 ## Repository
