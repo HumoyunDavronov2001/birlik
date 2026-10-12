@@ -38,7 +38,7 @@ jobs:
           cd engine/third_party/llama.cpp
           git fetch --depth 1 origin tag "$TAG"
           git checkout -q "$TAG"
-          git -c user.name="BIRLIK CI" -c user.email="ci@users.noreply.github.com" \
+          git -c user.name="Omnarc CI" -c user.email="ci@users.noreply.github.com" \
             am --3way "$GITHUB_WORKSPACE"/engine/patches/*.patch
           rm "$GITHUB_WORKSPACE"/engine/patches/*.patch
           git format-patch --zero-commit --no-signature -o "$GITHUB_WORKSPACE/engine/patches" "$TAG..HEAD"
@@ -75,18 +75,18 @@ jobs:
       - name: Build the engine
         run: |
           cmake -S engine -B build/engine -DCMAKE_BUILD_TYPE=Release \
-            -DBIRLIK_TEST_MODEL="$PWD/build/models/stories15M-q8_0.gguf"
+            -DOMNARC_TEST_MODEL="$PWD/build/models/stories15M-q8_0.gguf"
           cmake --build build/engine --parallel
       - name: The accuracy gate
         run: ctest --test-dir build/engine --output-on-failure
       - uses: dtolnay/rust-toolchain@stable
       - name: The engine process and the ring
         env:
-          BIRLIK_ENGINE: ${{ github.workspace }}/build/engine/birlik-engine
-          BIRLIK_TEST_MODEL: ${{ github.workspace }}/build/models/stories15M-q8_0.gguf
+          OMNARC_ENGINE: ${{ github.workspace }}/build/engine/omnarc-engine
+          OMNARC_TEST_MODEL: ${{ github.workspace }}/build/models/stories15M-q8_0.gguf
         run: |
-          cargo test -p birlik-engine-host --features engine-tests
-          cargo test -p birlik-node --features engine-tests
+          cargo test -p omnarc-engine-host --features engine-tests
+          cargo test -p omnarc-node --features engine-tests
       - name: Pull request
         if: steps.upstream.outputs.behind == 'true'
         uses: peter-evans/create-pull-request@v7

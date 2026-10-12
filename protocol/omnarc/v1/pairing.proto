@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package omnarc.v1;
+
+import "omnarc/v1/device.proto";
+
+// The content of the QR code shown on a device that invites another device.
+message ClusterTicket {
+  ClusterId cluster = 1;
+  // The inviting device; the new device dials it first.
+  NodeId inviter = 2;
+  // Relay URLs used when a direct connection cannot be established.
+  repeated string relay_urls = 3;
+  // 16 random bytes, valid once and only until expires_unix_ms.
+  bytes one_time_secret = 4;
+  int64 expires_unix_ms = 5;
+}
+
+// Sent by the new device after it dials the inviter.
+//
+// Both devices derive a short authentication string (SAS) from
+// BLAKE3("omnarc/v1/sas" || inviter key || joiner key || one_time_secret) and show the first
+// four 6-bit groups as emoji. The owner confirms that both screens show the same four symbols.
+message JoinRequest {
+  DeviceInfo device = 1;
+  // HMAC-BLAKE3 of the joiner's public key, keyed with the ticket's one_time_secret.
+  bytes secret_proof = 2;
+}
+
+message JoinResponse {
+  bool accepted = 1;
+  // Why the request was refused; empty when accepted.
+  string reason = 2;
+  // Biscuit token granting the device its rights in the cluster (node, user, admin).
+  bytes membership_token = 3;
+}

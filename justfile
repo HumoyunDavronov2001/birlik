@@ -27,15 +27,15 @@ engine:
 engine-real:
     mkdir -p build/models
     test -f build/models/stories15M-q8_0.gguf || curl -sSfL -o build/models/stories15M-q8_0.gguf https://huggingface.co/ggml-org/models-moved/resolve/main/tinyllamas/stories15M-q8_0.gguf
-    cmake -S engine -B build/engine -DBIRLIK_TEST_MODEL="$PWD/build/models/stories15M-q8_0.gguf"
+    cmake -S engine -B build/engine -DOMNARC_TEST_MODEL="$PWD/build/models/stories15M-q8_0.gguf"
     cmake --build build/engine --parallel
     ctest --test-dir build/engine --output-on-failure
-    BIRLIK_ENGINE="$PWD/build/engine/birlik-engine" BIRLIK_TEST_MODEL="$PWD/build/models/stories15M-q8_0.gguf" cargo test -p birlik-engine-host --features engine-tests
-    BIRLIK_ENGINE="$PWD/build/engine/birlik-engine" BIRLIK_TEST_MODEL="$PWD/build/models/stories15M-q8_0.gguf" cargo test -p birlik-node --features engine-tests
+    OMNARC_ENGINE="$PWD/build/engine/omnarc-engine" OMNARC_TEST_MODEL="$PWD/build/models/stories15M-q8_0.gguf" cargo test -p omnarc-engine-host --features engine-tests
+    OMNARC_ENGINE="$PWD/build/engine/omnarc-engine" OMNARC_TEST_MODEL="$PWD/build/models/stories15M-q8_0.gguf" cargo test -p omnarc-node --features engine-tests
 
 web:
     cd web && pnpm install --frozen-lockfile && pnpm check && pnpm test && pnpm build-storybook && pnpm test:visual
 
 # Describe this device the way the agent announces it to a cluster.
 info:
-    cargo run -q -p birlik-node -- info
+    cargo run -q -p omnarc-node -- info

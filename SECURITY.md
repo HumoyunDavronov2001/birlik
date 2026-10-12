@@ -1,6 +1,6 @@
 # Security policy
 
-BIRLIK moves model data between devices, so security reports are taken seriously.
+Omnarc moves model data between devices, so security reports are taken seriously.
 
 **Please do not open a public issue for a vulnerability.** Report it privately through GitHub:
 *Security → Report a vulnerability* on this repository. You will get an answer within 7 days.

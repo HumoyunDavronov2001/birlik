@@ -1,4 +1,4 @@
-# BIRLIK — dunyodagi har qanday qurilmani bitta AI kuchiga aylantirish
+# Omnarc — dunyodagi har qanday qurilmani bitta AI kuchiga aylantirish
 
 > **Oʻzbekcha oʻqish nusxasi (12.10.2026, v3).** Loyihaning asosiy hujjatlari endi ingliz tilida:
 > [PLAN.md](../../PLAN.md) va [REQUIREMENTS.md](../../REQUIREMENTS.md). Bu nusxa siz oʻqishingiz uchun saqlangan.
@@ -8,7 +8,7 @@
 > `--oltin` → `--gold`, `--oltin-belgi` → `--gold-mark`, `--lojuvard` → `--lapis`, `--yuklama-N` → `--load-N`.
 > Interfeysning asosiy tili — ingliz tili; oʻzbekcha (lotin, kirill) va ruscha — tarjima.
 
-> Ishchi nom. Ochiq loyiha, Apache-2.0. Versiya 3 (12.10.2026): texnologiya, dizayn va UI/UX talablari qo'shildi.
+> *Omnarc* = *omni* (hammasi) + *arc* (yoy): har bir qurilma — bitta halqaning yoyi. Ochiq loyiha, Apache-2.0. Versiya 3 (12.10.2026): texnologiya, dizayn va UI/UX talablari qo'shildi.
 > Manba kodlar `manba/` ichida. Ishlatiladigan kodlarning litsenziyalari Apache-2.0 bilan mos (jadval 7-bo'limda).
 > **Qanday qilinadi** (arxitektura, texnologiyalar, dizayn tizimi, bosqichlar) — [REJA.md](REJA.md).
 
@@ -16,7 +16,7 @@
 
 Bugun dunyoda milliardlab telefon, kompyuter, planshet va televizor kunning ko'p qismida bo'sh turadi.
 Ularning umumiy hisoblash kuchi har qanday ma'lumot markazidan katta.
-**BIRLIK — shu bo'sh kuchni bitta AI tarmog'iga yig'adigan ochiq tizim.**
+**Omnarc — shu bo'sh kuchni bitta AI tarmog'iga yig'adigan ochiq tizim.**
 
 U uch miqyosda ishlaydi:
 
@@ -41,7 +41,7 @@ Ishlatilishi: inference (javob berish), o'qitish (fine-tuning, RL) va har xil mo
 | Prime Intellect / Psyche | internet orqali o'qitish | faqat ma'lumot markazi GPU'lari, inference emas |
 
 **Hech biri bir vaqtda uchta narsani qila olmaydi: istalgan qurilma (telefon, brauzer, NPU), istalgan miqyos
-(uydan dunyogacha) va inference bilan o'qitish birgalikda.** BIRLIK shu uchalasini birlashtiradi.
+(uydan dunyogacha) va inference bilan o'qitish birgalikda.** Omnarc shu uchalasini birlashtiradi.
 
 ## 3. Jahon darajasiga olib chiqadigan 8 ta yechim
 
@@ -247,6 +247,6 @@ quriladi (U1–U10), oxirga qoldirilmaydi.
 
 ## 9. GitHub
 
-- Repo: `HumoyunDavronov2001/birlik` (nom tasdiqlangach).
+- Repo: `HumoyunDavronov2001/omnarc`.
 - `NOTICE` faylida 7-bo'limdagi barcha mualliflar ko'rsatiladi.
 - Har bosqich alohida PR. CI'da Linux, Windows, macOS va Android yig'ilishi hamda o'lchov sinovlari.

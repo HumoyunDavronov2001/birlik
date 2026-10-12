@@ -19,13 +19,13 @@ bench/b1/download.sh ~/models            # all three; or 8b, 32b, 70b
 powershell -ExecutionPolicy Bypass -File bench\b1\download.ps1 -Dir D:\models -Model 70b
 ```
 
-Ready-made programs for each system (`birlik-node`, `birlik-engine`, `birlik-gate`) are the artifacts of every CI run
+Ready-made programs for each system (`omnarc-node`, `omnarc-engine`, `omnarc-gate`) are the artifacts of every CI run
 on `main` (Actions → CI → a run → Artifacts); unpack them into one folder.
 
 ## 1. Accuracy gate
 
 ```bash
-just engine                                  # build/engine/birlik-gate
+just engine                                  # build/engine/omnarc-gate
 bench/b1/gate.sh ~/models                    # every model, three splits, wikitext-2, hidden state as f16
 bench/b1/gate.sh ~/models cuda               # the same on a GPU backend, by name
 ```
@@ -36,22 +36,22 @@ slowly.
 
 ## 2. A 70B model on Linux and Windows
 
-Two computers on one network, the model file on both. `birlik-engine` sits next to `birlik-node` (from the engine and
-Rust builds, or a release). On each computer, `birlik-node id` prints its node id.
+Two computers on one network, the model file on both. `omnarc-engine` sits next to `omnarc-node` (from the engine and
+Rust builds, or a release). On each computer, `omnarc-node id` prints its node id.
 
 ```bash
 # Windows (the worker): layers 40–79
-birlik-node ring --model R1-Distill-70B.gguf --layers 40:80 --listen 0.0.0.0:7700 \
+omnarc-node ring --model R1-Distill-70B.gguf --layers 40:80 --listen 0.0.0.0:7700 \
   --next <linux id>@<linux ip>:7700 --prev <linux id>
 
 # Linux (the head): layers 0–39 and the output head, layer 80
-birlik-node ring --model R1-Distill-70B.gguf --layers 0:40,80:81 --listen 0.0.0.0:7700 \
+omnarc-node ring --model R1-Distill-70B.gguf --layers 0:40,80:81 --listen 0.0.0.0:7700 \
   --next <windows id>@<windows ip>:7700 --prev <windows id> \
   --prompt "Explain how a ring of devices runs one model." --generate 128
 ```
 
 The head prints the answer, the time to the first token and the time per output token. Windows Firewall must let
-`birlik-node` receive UDP on port 7700 (it asks the first time the program listens).
+`omnarc-node` receive UDP on port 7700 (it asks the first time the program listens).
 
 ## 3. TPOT against prima.cpp
 
@@ -59,12 +59,12 @@ prima.cpp runs on Linux and macOS but not on Windows, so this comparison uses tw
 systems get the same model, the same split, the same prompt and greedy decoding; each run generates 128 tokens and
 is repeated three times, and the median TPOT counts.
 
-| Split of an 80-layer model | prima.cpp (`llama-cli`, both devices) | BIRLIK (`birlik-node ring`) |
+| Split of an 80-layer model | prima.cpp (`llama-cli`, both devices) | Omnarc (`omnarc-node ring`) |
 |---|---|---|
 | one round: 40 + 40 layers | `--world 2 -lw "40,40" --prefetch` | head `0:40,80:81`, worker `40:80` |
 | two rounds: 20 + 20 layers each | `--world 2 -lw "20,20" --prefetch` | head `0:20,40:60,80:81`, worker `20:40,60:80` |
 
-prima.cpp, rank 0 and rank 1 — [`prima.sh`](prima.sh) builds it at the commit BIRLIK studied (it needs ZeroMQ:
+prima.cpp, rank 0 and rank 1 — [`prima.sh`](prima.sh) builds it at the commit Omnarc studied (it needs ZeroMQ:
 `sudo apt install libzmq3-dev`; HiGHS is built by the script):
 
 ```bash
@@ -73,7 +73,7 @@ prima.cpp, rank 0 and rank 1 — [`prima.sh`](prima.sh) builds it at the commit 
 ./llama-cli -m R1-Distill-70B.gguf --world 2 --rank 1 --master <ip 0> --next <ip 0> --prefetch
 ```
 
-prima.cpp reports `eval time … ms per token`; BIRLIK reports `ms per output token`. Record both in
+prima.cpp reports `eval time … ms per token`; Omnarc reports `ms per output token`. Record both in
 `results/tpot-<date>.md` with the hardware of both computers.
 
 ## Results

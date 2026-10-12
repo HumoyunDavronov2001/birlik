@@ -26,7 +26,7 @@ git -C build/llama-dev am "$PWD"/engine/patches/*.patch
 git -C build/llama-dev commit -a --amend
 
 # build the engine against the working clone while you iterate
-cmake -S engine -B build/engine-dev -DBIRLIK_LLAMA_DIR="$PWD/build/llama-dev"
+cmake -S engine -B build/engine-dev -DOMNARC_LLAMA_DIR="$PWD/build/llama-dev"
 
 # export the series back here
 rm engine/patches/*.patch

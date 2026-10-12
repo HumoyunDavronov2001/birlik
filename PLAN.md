@@ -1,4 +1,4 @@
-# BIRLIK — the full plan (v3, October 12, 2026)
+# Omnarc — the full plan (v3, October 12, 2026)
 
 > **What gets built** — [REQUIREMENTS.md](REQUIREMENTS.md). **How it gets built** — this file: architecture,
 > technologies, protocols, design system, screens and stages.
@@ -9,7 +9,7 @@
 
 ## 0. In short
 
-BIRLIK unites any devices — computers, phones, servers, browsers — into one AI cluster.
+Omnarc unites any devices — computers, phones, servers, browsers — into one AI cluster.
 Every device you add grows three things: the size of model that fits, the number of people served at once, and the
 speed of a single answer. It works from one home to the whole world; it answers, and it trains models too.
 
@@ -18,35 +18,35 @@ speed of a single answer. It works from one home to the whole world; it answers,
 ```mermaid
 flowchart LR
   U["App / user<br/>OpenAI · Claude · Ollama API"] --> G
-  subgraph N["birlik-node (on every device, Rust)"]
+  subgraph N["omnarc-node (on every device, Rust)"]
     G["API gateway"] --> P["Plan executor"]
     P --> E["Engine host"]
     T["Network: iroh QUIC<br/>gossip · Raft"] --- P
     S["Model store<br/>iroh-blobs, BLAKE3"] --- E
     W["Panel (Svelte)"] --- G
   end
-  E <-->|"shared memory"| L["libbirlik (C++)<br/>llama.cpp + patches"]
+  E <-->|"shared memory"| L["libomnarc (C++)<br/>llama.cpp + patches"]
   N <-->|"QUIC, encrypted"| N2["other nodes"]
   B["Browser node<br/>WASM + WebGPU"] <-->|"WebRTC"| N
-  N --- R["birlik-relay<br/>relay · signaling · directory"]
-  N --- M["birlik-control<br/>organization: SSO, quotas, audit"]
+  N --- R["omnarc-relay<br/>relay · signaling · directory"]
+  N --- M["omnarc-control<br/>organization: SSO, quotas, audit"]
   N --- O1["MLX island (Mac, RDMA)"]
   N --- O2["GPU island (vLLM/SGLang)"]
 ```
 
 | Component | Language | Job | Built from |
 |---|---|---|---|
-| `birlik-node` | Rust | the agent on every device: network, plan execution, API, panel, model store | ideas from exo `rust/networking`, `master/placement.py` |
-| `libbirlik` | C++20 | computing a slice of layers, piped-ring, speculative decoding, KV | llama.cpp, prima.cpp, PowerInfer |
-| `birlik-web` | TypeScript, Svelte 5 | panel, browser node (PWA), design system | exo `dashboard` |
-| `birlik-desktop` | Rust + Tauri 2 | Linux/Windows/macOS app, tray | — |
-| `birlik-android` | Kotlin, Compose | phone app, foreground service, widget | prima's Android experience |
-| `birlik-ios` | Swift, SwiftUI | iPhone/iPad app, Live Activity | — |
-| `birlik-control` | Python, FastAPI | organization control: users, SSO, quotas, metering | GPUStack server |
+| `omnarc-node` | Rust | the agent on every device: network, plan execution, API, panel, model store | ideas from exo `rust/networking`, `master/placement.py` |
+| `libomnarc` | C++20 | computing a slice of layers, piped-ring, speculative decoding, KV | llama.cpp, prima.cpp, PowerInfer |
+| `omnarc-web` | TypeScript, Svelte 5 | panel, browser node (PWA), design system | exo `dashboard` |
+| `omnarc-desktop` | Rust + Tauri 2 | Linux/Windows/macOS app, tray | — |
+| `omnarc-android` | Kotlin, Compose | phone app, foreground service, widget | prima's Android experience |
+| `omnarc-ios` | Swift, SwiftUI | iPhone/iPad app, Live Activity | — |
+| `omnarc-control` | Python, FastAPI | organization control: users, SSO, quotas, metering | GPUStack server |
 | `islands/mlx` | Python | Mac groups, RDMA over Thunderbolt 5 | exo `worker/engines/mlx` |
 | `islands/gpu` | Python | NVIDIA/AMD servers: vLLM, SGLang | GPUStack `worker/backends` |
-| `birlik-relay` | Rust | relay, WebRTC signaling, public network directory | iroh-relay |
-| `birlik-bench` | Rust + Python | W1–W10 measurements, comparison with competitors | — |
+| `omnarc-relay` | Rust | relay, WebRTC signaling, public network directory | iroh-relay |
+| `omnarc-bench` | Rust + Python | W1–W10 measurements, comparison with competitors | — |
 
 Vendored code keeps an `UPSTREAM.md`: the upstream URL, the commit, and the list of our changes.
 
@@ -91,7 +91,7 @@ Telemetry: by default **nothing** is sent anywhere.
    Stream priority: tensors > control > telemetry > model files.
 4. **Tensor frame.** A 32-byte header (request ID, step, position range, dtype f16/bf16/f8e4m3/i8, scale, length)
    + payload. It travels on a unidirectional QUIC stream and lands in a ggml buffer without copying.
-5. **Control messages.** Protobuf, version `birlik.v1`. New fields are always optional, so old nodes keep working
+5. **Control messages.** Protobuf, version `omnarc.v1`. New fields are always optional, so old nodes keep working
    with new ones.
 6. **State.** Telemetry once per second over iroh-gossip (HyParView/PlumTree). Raft holds the plan version, model
    placement and keys.
@@ -99,7 +99,7 @@ Telemetry: by default **nothing** is sent anywhere.
 8. **Models.** One node downloads from Hugging Face → BLAKE3 hash → iroh-blobs. GGUF tensor offsets become byte
    ranges. Each node fetches only its own layers and resumes where it stopped if the connection drops.
 
-## 4. Engine — libbirlik
+## 4. Engine — libomnarc
 
 - **llama.cpp submodule + `patches/`** (layer window [a, b), hidden-state input/output, external KV management).
   Every week CI rebases the patches onto the newest upstream automatically and runs the tests. The patches are sent
@@ -137,7 +137,7 @@ Telemetry: by default **nothing** is sent anywhere.
    - The owner sets the resource share (RAM %, GPU %, CPU cores) and a schedule; an "only while idle" mode exists.
    - Auto-updates are signed.
    - Installers: MSI, DMG (notarized), AppImage/deb/rpm, Flatpak, Homebrew, winget, Nix.
-2. **Server** — the `birlik-node` CLI + systemd, a Docker image, a Helm chart (from GPUStack).
+2. **Server** — the `omnarc-node` CLI + systemd, a Docker image, a Helm chart (from GPUStack).
 3. **Android.** minSdk 26 (Android 8); GPU features are checked at runtime. CI tests on API 26/30/34/36 emulators.
    - **Foreground service:** `specialUse` on API ≥ 34 — no time limit. From Android 15, `dataSync` is limited to
      6 hours per day, so it cannot run all night. `dataSync` on API < 34.
@@ -192,7 +192,7 @@ Telemetry: by default **nothing** is sent anywhere.
 
 prima's piped-ring method is literally a ring: the devices sit around it and a token travels through them. So the
 logo and the home screen are a ring too. Arcs of different lengths (different devices) together form one circle —
-that is the BIRLIK idea itself.
+that is the Omnarc idea itself.
 
 - **Logo:** five uneven arcs and one dot (the token).
 - **Colors** (OKLCH, taken from Samarkand tilework):
@@ -322,8 +322,8 @@ Chrome's ICU data lacks Uzbek names, so Uzbek numbers, dates and month names use
 ## 10. Repository layout
 
 ```
-birlik/
-  engine/          libbirlik (C++), llama.cpp submodule, patches/
+omnarc/
+  engine/          libomnarc (C++), llama.cpp submodule, patches/
   node/            Rust workspace: node, network, scheduler, store, api, protocol, ffi, simulation
   protocol/        .proto (buf), frame specification, TLA+ models
   web/             SvelteKit: panel/, browser-node/, components/ (Storybook)
@@ -346,7 +346,7 @@ The UI is built together with every stage — it is never left for the end.
 | Stage | Work | Gate (proves the stage is done) |
 |---|---|---|
 | **B0 Foundation** ✓ (October 12, 2026) | monorepo, CI matrix, `protocol/` v1, design tokens → CSS/Swift/Kotlin, Svelte component library (Storybook), NOTICE/UPSTREAM.md | CI green on 6 platforms; components pass visual regression; axe — 0 violations |
-| **B1 Engine** | libbirlik: patches, prima piped-ring + prefetching, CUDA/Vulkan/Metal/CPU, Windows, separate process | accuracy gate (Llama 3.x 8B, Qwen3 32B, R1-Distill 70B); 70B runs on Linux + Windows computers; TPOT no worse than prima.cpp on the same hardware |
+| **B1 Engine** | libomnarc: patches, prima piped-ring + prefetching, CUDA/Vulkan/Metal/CPU, Windows, separate process | accuracy gate (Llama 3.x 8B, Qwen3 32B, R1-Distill 70B); 70B runs on Linux + Windows computers; TPOT no worse than prima.cpp on the same hardware |
 | **B2 Network** | iroh, gossip, Raft, QR + SAS, iroh-blobs, link measurement; panel: first run, the Ring, Devices, the living ring | devices on two different networks behind NAT form one cluster; 70B slices spread P2P (internet used once); 1,000 turmoil scenarios |
 | **B3 Scheduler** | profiler, HiGHS, routing, backup plans, KV copies, live join/leave, TLA+; panel: "Will it fit?", plan view | W6 (≤ 1 s); TLC properties; placement on 8 devices ≤ 1 s |
 | **B4 Speed** | pipelined speculative decoding, MTP/EAGLE-3, PowerInfer, MoE + EPLB, f8 activations, ring attention, radix cache, batching, prefill/decode split; panel: token path, link matrix | W1, W2, W3 |
@@ -354,7 +354,7 @@ The UI is built together with every stage — it is never left for the end.
 | **B6 Scale** | control (OIDC/LDAP, RBAC, quotas, schedules, audit), public network (directory, TOPLOC, credit log); panel: Organization, Network, Credits | W7; cheating nodes are caught 100% of the time |
 | **B7 Modalities and training** | speech-to-text, text-to-speech, images (stable-diffusion.cpp), embeddings; LoRA (DiLoCo), RL rollouts; panel: Training | Uzbek LoRA training succeeds on 4+ nodes over the internet; audio and image APIs work |
 | **B8 Islands and API** | MLX island (RDMA TB5), GPU island (vLLM/SGLang), full API compatibility; panel: model catalog | W9; compatibility tests with the official SDKs (openai, anthropic, ollama) |
-| **B9 World benchmark and release** | birlik-bench (on the same hardware as exo, prima, Parallax, distributed-llama, llama.cpp RPC), results site, docs in 4 languages, signed releases, app stores | W10; v1.0 |
+| **B9 World benchmark and release** | omnarc-bench (on the same hardware as exo, prima, Parallax, distributed-llama, llama.cpp RPC), results site, docs in 4 languages, signed releases, app stores | W10; v1.0 |
 
 ## 12. Distribution
 

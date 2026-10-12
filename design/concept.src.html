@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>BIRLIK — design concept</title>
-<meta name="description" content="Design concept for BIRLIK, an open system that turns any device into part of one AI cluster.">
+<title>Omnarc — design concept</title>
+<meta name="description" content="Design concept for Omnarc, an open system that turns any device into part of one AI cluster.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -318,7 +318,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space
 <body>
 <header class="topbar">
   <div class="wrap">
-    <a class="brand" href="#idea"><svg width="26" height="26" viewBox="0 0 100 100" aria-hidden="true" data-logo></svg>BIRLIK <span class="muted">design concept</span></a>
+    <a class="brand" href="#idea"><svg width="26" height="26" viewBox="0 0 100 100" aria-hidden="true" data-logo></svg>OMNARC <span class="muted">design concept</span></a>
     <nav aria-label="Sections">
       <a href="#ring">Home screen</a><a href="#join">Joining</a><a href="#phone">Phone</a><a href="#models">Models</a><a href="#observe">Observe</a><a href="#network">Public network</a><a href="#system">Design system</a>
     </nav>
@@ -334,7 +334,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space
     <div class="reveal">
       <p class="kicker">Open source · Apache-2.0</p>
       <h1>Every device is an arc.<br><span>Together, one mind.</span></h1>
-      <p>BIRLIK unites computers, phones, servers and browsers into one AI cluster. Every device you add makes room for bigger models, serves more people and makes answers faster.</p>
+      <p>Omnarc unites computers, phones, servers and browsers into one AI cluster. Every device you add makes room for bigger models, serves more people and makes answers faster.</p>
       <div class="principles">
         <span class="chip"><span class="icon sm" data-icon="ring"></span>You can see how it works</span>
         <span class="chip"><span class="icon sm" data-icon="qr"></span>Join in 30 seconds</span>
@@ -343,8 +343,8 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space
       </div>
     </div>
     <div class="living reveal" id="living">
-      <canvas id="livingCanvas" role="img" aria-label="The BIRLIK living ring: every arc is a device, gold comets are tokens travelling around the ring"></canvas>
-      <svg class="mark-large" viewBox="-16 -16 432 432" id="markLarge" role="img" aria-label="The BIRLIK mark" hidden></svg>
+      <canvas id="livingCanvas" role="img" aria-label="The Omnarc living ring: every arc is a device, gold comets are tokens travelling around the ring"></canvas>
+      <svg class="mark-large" viewBox="-16 -16 432 432" id="markLarge" role="img" aria-label="The Omnarc mark" hidden></svg>
       <div class="living-labels" id="livingLabels" aria-hidden="true"></div>
       <div class="living-footer"><span class="mono" id="livingStatus" aria-live="polite"></span><button class="btn small" type="button" id="livingAdd"><span class="icon sm" data-icon="plus"></span>Add a device</button></div>
     </div>
@@ -359,7 +359,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space
     <div class="mockup-frame reveal" id="mockupFrame">
       <div class="mockup" id="mockup">
         <aside class="rail" aria-label="Main menu">
-          <span class="brand"><svg width="22" height="22" viewBox="0 0 100 100" aria-hidden="true" data-logo></svg>BIRLIK</span>
+          <span class="brand"><svg width="22" height="22" viewBox="0 0 100 100" aria-hidden="true" data-logo></svg>OMNARC</span>
           <a class="active" href="#ring"><span class="icon" data-icon="ring"></span>Ring</a>
           <a href="#ring"><span class="icon" data-icon="devices"></span>Devices</a>
           <a href="#models"><span class="icon" data-icon="cube"></span>Models</a>
@@ -567,7 +567,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space
               <div style="font:300 56px/1.05 var(--sans);letter-spacing:-.04em">06:12</div>
             </div>
             <div class="live-activity">
-              <div class="head"><svg width="34" height="34" viewBox="0 0 100 100" data-logo data-logo-white aria-hidden="true"></svg><div><b>BIRLIK · contributed overnight</b><br><small>Home cluster</small></div></div>
+              <div class="head"><svg width="34" height="34" viewBox="0 0 100 100" data-logo data-logo-white aria-hidden="true"></svg><div><b>Omnarc · contributed overnight</b><br><small>Home cluster</small></div></div>
               <div style="display:flex;justify-content:space-between;gap:12px;font:500 12px var(--mono)"><span>41,300 tokens</span><span>6 h 12 min</span></div>
               <div class="meter" style="background:rgba(255,255,255,.12)"><i style="width:86%;background:#3dd7cf"></i></div>
             </div>
@@ -608,11 +608,11 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space
   <div class="wrap">
     <p class="kicker">05 · Observe — the token path</p>
     <h2>No device sits idle</h2>
-    <p class="lead">In a plain pipeline a token visits the devices one at a time while the rest wait. In BIRLIK several speculative tokens are in flight at once, so every device stays busy. Both charts are computed from the same measurements.</p>
+    <p class="lead">In a plain pipeline a token visits the devices one at a time while the rest wait. In Omnarc several speculative tokens are in flight at once, so every device stays busy. Both charts are computed from the same measurements.</p>
     <div class="two-col reveal">
       <div>
         <div class="card gantt-card"><div class="head"><h4>Plain pipeline</h4><span class="idle">idle <b id="idlePlain">—</b></span></div><div id="ganttPlain"></div></div>
-        <div class="card gantt-card"><div class="head"><h4>BIRLIK · continuous speculation</h4><span class="idle">idle <b id="idleBirlik">—</b></span></div><div id="ganttBirlik"></div>
+        <div class="card gantt-card"><div class="head"><h4>Omnarc · continuous speculation</h4><span class="idle">idle <b id="idleOmnarc">—</b></span></div><div id="ganttOmnarc"></div>
           <span class="legend"><span><i style="background:var(--chart-compute)"></i>compute</span><span><i style="background:var(--chart-network)"></i>network</span><span><i style="background:var(--chart-draft)"></i>draft</span><span><i style="background:var(--surface-3)"></i>idle</span></span>
         </div>
       </div>
@@ -659,7 +659,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space
       <div class="card"><h4>Colors · both themes</h4><div class="palette" id="palette"></div><p class="label" style="margin:0">The number is the contrast against the page background. Text needs at least 4.5:1.</p></div>
       <div class="card">
         <h4>Typography</h4>
-        <div class="specimen">Birlik means unity<br><span class="secondary" style="font-weight:400">Oʻzbekiston · Ўзбек · Қўқон</span></div>
+        <div class="specimen">Every device is an arc<br><span class="secondary" style="font-weight:400">oʻ gʻ · Ў Қ Ғ Ҳ · Ä Ñ Ç Ø</span></div>
         <div class="mono" style="font-size:16px">0123456789 · 18.4 tokens/s · 0x7f3a</div>
         <p class="label" style="margin:0">Inter (variable, optical sizes) and IBM Plex Mono. Full support for Uzbek Latin oʻ gʻ (U+02BB) and Cyrillic Ў Қ Ғ Ҳ — verified.</p>
         <div class="type-scale" id="typeScale"></div>
@@ -692,7 +692,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space
 </section>
 </main>
 
-<footer><div class="wrap"><span>BIRLIK · design concept v1 · October 12, 2026</span><span>All numbers and names are sample values</span></div></footer>
+<footer><div class="wrap"><span>Omnarc · design concept v1 · October 12, 2026</span><span>All numbers and names are sample values</span></div></footer>
 
 <script>
 /*LIVING_RING*/
@@ -755,7 +755,7 @@ const DEVICES = [
 const HOP = [0.4, 3.8, 4.4, 3.6, 3.3, 0.6];           // latency from device i to i+1, ms
 const busyTime = d => d.compute + (d.draft || 0);
 const HOP_TOTAL = HOP.reduce((a, b) => a + b, 0);
-const CYCLE = DEVICES.reduce((s, d) => s + busyTime(d), 0) + HOP_TOTAL;           // BIRLIK: one lap with drafting, ms
+const CYCLE = DEVICES.reduce((s, d) => s + busyTime(d), 0) + HOP_TOTAL;           // Omnarc: one lap with drafting, ms
 const CYCLE_PLAIN = DEVICES.reduce((s, d) => s + d.compute, 0) + HOP_TOTAL;      // plain pipeline: no drafting
 const STEP = Math.max(...DEVICES.map(busyTime)) + 0.6;   // continuous mode: a new round starts every STEP ms
 DEVICES.forEach(d => { d.busy = busyTime(d) / STEP; d.level = Math.min(7, Math.max(1, Math.round(1 + d.busy * 6))); });
@@ -910,7 +910,7 @@ function drawGantt(host, mode, { windowMs = 120, compact = false } = {}) {
   const height = DEVICES.length * (rowH + rowGap) + 18;
   host.innerHTML = '';
   const plain = mode === 'plain';
-  const svg = el('svg', { width, height, viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': plain ? 'Plain pipeline timeline' : 'BIRLIK continuous speculation timeline' }, host);
+  const svg = el('svg', { width, height, viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': plain ? 'Plain pipeline timeline' : 'Omnarc continuous speculation timeline' }, host);
   const X = (ms) => left + (width - left - right) * ms / windowMs;
   const busy = DEVICES.map(() => 0);
   const top = (i) => i * (rowH + rowGap);
@@ -1134,11 +1134,11 @@ mainRing(); deviceList(); joinedRing(); modelList(); drawQr(); drawMatrix(); dra
 drawRing(document.getElementById('contributeRing'), { cx: 120, cy: 120, R: 92, width: 18, highlight: 1, dots: 3, slow: 48 });
 drawRing(document.getElementById('nightRing'), { cx: 120, cy: 120, R: 108, width: 4, highlight: 3, dots: 2, slow: 60, oled: true });
 const gantts = () => {
-  drawGantt(document.getElementById('miniGantt'), 'birlik', { compact: true });
+  drawGantt(document.getElementById('miniGantt'), 'omnarc', { compact: true });
   const idlePlain = drawGantt(document.getElementById('ganttPlain'), 'plain');
-  const idleBirlik = drawGantt(document.getElementById('ganttBirlik'), 'birlik');
+  const idleOmnarc = drawGantt(document.getElementById('ganttOmnarc'), 'omnarc');
   document.getElementById('idlePlain').textContent = fmt(idlePlain * 100) + '%';
-  document.getElementById('idleBirlik').textContent = fmt(idleBirlik * 100) + '%';
+  document.getElementById('idleOmnarc').textContent = fmt(idleOmnarc * 100) + '%';
 };
 gantts();
 let ganttWidth = 0; new ResizeObserver(() => { const w = document.getElementById('ganttPlain').clientWidth; if (Math.abs(w - ganttWidth) > 4) { ganttWidth = w; gantts(); } }).observe(document.getElementById('ganttPlain'));

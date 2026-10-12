@@ -7,7 +7,7 @@
 #include <utility>
 #include <vector>
 
-namespace birlik {
+namespace omnarc {
 
 // Physical CPU cores (hyperthreads are not useful for matrix math). Adapted from llama.cpp
 // common/common.cpp, common_cpu_get_num_physical_cores (MIT).
@@ -35,4 +35,4 @@ protected:
     uint64_t bytes_ = 0;
 };
 
-}  // namespace birlik
+}  // namespace omnarc

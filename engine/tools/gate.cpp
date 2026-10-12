@@ -1,8 +1,8 @@
-// birlik-gate — the accuracy gate (PLAN.md §4): a model split into windows must give the same answers as the same
+// omnarc-gate — the accuracy gate (PLAN.md §4): a model split into windows must give the same answers as the same
 // model run whole on one device. Every chunk of the input runs through the whole model and through the windows in
 // turn; the hidden state between windows is rounded to the wire format, as it would travel between devices.
 //
-//   birlik-gate --model M.gguf --split 0:40,40:81 [--text FILE | --random-tokens N]
+//   omnarc-gate --model M.gguf --split 0:40,40:81 [--text FILE | --random-tokens N]
 //
 // Layers are numbered as in the engine: the output head of an 80-layer model is layer 80.
 //
@@ -24,7 +24,7 @@
 #include <string>
 #include <vector>
 
-#include "birlik/birlik.h"
+#include "omnarc/omnarc.h"
 #include "ggml.h"
 
 namespace {
@@ -32,7 +32,7 @@ namespace {
 struct window {
     uint32_t begin = 0;
     uint32_t end = 0;
-    bk_backend backend = BK_BACKEND_AUTO;
+    om_backend backend = OM_BACKEND_AUTO;
 };
 
 struct options {
@@ -43,7 +43,7 @@ struct options {
     uint32_t ctx = 512;
     uint32_t chunks = 0;  // 0 = all
     std::string wire = "f16";
-    bk_backend backend = BK_BACKEND_AUTO;
+    om_backend backend = OM_BACKEND_AUTO;
     bool exact = false;
     double max_kl = 0.01;
     double max_ppl_diff = 0.5;  // percent
@@ -53,7 +53,7 @@ struct options {
 
 [[noreturn]] void usage(int code) {
     std::fprintf(code == 0 ? stdout : stderr,
-                 "usage: birlik-gate --model M.gguf [--split A:B,B:C[@backend],...|even:K]\n"
+                 "usage: omnarc-gate --model M.gguf [--split A:B,B:C[@backend],...|even:K]\n"
                  "                   [--text FILE | --random-tokens N] [--ctx N] [--chunks N] [--wire f32|f16|bf16]\n"
                  "                   [--backend NAME] [--exact] [--reference FILE | --reference-out FILE]\n"
                  "                   [--max-kl X] [--max-ppl-diff PERCENT]\n"
@@ -61,11 +61,11 @@ struct options {
     std::exit(code);
 }
 
-bool parse_backend(const std::string &name, bk_backend &out) {
-    static const std::pair<const char *, bk_backend> names[] = {
-        {"auto", BK_BACKEND_AUTO},     {"cpu", BK_BACKEND_CPU},       {"cuda", BK_BACKEND_CUDA},
-        {"hip", BK_BACKEND_HIP},       {"vulkan", BK_BACKEND_VULKAN}, {"metal", BK_BACKEND_METAL},
-        {"opencl", BK_BACKEND_OPENCL}, {"sycl", BK_BACKEND_SYCL},
+bool parse_backend(const std::string &name, om_backend &out) {
+    static const std::pair<const char *, om_backend> names[] = {
+        {"auto", OM_BACKEND_AUTO},     {"cpu", OM_BACKEND_CPU},       {"cuda", OM_BACKEND_CUDA},
+        {"hip", OM_BACKEND_HIP},       {"vulkan", OM_BACKEND_VULKAN}, {"metal", OM_BACKEND_METAL},
+        {"opencl", OM_BACKEND_OPENCL}, {"sycl", OM_BACKEND_SYCL},
     };
     for (const auto &[n, b] : names) {
         if (name == n) {
@@ -113,7 +113,7 @@ options parse_args(int argc, char **argv) {
 
 // "0:40,40:81@cpu" -> windows; "even:K" -> K equal windows of the layers and the output head alone, the way the
 // ring keeps the head on the device with the first layers; empty = two halves. Layer n_layer is the output head.
-std::vector<window> parse_split(const std::string &spec, uint32_t n_layer, bk_backend backend) {
+std::vector<window> parse_split(const std::string &spec, uint32_t n_layer, om_backend backend) {
     std::vector<window> windows;
     if (spec == "none") return windows;  // only the reference is computed
     if (spec.empty()) {
@@ -147,44 +147,44 @@ std::vector<window> parse_split(const std::string &spec, uint32_t n_layer, bk_ba
     return windows;
 }
 
-const char *backend_name(bk_backend backend) {
+const char *backend_name(om_backend backend) {
     switch (backend) {
-        case BK_BACKEND_AUTO: return "auto";
-        case BK_BACKEND_CPU: return "cpu";
-        case BK_BACKEND_CUDA: return "cuda";
-        case BK_BACKEND_HIP: return "hip";
-        case BK_BACKEND_VULKAN: return "vulkan";
-        case BK_BACKEND_METAL: return "metal";
-        case BK_BACKEND_OPENCL: return "opencl";
-        case BK_BACKEND_HEXAGON: return "hexagon";
-        case BK_BACKEND_SYCL: return "sycl";
-        case BK_BACKEND_CANN: return "cann";
-        case BK_BACKEND_WEBGPU: return "webgpu";
+        case OM_BACKEND_AUTO: return "auto";
+        case OM_BACKEND_CPU: return "cpu";
+        case OM_BACKEND_CUDA: return "cuda";
+        case OM_BACKEND_HIP: return "hip";
+        case OM_BACKEND_VULKAN: return "vulkan";
+        case OM_BACKEND_METAL: return "metal";
+        case OM_BACKEND_OPENCL: return "opencl";
+        case OM_BACKEND_HEXAGON: return "hexagon";
+        case OM_BACKEND_SYCL: return "sycl";
+        case OM_BACKEND_CANN: return "cann";
+        case OM_BACKEND_WEBGPU: return "webgpu";
     }
     return "unknown";
 }
 
-bk_shard *open_shard(const std::string &model, uint32_t begin, uint32_t end, bk_backend backend, uint32_t ctx) {
-    const bk_shard_params params = {model.c_str(), begin, end, backend, ctx};
-    bk_shard *shard = nullptr;
-    const bk_status status = bk_shard_open(&params, &shard);
-    if (status != BK_OK) {
-        std::fprintf(stderr, "birlik-gate: cannot open layers [%u, %u): %s: %s\n", begin, end,
-                     bk_status_string(status), bk_last_error());
+om_shard *open_shard(const std::string &model, uint32_t begin, uint32_t end, om_backend backend, uint32_t ctx) {
+    const om_shard_params params = {model.c_str(), begin, end, backend, ctx};
+    om_shard *shard = nullptr;
+    const om_status status = om_shard_open(&params, &shard);
+    if (status != OM_OK) {
+        std::fprintf(stderr, "omnarc-gate: cannot open layers [%u, %u): %s: %s\n", begin, end,
+                     om_status_string(status), om_last_error());
         std::exit(1);
     }
     return shard;
 }
 
-bk_backend shard_backend(const bk_shard *shard) {
-    bk_shard_info info{};
-    bk_shard_get_info(shard, &info);
+om_backend shard_backend(const om_shard *shard) {
+    om_shard_info info{};
+    om_shard_get_info(shard, &info);
     return info.backend;
 }
 
-void check(bk_status status, const char *what) {
-    if (status != BK_OK) {
-        std::fprintf(stderr, "birlik-gate: %s: %s: %s\n", what, bk_status_string(status), bk_last_error());
+void check(om_status status, const char *what) {
+    if (status != OM_OK) {
+        std::fprintf(stderr, "omnarc-gate: %s: %s: %s\n", what, om_status_string(status), om_last_error());
         std::exit(1);
     }
 }
@@ -212,18 +212,18 @@ void log_softmax(const float *logits, size_t n, std::vector<double> &out) {
 int main(int argc, char **argv) {
     const options opt = parse_args(argc, argv);
 
-    bk_model_info info{};
-    check(bk_model_info_read(opt.model.c_str(), &info), "reading the model");
+    om_model_info info{};
+    check(om_model_info_read(opt.model.c_str(), &info), "reading the model");
     const std::vector<window> windows = parse_split(opt.split, info.layer_count, opt.backend);
     // layer layer_count is the output head, so the split covers [0, layer_count + 1)
     const uint32_t end = info.layer_count + 1;
     if (!windows.empty() && (windows.size() < 2 || windows.front().begin != 0 || windows.back().end != end)) {
-        std::fprintf(stderr, "birlik-gate: the split must cover layers [0, %u) with at least two windows\n", end);
+        std::fprintf(stderr, "omnarc-gate: the split must cover layers [0, %u) with at least two windows\n", end);
         return 2;
     }
     for (size_t i = 1; i < windows.size(); ++i) {
         if (windows[i].begin != windows[i - 1].end) {
-            std::fprintf(stderr, "birlik-gate: window %zu does not start where window %zu ends\n", i, i - 1);
+            std::fprintf(stderr, "omnarc-gate: window %zu does not start where window %zu ends\n", i, i - 1);
             return 2;
         }
     }
@@ -245,7 +245,7 @@ int main(int argc, char **argv) {
     if (!opt.reference.empty()) {
         ref_in.open(opt.reference, std::ios::binary);
         if (!ref_in) {
-            std::fprintf(stderr, "birlik-gate: cannot read %s\n", opt.reference.c_str());
+            std::fprintf(stderr, "omnarc-gate: cannot read %s\n", opt.reference.c_str());
             return 1;
         }
         char magic[4] = {};
@@ -253,7 +253,7 @@ int main(int argc, char **argv) {
         ref_in.read(magic, 4);
         ref_in.read(reinterpret_cast<char *>(head), sizeof(head));
         if (!ref_in || std::memcmp(magic, "BKR1", 4) != 0 || head[0] != vocab) {
-            std::fprintf(stderr, "birlik-gate: %s is not a reference for this model\n", opt.reference.c_str());
+            std::fprintf(stderr, "omnarc-gate: %s is not a reference for this model\n", opt.reference.c_str());
             return 1;
         }
         file_ctx = head[1];
@@ -262,11 +262,11 @@ int main(int argc, char **argv) {
         ref_in.read(reinterpret_cast<char *>(tokens.data()), static_cast<std::streamsize>(tokens.size() * 4));
     }
 
-    bk_shard *whole = opt.reference.empty() ? open_shard(opt.model, 0, end, opt.backend, opt.ctx) : nullptr;
-    std::vector<bk_shard *> shards;
+    om_shard *whole = opt.reference.empty() ? open_shard(opt.model, 0, end, opt.backend, opt.ctx) : nullptr;
+    std::vector<om_shard *> shards;
     for (const auto &w : windows) shards.push_back(open_shard(opt.model, w.begin, w.end, w.backend, opt.ctx));
     std::printf("backend whole: %s, windows:", whole != nullptr ? backend_name(shard_backend(whole)) : "from file");
-    for (const bk_shard *shard : shards) std::printf(" %s", backend_name(shard_backend(shard)));
+    for (const om_shard *shard : shards) std::printf(" %s", backend_name(shard_backend(shard)));
     std::printf("\n");
 
     if (!opt.reference.empty()) {
@@ -274,14 +274,14 @@ int main(int argc, char **argv) {
     } else if (!opt.text_file.empty()) {
         std::ifstream file(opt.text_file, std::ios::binary);
         if (!file) {
-            std::fprintf(stderr, "birlik-gate: cannot read %s\n", opt.text_file.c_str());
+            std::fprintf(stderr, "omnarc-gate: cannot read %s\n", opt.text_file.c_str());
             return 1;
         }
         const std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
         size_t count = 0;
-        bk_shard_tokenize(whole, text.data(), text.size(), 1, nullptr, 0, &count);
+        om_shard_tokenize(whole, text.data(), text.size(), 1, nullptr, 0, &count);
         tokens.resize(count);
-        check(bk_shard_tokenize(whole, text.data(), text.size(), 1, tokens.data(), tokens.size(), &count),
+        check(om_shard_tokenize(whole, text.data(), text.size(), 1, tokens.data(), tokens.size(), &count),
               "tokenizing");
     } else {
         std::mt19937 rng(42);
@@ -295,7 +295,7 @@ int main(int argc, char **argv) {
     uint32_t n_chunks = file_ctx > 0 ? file_chunks : static_cast<uint32_t>(tokens.size()) / ctx;
     if (opt.chunks > 0) n_chunks = std::min(n_chunks, opt.chunks);
     if (n_chunks == 0 || ctx > opt.ctx) {
-        std::fprintf(stderr, "birlik-gate: not enough tokens, or --ctx is smaller than the reference's %u\n", ctx);
+        std::fprintf(stderr, "omnarc-gate: not enough tokens, or --ctx is smaller than the reference's %u\n", ctx);
         return 1;
     }
 
@@ -303,7 +303,7 @@ int main(int argc, char **argv) {
     if (!opt.reference_out.empty()) {
         ref_out.open(opt.reference_out, std::ios::binary);
         if (!ref_out) {
-            std::fprintf(stderr, "birlik-gate: cannot write %s\n", opt.reference_out.c_str());
+            std::fprintf(stderr, "omnarc-gate: cannot write %s\n", opt.reference_out.c_str());
             return 1;
         }
         const uint32_t head[4] = {static_cast<uint32_t>(vocab), ctx, n_chunks, static_cast<uint32_t>(tokens.size())};
@@ -328,15 +328,15 @@ int main(int argc, char **argv) {
 
         const auto logits_bytes = static_cast<std::streamsize>(ref_logits.size() * sizeof(float));
         if (whole != nullptr) {
-            const bk_batch whole_batch = {request, 0, ctx, chunk, nullptr, 1};
-            check(bk_shard_run(whole, &whole_batch, ref_logits.data(), ref_logits.size()), "running the whole model");
-            check(bk_shard_drop(whole, request), "dropping a request");
+            const om_batch whole_batch = {request, 0, ctx, chunk, nullptr, 1};
+            check(om_shard_run(whole, &whole_batch, ref_logits.data(), ref_logits.size()), "running the whole model");
+            check(om_shard_drop(whole, request), "dropping a request");
         } else if (!ref_in.read(reinterpret_cast<char *>(ref_logits.data()), logits_bytes)) {
-            std::fprintf(stderr, "birlik-gate: %s ends early\n", opt.reference.c_str());
+            std::fprintf(stderr, "omnarc-gate: %s ends early\n", opt.reference.c_str());
             return 1;
         }
         if (ref_out.is_open() && !ref_out.write(reinterpret_cast<const char *>(ref_logits.data()), logits_bytes)) {
-            std::fprintf(stderr, "birlik-gate: cannot write %s\n", opt.reference_out.c_str());
+            std::fprintf(stderr, "omnarc-gate: cannot write %s\n", opt.reference_out.c_str());
             return 1;
         }
         if (shards.empty()) {
@@ -347,12 +347,12 @@ int main(int argc, char **argv) {
         for (size_t s = 0; s < shards.size(); ++s) {
             const bool first = s == 0;
             const bool last = s + 1 == shards.size();
-            const bk_batch batch = {request, 0, ctx, first ? chunk : nullptr, first ? nullptr : state.data(), 1};
+            const om_batch batch = {request, 0, ctx, first ? chunk : nullptr, first ? nullptr : state.data(), 1};
             if (last) {
-                check(bk_shard_run(shards[s], &batch, split_logits.data(), split_logits.size()), "running a window");
+                check(om_shard_run(shards[s], &batch, split_logits.data(), split_logits.size()), "running a window");
             } else {
                 std::vector<float> next(ctx * hidden);
-                check(bk_shard_run(shards[s], &batch, next.data(), next.size()), "running a window");
+                check(om_shard_run(shards[s], &batch, next.data(), next.size()), "running a window");
                 round_to_wire(next, opt.wire);
                 state.swap(next);
             }
@@ -384,13 +384,13 @@ int main(int argc, char **argv) {
             evaluated++;
         }
 
-        for (bk_shard *shard : shards) check(bk_shard_drop(shard, request), "dropping a request");
+        for (om_shard *shard : shards) check(om_shard_drop(shard, request), "dropping a request");
         std::fprintf(stderr, "\rchunk %u/%u", c + 1, n_chunks);
     }
     std::fprintf(stderr, "\n");
     if (shards.empty()) {
         std::printf("reference %s: %u chunks of %u tokens\n", opt.reference_out.c_str(), n_chunks, ctx);
-        bk_shard_close(whole);
+        om_shard_close(whole);
         return 0;
     }
 
@@ -410,7 +410,7 @@ int main(int argc, char **argv) {
     std::printf("gate    %s (mean KL <= %g, |ppl difference| <= %g%%%s)\n", pass ? "PASS" : "FAIL", opt.max_kl,
                 opt.max_ppl_diff, opt.exact ? ", exact: same top-1 everywhere and max KL <= 1e-6" : "");
 
-    for (bk_shard *shard : shards) bk_shard_close(shard);
-    bk_shard_close(whole);
+    for (om_shard *shard : shards) om_shard_close(shard);
+    om_shard_close(whole);
     return pass ? 0 : 1;
 }

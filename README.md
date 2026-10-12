@@ -1,15 +1,15 @@
 <div align="center">
 
-<img src="design/assets/living-ring.webp" width="360" alt="The BIRLIK living ring: every arc is a device, gold comets are tokens travelling through them">
+<img src="design/assets/living-ring.webp" width="360" alt="The Omnarc living ring: every arc is a device, gold comets are tokens travelling through them">
 
-# BIRLIK
+# Omnarc
 
 **Every device is an arc. Together, one mind.**
 
-BIRLIK turns computers, phones, servers and browsers into one AI cluster —<br>
+Omnarc turns computers, phones, servers and browsers into one AI cluster —<br>
 from the devices in one home to idle devices around the world.
 
-[![CI](https://github.com/HumoyunDavronov2001/birlik/actions/workflows/ci.yml/badge.svg)](https://github.com/HumoyunDavronov2001/birlik/actions/workflows/ci.yml)
+[![CI](https://github.com/HumoyunDavronov2001/omnarc/actions/workflows/ci.yml/badge.svg)](https://github.com/HumoyunDavronov2001/omnarc/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-3dd7cf)](LICENSE)
 ![Status: pre-alpha, stage B1 in progress](https://img.shields.io/badge/status-pre--alpha%20%C2%B7%20B1%20in%20progress-f2c156)
 
@@ -17,14 +17,14 @@ from the devices in one home to idle devices around the world.
 
 </div>
 
-> *Birlik* means **unity** in Uzbek.
+> *Omnarc* = *omni* (all) + *arc*: every device is an arc, and together they close one ring.
 
 ## Why
 
 Billions of devices sit idle most of the day. Together they hold more compute than any data center, yet today's
 tools each cover only one corner of it:
 
-| | exo | prima.cpp | GPUStack | **BIRLIK** (goal) |
+| | exo | prima.cpp | GPUStack | **Omnarc** (goal) |
 |---|:-:|:-:|:-:|:-:|
 | Phones: Android, iOS | — | Termux only | — | native apps |
 | Browsers: join with a QR code, no install | — | — | — | ✓ |
@@ -34,7 +34,7 @@ tools each cover only one corner of it:
 | Across the internet, behind NAT | — | — | — | ✓ |
 | Inference **and** training | — | — | — | ✓ |
 
-The BIRLIK column lists goals of the [roadmap](#roadmap), not shipped features.
+The Omnarc column lists goals of the [roadmap](#roadmap), not shipped features.
 
 ## How it works
 
@@ -53,13 +53,13 @@ The BIRLIK column lists goals of the [roadmap](#roadmap), not shipped features.
 ```mermaid
 flowchart LR
   U["App / user<br/>OpenAI · Claude · Ollama API"] --> G
-  subgraph N["birlik-node (on every device, Rust)"]
+  subgraph N["omnarc-node (on every device, Rust)"]
     G["API gateway"] --> P["Plan executor"]
     P --> E["Engine host"]
     T["Network: iroh QUIC<br/>gossip · Raft"] --- P
     S["Model store<br/>iroh-blobs, BLAKE3"] --- E
   end
-  E <-->|"shared memory"| L["libbirlik (C++)<br/>llama.cpp + patches"]
+  E <-->|"shared memory"| L["libomnarc (C++)<br/>llama.cpp + patches"]
   N <-->|"QUIC, encrypted"| N2["other nodes"]
   B["Browser node<br/>WASM + WebGPU"] <-->|"WebRTC"| N
 ```
@@ -90,21 +90,21 @@ model together as a ring wired by hand; discovery, pairing and planning come in 
 
 Stage B1 so far:
 
-- [`engine/`](engine) — libbirlik on llama.cpp: a model splits into **windows of layers** that run as separate
+- [`engine/`](engine) — libomnarc on llama.cpp: a model splits into **windows of layers** that run as separate
   shards, with hidden states passed between them ([`engine/patches`](engine/patches/README.md)). The accuracy gate,
-  `birlik-gate`, checks every split against the whole model: on the CPU the split run is bit for bit the whole run,
+  `omnarc-gate`, checks every split against the whole model: on the CPU the split run is bit for bit the whole run,
   and with the hidden state sent as `f16` the perplexity stays within 0.2%.
 - The engine runs in **its own process**, driven by the agent through shared memory
-  ([`engine/HOST.md`](engine/HOST.md), [`birlik-engine-host`](node/crates/birlik-engine-host)).
-- **The ring** — prima.cpp's piped ring on BIRLIK's engine and network
-  ([`birlik-node ring`](node/crates/birlik-node/src/ring.rs), [`birlik-network`](node/crates/birlik-network)): the
+  ([`engine/HOST.md`](engine/HOST.md), [`omnarc-engine-host`](node/crates/omnarc-engine-host)).
+- **The ring** — prima.cpp's piped ring on Omnarc's engine and network
+  ([`omnarc-node ring`](node/crates/omnarc-node/src/ring.rs), [`omnarc-network`](node/crates/omnarc-network)): the
   device that serves the request keeps the first layers and the output head, the hidden state travels around the
   ring over QUIC (iroh), and a ring of two nodes generates token for token what one device generates.
 
 Stage B0 delivered:
 
-- [`protocol/`](protocol) — `birlik.v1` messages and the tensor frame spec, with a Rust implementation and property tests.
-- [`node/`](node) — the Rust workspace; `birlik-node info` describes a device the way it will announce itself.
+- [`protocol/`](protocol) — `omnarc.v1` messages and the tensor frame spec, with a Rust implementation and property tests.
+- [`node/`](node) — the Rust workspace; `omnarc-node info` describes a device the way it will announce itself.
 - [`engine/`](engine) — the engine's C ABI, tested from plain C.
 - [`design/`](design) — design tokens for every platform with a contrast gate, the living ring, the design concept.
 - [`web/`](web) — the Svelte 5 component library in Storybook, with visual-regression and axe (WCAG 2.2 AA) checks.
@@ -132,7 +132,7 @@ Details: [PLAN.md](PLAN.md) and [REQUIREMENTS.md](REQUIREMENTS.md).
 ```bash
 # Protocol and node agent (Rust)
 cargo test --workspace
-cargo run -p birlik-node -- info
+cargo run -p omnarc-node -- info
 
 # Engine (C++20 on llama.cpp, a git submodule; the tests need Python with numpy)
 git submodule update --init
@@ -147,26 +147,26 @@ pnpm install && pnpm check && pnpm test && pnpm build-storybook && pnpm test:vis
 
 With [just](https://github.com/casey/just) installed, `just check` runs all of it.
 
-Run a ring of two devices (stage B1 wires it by hand; `birlik-engine` must sit next to `birlik-node`):
+Run a ring of two devices (stage B1 wires it by hand; `omnarc-engine` must sit next to `omnarc-node`):
 
 ```bash
-birlik-node id    # on each device: its node id
+omnarc-node id    # on each device: its node id
 
 # the worker: layers 40–79 of an 80-layer model
-birlik-node ring --model model.gguf --layers 40:80 --listen 0.0.0.0:7700 \
+omnarc-node ring --model model.gguf --layers 40:80 --listen 0.0.0.0:7700 \
   --next <head id>@<head ip>:7700 --prev <head id>
 
 # the head: layers 0–39 and the output head (layer 80); it generates and prints the time per token
-birlik-node ring --model model.gguf --layers 0:40,80:81 --listen 0.0.0.0:7700 \
+omnarc-node ring --model model.gguf --layers 0:40,80:81 --listen 0.0.0.0:7700 \
   --next <worker id>@<worker ip>:7700 --prev <worker id> --prompt "Tell me about Samarkand." --generate 64
 ```
 
 ## Repository
 
 ```
-protocol/   Protobuf messages (birlik.v1) and the tensor frame spec
-node/       Rust workspace: birlik-protocol, birlik-engine-host, birlik-network, birlik-node
-engine/     libbirlik — C++20 engine on llama.cpp with a C ABI
+protocol/   Protobuf messages (omnarc.v1) and the tensor frame spec
+node/       Rust workspace: omnarc-protocol, omnarc-engine-host, omnarc-network, omnarc-node
+engine/     libomnarc — C++20 engine on llama.cpp with a C ABI
 design/     design tokens, the living ring, the design concept
 web/        Svelte 5 component library (Storybook)
 docs/uz/    Uzbek reading copy of the plan
@@ -174,7 +174,7 @@ docs/uz/    Uzbek reading copy of the plan
 
 ## Credits
 
-BIRLIK builds on [llama.cpp](https://github.com/ggml-org/llama.cpp), [prima.cpp](https://github.com/OpenCPIL/prima.cpp),
+Omnarc builds on [llama.cpp](https://github.com/ggml-org/llama.cpp), [prima.cpp](https://github.com/OpenCPIL/prima.cpp),
 [exo](https://github.com/exo-explore/exo), [GPUStack](https://github.com/gpustack/gpustack) and other open-source work —
 see [UPSTREAM.md](UPSTREAM.md) and [NOTICE](NOTICE).
 

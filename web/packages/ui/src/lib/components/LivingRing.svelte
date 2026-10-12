@@ -19,7 +19,7 @@
     devices,
     reserve = [],
     controls = true,
-    label = 'The BIRLIK living ring: every arc is a device, gold comets are tokens travelling around the ring',
+    label = 'The Omnarc living ring: every arc is a device, gold comets are tokens travelling around the ring',
     statusText = (n: number, layers: number) => `${n} devices · ${layers} layers · ${n} tokens in flight`,
     addLabel = 'Add a device',
     resetLabel = 'Start over',
@@ -117,7 +117,7 @@
     <canvas bind:this={canvas} aria-hidden="true"></canvas>
   </div>
   {#if fallback}
-    <div class="fallback"><Logo size={320} title="BIRLIK" /></div>
+    <div class="fallback"><Logo size={320} title="Omnarc" /></div>
   {/if}
   <div class="labels" bind:this={labelsEl} aria-hidden="true" hidden={fallback}></div>
   {#if controls && !fallback}

@@ -185,47 +185,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2af50177e190e07a26ab74f8b1efbfe2ef87da2116221318cb1c2e82baf7de06"
 
 [[package]]
-name = "birlik-engine-host"
-version = "0.1.0"
-dependencies = [
- "birlik-protocol",
- "libc",
- "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "birlik-network"
-version = "0.1.0"
-dependencies = [
- "birlik-protocol",
- "iroh",
- "tokio",
-]
-
-[[package]]
-name = "birlik-node"
-version = "0.1.0"
-dependencies = [
- "birlik-engine-host",
- "birlik-network",
- "birlik-protocol",
- "clap",
- "serde_json",
- "sysinfo",
- "tokio",
-]
-
-[[package]]
-name = "birlik-protocol"
-version = "0.1.0"
-dependencies = [
- "proptest",
- "prost",
- "prost-build",
- "protoc-bin-vendored",
-]
-
-[[package]]
 name = "bit-set"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2165,6 +2124,47 @@ dependencies = [
  "objc2",
  "objc2-core-foundation",
  "objc2-security",
+]
+
+[[package]]
+name = "omnarc-engine-host"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "omnarc-protocol",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "omnarc-network"
+version = "0.1.0"
+dependencies = [
+ "iroh",
+ "omnarc-protocol",
+ "tokio",
+]
+
+[[package]]
+name = "omnarc-node"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "omnarc-engine-host",
+ "omnarc-network",
+ "omnarc-protocol",
+ "serde_json",
+ "sysinfo",
+ "tokio",
+]
+
+[[package]]
+name = "omnarc-protocol"
+version = "0.1.0"
+dependencies = [
+ "proptest",
+ "prost",
+ "prost-build",
+ "protoc-bin-vendored",
 ]
 
 [[package]]

@@ -38,7 +38,7 @@ while read -r repo file bytes sha; do
   [[ -z "$repo" || "$repo" == \#* ]] && continue
   selected "$file" || continue
   need=$((need + bytes - $(size "$dir/$file")))
-done < "${BIRLIK_GATE_MODELS:-$root/bench/b1/models.txt}"
+done < "${OMNARC_GATE_MODELS:-$root/bench/b1/models.txt}"
 free=$(free_bytes "$dir")
 if [ "$need" -gt "$free" ]; then
   echo "not enough disk space in $dir: $((need / 1000000000)) GB more needed, $((free / 1000000000)) GB free" >&2
@@ -68,5 +68,5 @@ while read -r repo file bytes sha; do
     echo "BAD      $file: the SHA-256 does not match; delete it and run again" >&2
     status=1
   fi
-done < "${BIRLIK_GATE_MODELS:-$root/bench/b1/models.txt}"
+done < "${OMNARC_GATE_MODELS:-$root/bench/b1/models.txt}"
 exit $status

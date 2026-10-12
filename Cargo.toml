@@ -6,11 +6,11 @@ members = ["node/crates/*"]
 version = "0.1.0"
 edition = "2024"
 license = "Apache-2.0"
-repository = "https://github.com/HumoyunDavronov2001/birlik"
+repository = "https://github.com/HumoyunDavronov2001/omnarc"
 rust-version = "1.88"
 
 [workspace.dependencies]
-birlik-protocol = { path = "node/crates/birlik-protocol" }
+omnarc-protocol = { path = "node/crates/omnarc-protocol" }
 prost = "0.14"
 prost-build = "0.14"
 protoc-bin-vendored = "3.3"
@@ -18,8 +18,8 @@ clap = { version = "4.6", features = ["derive"] }
 sysinfo = "0.39"
 serde_json = "1"
 proptest = "1.12"
-birlik-engine-host = { path = "node/crates/birlik-engine-host" }
-birlik-network = { path = "node/crates/birlik-network" }
+omnarc-engine-host = { path = "node/crates/omnarc-engine-host" }
+omnarc-network = { path = "node/crates/omnarc-network" }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "io-util", "time", "sync", "fs"] }
 
 [workspace.lints.rust]

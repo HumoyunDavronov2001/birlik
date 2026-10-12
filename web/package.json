@@ -1,5 +1,5 @@
 {
-  "name": "birlik-web",
+  "name": "omnarc-web",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.34.7",
@@ -9,8 +9,8 @@
   "scripts": {
     "check": "pnpm -r check",
     "test": "pnpm -r test",
-    "build-storybook": "pnpm --filter @birlik/ui build-storybook",
-    "test:visual": "pnpm --filter @birlik/ui test:visual"
+    "build-storybook": "pnpm --filter @omnarc/ui build-storybook",
+    "test:visual": "pnpm --filter @omnarc/ui test:visual"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

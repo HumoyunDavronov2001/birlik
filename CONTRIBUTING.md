@@ -1,6 +1,6 @@
-# Contributing to BIRLIK
+# Contributing to Omnarc
 
-Thank you for helping. BIRLIK is developed in the open; everything — code, comments, docs and commit messages —
+Thank you for helping. Omnarc is developed in the open; everything — code, comments, docs and commit messages —
 is written in English. The product itself is translated (Uzbek, Russian and more).
 
 ## Where things are

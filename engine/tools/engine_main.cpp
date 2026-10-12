@@ -1,4 +1,4 @@
-// birlik-engine — libbirlik in its own process, driven by birlik-node over stdin/stdout with the bulk data in shared
+// omnarc-engine — libomnarc in its own process, driven by omnarc-node over stdin/stdout with the bulk data in shared
 // memory. The protocol is specified in engine/HOST.md.
 #include <cstdint>
 #include <cstdio>
@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "birlik/birlik.h"
+#include "omnarc/omnarc.h"
 #include "ggml.h"
 
 #if defined(_WIN32)
@@ -157,7 +157,7 @@ bool respond(uint16_t status, const std::vector<uint8_t> &payload) {
     return ok && std::fflush(stdout) == 0;
 }
 
-void put_model_info(writer &w, const bk_model_info &info) {
+void put_model_info(writer &w, const om_model_info &info) {
     w.str(info.architecture);
     w.put(info.layer_count);
     w.put(info.hidden_dim);
@@ -169,54 +169,54 @@ void put_model_info(writer &w, const bk_model_info &info) {
 
 struct engine {
     region shm;
-    std::unordered_map<uint32_t, bk_shard *> shards;
-    std::unordered_map<uint32_t, bk_sampler *> samplers;
+    std::unordered_map<uint32_t, om_shard *> shards;
+    std::unordered_map<uint32_t, om_sampler *> samplers;
     uint32_t next_id = 1;
     std::vector<float> scratch_in;
     std::vector<float> scratch_out;
 
     ~engine() {
-        for (auto &[id, shard] : shards) bk_shard_close(shard);
-        for (auto &[id, sampler] : samplers) bk_sampler_close(sampler);
+        for (auto &[id, shard] : shards) om_shard_close(shard);
+        for (auto &[id, sampler] : samplers) om_sampler_close(sampler);
     }
 
-    bk_shard *shard(uint32_t id) const {
+    om_shard *shard(uint32_t id) const {
         const auto it = shards.find(id);
         return it == shards.end() ? nullptr : it->second;
     }
 
     // Handles one request; returns the status and fills the response payload.
-    bk_status handle(uint16_t op, const std::vector<uint8_t> &payload, writer &out, std::string &error) {
+    om_status handle(uint16_t op, const std::vector<uint8_t> &payload, writer &out, std::string &error) {
         reader in(payload);
         switch (op) {
             case OP_HELLO: {
-                out.put(bk_abi_version());
-                out.str(bk_version_string());
+                out.put(om_abi_version());
+                out.str(om_version_string());
                 out.put(static_cast<uint64_t>(shm.size()));
-                return BK_OK;
+                return OM_OK;
             }
             case OP_MODEL_INFO: {
                 const std::string path = in.str();
                 if (!in.ok()) break;
-                bk_model_info info{};
-                const bk_status status = bk_model_info_read(path.c_str(), &info);
-                if (status == BK_OK) put_model_info(out, info);
+                om_model_info info{};
+                const om_status status = om_model_info_read(path.c_str(), &info);
+                if (status == OM_OK) put_model_info(out, info);
                 return status;
             }
             case OP_OPEN: {
                 const std::string path = in.str();
-                bk_shard_params params{};
+                om_shard_params params{};
                 params.model_path = path.c_str();
                 params.layer_begin = in.get<uint32_t>();
                 params.layer_end = in.get<uint32_t>();
-                params.backend = static_cast<bk_backend>(in.get<uint32_t>());
+                params.backend = static_cast<om_backend>(in.get<uint32_t>());
                 params.max_tokens = in.get<uint32_t>();
                 if (!in.ok()) break;
-                bk_shard *s = nullptr;
-                const bk_status status = bk_shard_open(&params, &s);
-                if (status != BK_OK) return status;
-                bk_shard_info info{};
-                bk_shard_get_info(s, &info);
+                om_shard *s = nullptr;
+                const om_status status = om_shard_open(&params, &s);
+                if (status != OM_OK) return status;
+                om_shard_info info{};
+                om_shard_get_info(s, &info);
                 const uint32_t id = next_id++;
                 shards[id] = s;
                 out.put(id);
@@ -224,87 +224,87 @@ struct engine {
                 out.put(info.layer_begin);
                 out.put(info.layer_end);
                 out.put(static_cast<uint32_t>(info.backend));
-                return BK_OK;
+                return OM_OK;
             }
             case OP_CLOSE: {
                 const auto id = in.get<uint32_t>();
                 if (!in.ok()) break;
                 const auto it = shards.find(id);
                 if (it != shards.end()) {
-                    bk_shard_close(it->second);
+                    om_shard_close(it->second);
                     shards.erase(it);
                 }
-                return BK_OK;
+                return OM_OK;
             }
             case OP_RUN: return run(in, out, error);
             case OP_DROP: {
-                bk_shard *s = shard(in.get<uint32_t>());
+                om_shard *s = shard(in.get<uint32_t>());
                 const auto request = in.get<uint64_t>();
                 if (!in.ok() || s == nullptr) break;
-                return bk_shard_drop(s, request);
+                return om_shard_drop(s, request);
             }
             case OP_TRUNCATE: {
-                bk_shard *s = shard(in.get<uint32_t>());
+                om_shard *s = shard(in.get<uint32_t>());
                 const auto request = in.get<uint64_t>();
                 const auto position = in.get<uint32_t>();
                 if (!in.ok() || s == nullptr) break;
-                return bk_shard_truncate(s, request, position);
+                return om_shard_truncate(s, request, position);
             }
             case OP_PREFETCH: {
-                bk_shard *s = shard(in.get<uint32_t>());
+                om_shard *s = shard(in.get<uint32_t>());
                 if (!in.ok() || s == nullptr) break;
-                return bk_shard_prefetch(s);
+                return om_shard_prefetch(s);
             }
             case OP_THREADS: {
-                bk_shard *s = shard(in.get<uint32_t>());
+                om_shard *s = shard(in.get<uint32_t>());
                 const auto threads = in.get<uint32_t>();
                 if (!in.ok() || s == nullptr) break;
-                return bk_shard_set_threads(s, threads);
+                return om_shard_set_threads(s, threads);
             }
             case OP_TOKENIZE: {
-                bk_shard *s = shard(in.get<uint32_t>());
+                om_shard *s = shard(in.get<uint32_t>());
                 const auto add_special = in.get<uint8_t>();
                 const std::string text = in.str();
                 if (!in.ok() || s == nullptr) break;
                 size_t count = 0;
                 auto *tokens = reinterpret_cast<int32_t *>(shm.output());
-                const bk_status status = bk_shard_tokenize(s, text.data(), text.size(), add_special, tokens,
+                const om_status status = om_shard_tokenize(s, text.data(), text.size(), add_special, tokens,
                                                            shm.half() / sizeof(int32_t), &count);
-                if (status == BK_OK) out.put(static_cast<uint32_t>(count));
+                if (status == OM_OK) out.put(static_cast<uint32_t>(count));
                 return status;
             }
             case OP_TOKEN_TEXT: {
-                bk_shard *s = shard(in.get<uint32_t>());
+                om_shard *s = shard(in.get<uint32_t>());
                 const auto token = in.get<int32_t>();
                 if (!in.ok() || s == nullptr) break;
                 char buf[256];
                 size_t len = 0;
-                bk_status status = bk_shard_token_text(s, token, buf, sizeof(buf), &len);
-                std::string text(buf, status == BK_OK ? len : 0);
-                if (status == BK_ERR_CAPACITY) {
+                om_status status = om_shard_token_text(s, token, buf, sizeof(buf), &len);
+                std::string text(buf, status == OM_OK ? len : 0);
+                if (status == OM_ERR_CAPACITY) {
                     text.resize(len);
-                    status = bk_shard_token_text(s, token, text.data(), text.size(), &len);
+                    status = om_shard_token_text(s, token, text.data(), text.size(), &len);
                 }
-                if (status != BK_OK) return status;
+                if (status != OM_OK) return status;
                 out.str(text);
-                out.put(static_cast<uint8_t>(bk_shard_token_is_end(s, token)));
-                return BK_OK;
+                out.put(static_cast<uint8_t>(om_shard_token_is_end(s, token)));
+                return OM_OK;
             }
             case OP_SAMPLER_OPEN: {
-                bk_sampler_params params{};
+                om_sampler_params params{};
                 params.temperature = in.get<float>();
                 params.top_k = in.get<uint32_t>();
                 params.top_p = in.get<float>();
                 params.min_p = in.get<float>();
                 params.seed = in.get<uint64_t>();
                 if (!in.ok()) break;
-                bk_sampler *sampler = nullptr;
-                const bk_status status = bk_sampler_open(&params, &sampler);
-                if (status != BK_OK) return status;
+                om_sampler *sampler = nullptr;
+                const om_status status = om_sampler_open(&params, &sampler);
+                if (status != OM_OK) return status;
                 const uint32_t id = next_id++;
                 samplers[id] = sampler;
                 out.put(id);
-                return BK_OK;
+                return OM_OK;
             }
             case OP_SAMPLE: {
                 const auto id = in.get<uint32_t>();
@@ -312,9 +312,9 @@ struct engine {
                 const auto it = samplers.find(id);
                 if (!in.ok() || it == samplers.end() || static_cast<size_t>(vocab) * sizeof(float) > shm.half()) break;
                 int32_t token = -1;
-                const bk_status status =
-                    bk_sampler_sample(it->second, reinterpret_cast<const float *>(shm.output()), vocab, &token);
-                if (status == BK_OK) out.put(token);
+                const om_status status =
+                    om_sampler_sample(it->second, reinterpret_cast<const float *>(shm.output()), vocab, &token);
+                if (status == OM_OK) out.put(token);
                 return status;
             }
             case OP_SAMPLER_CLOSE: {
@@ -322,20 +322,20 @@ struct engine {
                 if (!in.ok()) break;
                 const auto it = samplers.find(id);
                 if (it != samplers.end()) {
-                    bk_sampler_close(it->second);
+                    om_sampler_close(it->second);
                     samplers.erase(it);
                 }
-                return BK_OK;
+                return OM_OK;
             }
-            default: error = "unknown request " + std::to_string(op); return BK_ERR_INVALID_ARGUMENT;
+            default: error = "unknown request " + std::to_string(op); return OM_ERR_INVALID_ARGUMENT;
         }
         error = "malformed request, or an unknown shard or sampler";
-        return BK_ERR_INVALID_ARGUMENT;
+        return OM_ERR_INVALID_ARGUMENT;
     }
 
-    bk_status run(reader &in, writer &out, std::string &error) {
-        bk_shard *s = shard(in.get<uint32_t>());
-        bk_batch batch{};
+    om_status run(reader &in, writer &out, std::string &error) {
+        om_shard *s = shard(in.get<uint32_t>());
+        om_batch batch{};
         batch.request_id = in.get<uint64_t>();
         batch.position_start = in.get<uint32_t>();
         batch.token_count = in.get<uint32_t>();
@@ -344,11 +344,11 @@ struct engine {
         const auto output = in.get<uint8_t>();
         if (!in.ok() || s == nullptr || batch.token_count == 0) {
             error = "malformed run request or unknown shard";
-            return BK_ERR_INVALID_ARGUMENT;
+            return OM_ERR_INVALID_ARGUMENT;
         }
 
-        bk_shard_info info{};
-        bk_shard_get_info(s, &info);
+        om_shard_info info{};
+        om_shard_get_info(s, &info);
         const size_t n = batch.token_count;
         const size_t hidden = info.model.hidden_dim;
         const bool head = info.layer_end > info.model.layer_count;
@@ -358,7 +358,7 @@ struct engine {
         const size_t in_size = input == EL_F32 || input == EL_TOKENS ? 4 : 2;
         if (in_elems * in_size > shm.half()) {
             error = "the input does not fit in the shared memory";
-            return BK_ERR_CAPACITY;
+            return OM_ERR_CAPACITY;
         }
         const void *src = shm.input();
         switch (input) {
@@ -376,7 +376,7 @@ struct engine {
                                       static_cast<int64_t>(in_elems));
                 batch.hidden = scratch_in.data();
                 break;
-            default: error = "unknown input type"; return BK_ERR_INVALID_ARGUMENT;
+            default: error = "unknown input type"; return OM_ERR_INVALID_ARGUMENT;
         }
 
         // output: logits are always f32, hidden states in the requested type
@@ -386,15 +386,15 @@ struct engine {
         const bool direct = head || output == EL_F32;
         if (out_elems * (direct ? 4 : 2) > shm.half()) {
             error = "the output does not fit in the shared memory";
-            return BK_ERR_CAPACITY;
+            return OM_ERR_CAPACITY;
         }
         float *dst = reinterpret_cast<float *>(shm.output());
         if (!direct) {
             scratch_out.resize(out_elems);
             dst = scratch_out.data();
         }
-        const bk_status status = bk_shard_run(s, &batch, dst, out_elems);
-        if (status != BK_OK) return status;
+        const om_status status = om_shard_run(s, &batch, dst, out_elems);
+        if (status != OM_OK) return status;
         if (!direct) {
             const auto count = static_cast<int64_t>(out_elems);
             if (output == EL_F16) {
@@ -403,12 +403,12 @@ struct engine {
                 ggml_fp32_to_bf16_row(dst, reinterpret_cast<ggml_bf16_t *>(shm.output()), count);
             } else {
                 error = "unknown output type";
-                return BK_ERR_INVALID_ARGUMENT;
+                return OM_ERR_INVALID_ARGUMENT;
             }
         }
         out.put(rows);
         out.put(row);
-        return BK_OK;
+        return OM_OK;
     }
 };
 
@@ -424,7 +424,7 @@ int main(int argc, char **argv) {
         }
     }
     if (shm_name.empty() || shm_size < 4096) {
-        std::fprintf(stderr, "usage: birlik-engine --shm NAME --shm-size BYTES  (started by birlik-node)\n");
+        std::fprintf(stderr, "usage: omnarc-engine --shm NAME --shm-size BYTES  (started by omnarc-node)\n");
         return 2;
     }
 #if defined(_WIN32)
@@ -434,7 +434,7 @@ int main(int argc, char **argv) {
 
     engine e;
     if (!e.shm.open(shm_name, shm_size)) {
-        std::fprintf(stderr, "birlik-engine: cannot open shared memory %s\n", shm_name.c_str());
+        std::fprintf(stderr, "omnarc-engine: cannot open shared memory %s\n", shm_name.c_str());
         return 1;
     }
 
@@ -446,18 +446,18 @@ int main(int argc, char **argv) {
         payload.resize(length - 4);
         if (!payload.empty() && !read_exact(payload.data(), payload.size())) break;
         if (head[0] == OP_QUIT) {
-            respond(BK_OK, {});
+            respond(OM_OK, {});
             break;
         }
 
         writer out;
         std::string error;
-        const bk_status status = e.handle(head[0], payload, out, error);
-        if (status != BK_OK) {
+        const om_status status = e.handle(head[0], payload, out, error);
+        if (status != OM_OK) {
             writer err;
-            err.str(error.empty() ? bk_last_error() : error);
+            err.str(error.empty() ? om_last_error() : error);
             if (!respond(static_cast<uint16_t>(status), err.data)) break;
-        } else if (!respond(BK_OK, out.data)) {
+        } else if (!respond(OM_OK, out.data)) {
             break;
         }
     }

@@ -25,7 +25,7 @@
 #  include <sys/sysctl.h>
 #endif
 
-namespace birlik {
+namespace omnarc {
 
 uint32_t physical_cores() {
 #if defined(__linux__)
@@ -203,4 +203,4 @@ std::unique_ptr<file_prefetcher> file_prefetcher::open(const std::string &path, 
     return result;
 }
 
-}  // namespace birlik
+}  // namespace omnarc

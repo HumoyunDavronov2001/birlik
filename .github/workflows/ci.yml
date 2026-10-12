@@ -64,7 +64,7 @@ jobs:
       - name: Test
         run: cargo test --workspace
       - name: Describe the runner
-        run: cargo run -q -p birlik-node -- info
+        run: cargo run -q -p omnarc-node -- info
 
   mobile:
     name: Rust (${{ matrix.target }})
@@ -85,7 +85,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.target }}
-      - run: cargo check -p birlik-protocol --target ${{ matrix.target }}
+      - run: cargo check -p omnarc-protocol --target ${{ matrix.target }}
 
   engine:
     name: Engine (${{ matrix.os }})
@@ -122,7 +122,7 @@ jobs:
         # GGML_NATIVE=OFF: the programs run on other machines too (x86-64 with AVX2, or ARM64)
         run: |
           cmake -S engine -B build/engine -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF \
-            -DBIRLIK_TEST_MODEL="${{ github.workspace }}/build/models/stories15M-q8_0.gguf"
+            -DOMNARC_TEST_MODEL="${{ github.workspace }}/build/models/stories15M-q8_0.gguf"
       - name: Build
         shell: bash
         run: |
@@ -137,18 +137,18 @@ jobs:
       - name: C ABI and the accuracy gate
         run: ctest --test-dir build/engine -C Release --output-on-failure
       - uses: dtolnay/rust-toolchain@stable
-      - name: The engine in its own process (Rust host and birlik-engine)
+      - name: The engine in its own process (Rust host and omnarc-engine)
         shell: bash
         env:
-          BIRLIK_ENGINE: ${{ github.workspace }}/build/engine/${{ runner.os == 'Windows' && 'Release/birlik-engine.exe' || 'birlik-engine' }}
-          BIRLIK_TEST_MODEL: ${{ github.workspace }}/build/models/stories15M-q8_0.gguf
-        run: cargo test -p birlik-engine-host --features engine-tests
+          OMNARC_ENGINE: ${{ github.workspace }}/build/engine/${{ runner.os == 'Windows' && 'Release/omnarc-engine.exe' || 'omnarc-engine' }}
+          OMNARC_TEST_MODEL: ${{ github.workspace }}/build/models/stories15M-q8_0.gguf
+        run: cargo test -p omnarc-engine-host --features engine-tests
       - name: A ring of two nodes generates what one device generates
         shell: bash
         env:
-          BIRLIK_ENGINE: ${{ github.workspace }}/build/engine/${{ runner.os == 'Windows' && 'Release/birlik-engine.exe' || 'birlik-engine' }}
-          BIRLIK_TEST_MODEL: ${{ github.workspace }}/build/models/stories15M-q8_0.gguf
-        run: cargo test -p birlik-node --features engine-tests
+          OMNARC_ENGINE: ${{ github.workspace }}/build/engine/${{ runner.os == 'Windows' && 'Release/omnarc-engine.exe' || 'omnarc-engine' }}
+          OMNARC_TEST_MODEL: ${{ github.workspace }}/build/models/stories15M-q8_0.gguf
+        run: cargo test -p omnarc-node --features engine-tests
       - name: The Windows download script of the B1 gate, on a small model
         if: runner.os == 'Windows'
         shell: pwsh
@@ -160,20 +160,20 @@ jobs:
             powershell -ExecutionPolicy Bypass -File bench\b1\download.ps1 -Dir $dir -List $list -Model all
             if ($LASTEXITCODE -ne 0) { exit 1 }
           }
-      - name: Programs to try on real devices (birlik-node next to birlik-engine)
+      - name: Programs to try on real devices (omnarc-node next to omnarc-engine)
         if: github.event_name == 'push'
         shell: bash
         run: |
-          cargo build --release -p birlik-node
+          cargo build --release -p omnarc-node
           mkdir -p dist
           exe=${{ runner.os == 'Windows' && '.exe' || '' }}
-          cp "target/release/birlik-node$exe" dist/
-          cp "build/engine/${{ runner.os == 'Windows' && 'Release/' || '' }}birlik-engine$exe" dist/
-          cp "build/engine/${{ runner.os == 'Windows' && 'Release/' || '' }}birlik-gate$exe" dist/
+          cp "target/release/omnarc-node$exe" dist/
+          cp "build/engine/${{ runner.os == 'Windows' && 'Release/' || '' }}omnarc-engine$exe" dist/
+          cp "build/engine/${{ runner.os == 'Windows' && 'Release/' || '' }}omnarc-gate$exe" dist/
       - if: github.event_name == 'push'
         uses: actions/upload-artifact@v4
         with:
-          name: birlik-${{ runner.os }}-${{ runner.arch }}
+          name: omnarc-${{ runner.os }}-${{ runner.arch }}
           path: dist/
           retention-days: 30
 
@@ -201,7 +201,7 @@ jobs:
       - name: Build Storybook
         run: pnpm build-storybook
       - name: Install Chromium
-        run: pnpm --filter @birlik/ui exec playwright install --with-deps chromium
+        run: pnpm --filter @omnarc/ui exec playwright install --with-deps chromium
       - name: Visual regression + axe (WCAG 2.2 AA)
         run: pnpm test:visual
       - name: Upload the visual report

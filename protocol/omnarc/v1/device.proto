@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package omnarc.v1;
+
+// A device is identified by its Ed25519 public key (the iroh NodeId).
+message NodeId {
+  // 32-byte Ed25519 public key.
+  bytes ed25519_public_key = 1;
+}
+
+// A cluster is identified by the Ed25519 public key that signs membership tokens.
+message ClusterId {
+  // 32-byte Ed25519 public key.
+  bytes ed25519_public_key = 1;
+}
+
+enum Platform {
+  PLATFORM_UNSPECIFIED = 0;
+  PLATFORM_LINUX = 1;
+  PLATFORM_WINDOWS = 2;
+  PLATFORM_MACOS = 3;
+  PLATFORM_ANDROID = 4;
+  PLATFORM_IOS = 5;
+  PLATFORM_BROWSER = 6;
+}
+
+// Compute backends a device can run model layers on.
+enum Backend {
+  BACKEND_UNSPECIFIED = 0;
+  BACKEND_CPU = 1;
+  BACKEND_CUDA = 2;
+  BACKEND_HIP = 3;
+  BACKEND_VULKAN = 4;
+  BACKEND_METAL = 5;
+  BACKEND_OPENCL = 6;
+  BACKEND_HEXAGON = 7;
+  BACKEND_SYCL = 8;
+  BACKEND_CANN = 9;
+  BACKEND_WEBGPU = 10;
+  BACKEND_MLX = 11;
+  BACKEND_VLLM = 12;
+  BACKEND_SGLANG = 13;
+}
+
+// One compute unit on a device, with figures measured by the profiler when the device joins.
+message Accelerator {
+  Backend backend = 1;
+  // Human-readable name, e.g. "RTX 4070" or "Adreno 750".
+  string name = 2;
+  // Memory this unit can use for model weights and KV cache.
+  uint64 memory_bytes = 3;
+  // Measured matrix throughput in FP16 TFLOPS (0 when not measured yet).
+  float measured_fp16_tflops = 4;
+  // Measured memory bandwidth in GB/s (0 when not measured yet).
+  float measured_bandwidth_gbps = 5;
+  // True when every operation this backend runs passed the accuracy gate.
+  bool accuracy_gate_passed = 6;
+}
+
+// What a device is and what it can offer. Sent when a device joins and whenever its hardware changes.
+message DeviceInfo {
+  NodeId id = 1;
+  // Owner-chosen name, e.g. "Desktop PC".
+  string name = 2;
+  Platform platform = 3;
+  string os_version = 4;
+  string cpu_model = 5;
+  uint32 cpu_cores = 6;
+  uint64 memory_total_bytes = 7;
+  repeated Accelerator accelerators = 8;
+  // Measured sequential disk read speed in MB/s, used for capacity mode (0 when not measured yet).
+  float measured_disk_read_mbps = 9;
+  // Version of the omnarc-node agent, e.g. "0.1.0".
+  string agent_version = 10;
+}

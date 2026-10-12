@@ -1,10 +1,10 @@
 # Engine host protocol — `BKE1`
 
 On computers and servers the engine runs in its own process (PLAN.md §4): if it crashes, the agent keeps running
-and moves the layers elsewhere. The agent, `birlik-node`, starts the engine as a child process:
+and moves the layers elsewhere. The agent, `omnarc-node`, starts the engine as a child process:
 
 ```
-birlik-engine --shm <name> --shm-size <bytes>
+omnarc-engine --shm <name> --shm-size <bytes>
 ```
 
 - **Requests** arrive on the engine's stdin and **responses** leave on its stdout, one at a time and in order. The
@@ -28,7 +28,7 @@ request   u32 length of the rest | u16 opcode | u16 0      | payload
 response  u32 length of the rest | u16 status | u16 0      | payload
 ```
 
-`status` is a `bk_status` from [`include/birlik/birlik.h`](include/birlik/birlik.h). A response with a non-zero
+`status` is a `om_status` from [`include/omnarc/omnarc.h`](include/omnarc/omnarc.h). A response with a non-zero
 status carries one string, the error message, as its payload.
 
 | Op | Name | Request payload | Response payload |

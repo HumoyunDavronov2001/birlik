@@ -1,4 +1,4 @@
-/* BIRLIK — the living ring (WebGL2, no dependencies).
+/* Omnarc — the living ring (WebGL2, no dependencies).
  *
  * The mark shows how the system actually works:
  *   - every arc is one device; its length is the device's share of model layers;

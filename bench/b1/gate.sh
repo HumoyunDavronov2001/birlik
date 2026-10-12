@@ -5,16 +5,16 @@
 #
 #   bench/b1/gate.sh MODEL_DIR [BACKEND]      # BACKEND: auto (default), cpu, cuda, vulkan, metal
 #
-# MODEL_DIR holds the files listed in bench/b1/models.txt (bench/b1/download.sh fetches them; BIRLIK_GATE_MODELS
+# MODEL_DIR holds the files listed in bench/b1/models.txt (bench/b1/download.sh fetches them; OMNARC_GATE_MODELS
 # names another list). Results go to bench/b1/results/gate-<host>.txt. The whole
 # model runs once per model and backend; its logits are kept in build/data (about 5 GB per model) for the splits.
 set -euo pipefail
 
 dir=${1:?usage: gate.sh MODEL_DIR [BACKEND]}
 backend=${2:-auto}
-chunks=${BIRLIK_GATE_CHUNKS:-10}   # chunks of 512 wikitext-2 tokens; a 70B model on a laptop CPU takes minutes per chunk
+chunks=${OMNARC_GATE_CHUNKS:-10}   # chunks of 512 wikitext-2 tokens; a 70B model on a laptop CPU takes minutes per chunk
 root=$(cd "$(dirname "$0")/../.." && pwd)
-gate="$root/build/engine/birlik-gate"
+gate="$root/build/engine/omnarc-gate"
 out="$root/bench/b1/results"
 mkdir -p "$out" "$root/build/data"
 
@@ -66,5 +66,5 @@ while read -r repo file bytes sha256; do
       status=1
     fi
   done
-done < "${BIRLIK_GATE_MODELS:-$root/bench/b1/models.txt}"
+done < "${OMNARC_GATE_MODELS:-$root/bench/b1/models.txt}"
 exit $status

@@ -1,4 +1,4 @@
-# BIRLIK — to'liq reja (v3, 12.10.2026)
+# Omnarc — to'liq reja (v3, 12.10.2026)
 
 > **Oʻzbekcha oʻqish nusxasi (12.10.2026, v3).** Loyihaning asosiy hujjatlari endi ingliz tilida:
 > [PLAN.md](../../PLAN.md) va [REQUIREMENTS.md](../../REQUIREMENTS.md). Bu nusxa siz oʻqishingiz uchun saqlangan.
@@ -16,7 +16,7 @@
 
 ## 0. Qisqacha
 
-BIRLIK istalgan qurilmani — kompyuter, telefon, server, brauzer — bitta AI klasterga birlashtiradi.
+Omnarc istalgan qurilmani — kompyuter, telefon, server, brauzer — bitta AI klasterga birlashtiradi.
 Qurilma qo'shilgan sari uchta narsa o'sadi: sig'adigan model hajmi, bir vaqtda xizmat qilinadigan
 foydalanuvchilar soni va bitta javobning tezligi. Tizim uydan dunyo miqyosigacha ishlaydi; u javob beradi
 va modelni o'qitadi ham.
@@ -26,35 +26,35 @@ va modelni o'qitadi ham.
 ```mermaid
 flowchart LR
   U["Ilova / foydalanuvchi<br/>OpenAI · Claude · Ollama API"] --> G
-  subgraph N["birlik-tugun (har bir qurilmada, Rust)"]
+  subgraph N["omnarc-tugun (har bir qurilmada, Rust)"]
     G["API shlyuz"] --> P["Reja ijrochisi"]
     P --> E["Dvigatel xosti"]
     T["Tarmoq: iroh QUIC<br/>gossip · Raft"] --- P
     S["Model ombori<br/>iroh-blobs, BLAKE3"] --- E
     W["Panel (Svelte)"] --- G
   end
-  E <-->|"umumiy xotira"| L["libbirlik (C++)<br/>llama.cpp + yamoqlar"]
+  E <-->|"umumiy xotira"| L["libomnarc (C++)<br/>llama.cpp + yamoqlar"]
   N <-->|"QUIC, shifrlangan"| N2["boshqa tugunlar"]
   B["Brauzer tuguni<br/>WASM + WebGPU"] <-->|"WebRTC"| N
-  N --- R["birlik-rele<br/>rele · signal · katalog"]
-  N --- M["birlik-markaz<br/>tashkilot: SSO, kvota, audit"]
+  N --- R["omnarc-rele<br/>rele · signal · katalog"]
+  N --- M["omnarc-markaz<br/>tashkilot: SSO, kvota, audit"]
   N --- O1["MLX oroli (Mac, RDMA)"]
   N --- O2["GPU oroli (vLLM/SGLang)"]
 ```
 
 | Komponent | Til | Vazifa | Kimning kodidan |
 |---|---|---|---|
-| `birlik-tugun` | Rust | har qurilmadagi agent: tarmoq, reja ijrosi, API, panel, model ombori | exo `rust/networking`, `master/placement.py` g'oyalari |
-| `libbirlik` | C++20 | qatlam bo'lagini hisoblash, piped-ring, taxminiy dekodlash, KV | llama.cpp, prima.cpp, PowerInfer |
-| `birlik-veb` | TypeScript, Svelte 5 | panel, brauzer tuguni (PWA), dizayn tizimi | exo `dashboard` |
-| `birlik-ish-stoli` | Rust + Tauri 2 | Linux/Windows/macOS ilovasi, tray | — |
-| `birlik-android` | Kotlin, Compose | telefon ilovasi, fon xizmati, vidjet | prima Android tajribasi |
-| `birlik-ios` | Swift, SwiftUI | iPhone/iPad ilovasi, Live Activity | — |
-| `birlik-markaz` | Python, FastAPI | tashkilot boshqaruvi: foydalanuvchi, SSO, kvota, hisob | GPUStack server |
+| `omnarc-tugun` | Rust | har qurilmadagi agent: tarmoq, reja ijrosi, API, panel, model ombori | exo `rust/networking`, `master/placement.py` g'oyalari |
+| `libomnarc` | C++20 | qatlam bo'lagini hisoblash, piped-ring, taxminiy dekodlash, KV | llama.cpp, prima.cpp, PowerInfer |
+| `omnarc-veb` | TypeScript, Svelte 5 | panel, brauzer tuguni (PWA), dizayn tizimi | exo `dashboard` |
+| `omnarc-ish-stoli` | Rust + Tauri 2 | Linux/Windows/macOS ilovasi, tray | — |
+| `omnarc-android` | Kotlin, Compose | telefon ilovasi, fon xizmati, vidjet | prima Android tajribasi |
+| `omnarc-ios` | Swift, SwiftUI | iPhone/iPad ilovasi, Live Activity | — |
+| `omnarc-markaz` | Python, FastAPI | tashkilot boshqaruvi: foydalanuvchi, SSO, kvota, hisob | GPUStack server |
 | `orollar/mlx` | Python | Mac guruhi, RDMA Thunderbolt 5 | exo `worker/engines/mlx` |
 | `orollar/gpu` | Python | NVIDIA/AMD server: vLLM, SGLang | GPUStack `worker/backends` |
-| `birlik-rele` | Rust | rele, WebRTC signal, ommaviy tarmoq katalogi | iroh-relay |
-| `birlik-olchov` | Rust + Python | W1–W10 o'lchovi, raqiblar bilan solishtirish | — |
+| `omnarc-rele` | Rust | rele, WebRTC signal, ommaviy tarmoq katalogi | iroh-relay |
+| `omnarc-olchov` | Rust + Python | W1–W10 o'lchovi, raqiblar bilan solishtirish | — |
 
 Olingan kod `MANBA.md` bilan saqlanadi: upstream manzili, commit va bizning o'zgartirishlar ro'yxati.
 
@@ -99,7 +99,7 @@ Telemetriya: sukut bo'yicha tashqariga **hech narsa** yuborilmaydi.
    Oqim ustuvorligi: tenzor > boshqaruv > telemetriya > model fayllari.
 4. **Tenzor freymi.** 32 baytlik sarlavha (so'rov id, qadam, pozitsiya oralig'i, dtype f16/bf16/f8e4m3/i8,
    masshtab, uzunlik) + yuk. QUIC bir tomonlama oqim orqali boradi, ggml buferiga nusxasiz tushadi.
-5. **Boshqaruv xabarlari.** Protobuf, `birlik.v1` versiyasi. Yangi maydon doim ixtiyoriy — eski tugun yangisi
+5. **Boshqaruv xabarlari.** Protobuf, `omnarc.v1` versiyasi. Yangi maydon doim ixtiyoriy — eski tugun yangisi
    bilan ishlay oladi.
 6. **Holat.** iroh-gossip (HyParView/PlumTree) orqali sekundiga 1 marta telemetriya. Raft — reja versiyasi,
    model joylashuvi, kalitlar.
@@ -107,7 +107,7 @@ Telemetriya: sukut bo'yicha tashqariga **hech narsa** yuborilmaydi.
 8. **Model.** Bitta tugun Hugging Face'dan yuklaydi → BLAKE3 xesh → iroh-blobs. GGUF tenzor ofsetlari bayt
    oraliqlariga aylantiriladi. Har tugun faqat o'z qatlamlarini oladi va uzilsa to'xtagan joyidan davom etadi.
 
-## 4. Dvigatel — libbirlik
+## 4. Dvigatel — libomnarc
 
 - **llama.cpp submodul + `yamoqlar/`** (qatlam oynasi [a, b), yashirin holat kirish/chiqish, tashqi KV
   boshqaruvi). CI har hafta yamoqlarni upstream'ning yangi versiyasiga avtomatik qayta qo'yib, sinovdan
@@ -146,7 +146,7 @@ Telemetriya: sukut bo'yicha tashqariga **hech narsa** yuborilmaydi.
      bo'sh turganda» rejimi bor.
    - Avto-yangilanish imzolangan.
    - O'rnatgichlar: MSI, DMG (notarizatsiya bilan), AppImage/deb/rpm, Flatpak, Homebrew, winget, Nix.
-2. **Server** — `birlik-tugun` CLI + systemd, Docker tasviri, Helm chart (GPUStack'dan olinadi).
+2. **Server** — `omnarc-tugun` CLI + systemd, Docker tasviri, Helm chart (GPUStack'dan olinadi).
 3. **Android.** minSdk 26 (Android 8); GPU imkoniyatlari ish vaqtida tekshiriladi. CI'da API 26/30/34/36
    emulyatorlarida sinaladi.
    - **Fon xizmati:** API ≥ 34 da `specialUse` — vaqt chegarasi yo'q. `dataSync` Android 15'dan boshlab
@@ -202,7 +202,7 @@ Telemetriya: sukut bo'yicha tashqariga **hech narsa** yuborilmaydi.
 
 prima'ning piped-ring usuli aynan halqa: qurilmalar halqa bo'ylab turadi va token aylanib o'tadi. Shuning uchun
 logotip ham, bosh ekran ham halqa. Har xil uzunlikdagi yoylar (har xil qurilmalar) birgalikda bitta doirani
-hosil qiladi — bu BIRLIK g'oyasining o'zi.
+hosil qiladi — bu Omnarc g'oyasining o'zi.
 
 - **Logotip:** 5 ta notekis yoy va bitta nuqta (token).
 - **Ranglar** (OKLCH, Samarqand koshinlaridan olingan):
@@ -333,8 +333,8 @@ uchun raqam, sana va oy nomlari o'z funksiyamiz bilan formatlanadi.
 ## 10. Repo tuzilishi
 
 ```
-birlik/
-  dvigatel/        libbirlik (C++), llama.cpp submodul, yamoqlar/
+omnarc/
+  dvigatel/        libomnarc (C++), llama.cpp submodul, yamoqlar/
   tugun/           Rust workspace: tugun, tarmoq, reja, ombor, api, protokol, ffi, simulyatsiya
   protokol/        .proto (buf), freym spetsifikatsiyasi, TLA+ modellari
   veb/             SvelteKit: panel/, brauzer-tugun/, komponentlar/ (Storybook)
@@ -357,7 +357,7 @@ UI har bosqich bilan birga quriladi — oxiriga qoldirilmaydi.
 | B | Ish | Darvoza (bosqich tugaganini isbotlaydi) |
 |---|---|---|
 | **B0 Poydevor** | monorepo, CI matritsasi, `protokol/` v1, dizayn tokenlari → CSS/Swift/Kotlin, Svelte komponent kutubxonasi (Storybook), NOTICE/MANBA.md | 6 platformada CI yashil; komponentlar vizual regressiyadan o'tadi; axe — 0 xato |
-| **B1 Dvigatel** | libbirlik: yamoqlar, prima piped-ring + oldindan o'qish, CUDA/Vulkan/Metal/CPU, Windows, alohida jarayon | aniqlik darvozasi (Llama 3.x 8B, Qwen3 32B, R1-Distill 70B); Linux + Windows kompyuterlarda 70B ishlaydi; bir xil apparatda TPOT prima.cpp'dan yomon emas |
+| **B1 Dvigatel** | libomnarc: yamoqlar, prima piped-ring + oldindan o'qish, CUDA/Vulkan/Metal/CPU, Windows, alohida jarayon | aniqlik darvozasi (Llama 3.x 8B, Qwen3 32B, R1-Distill 70B); Linux + Windows kompyuterlarda 70B ishlaydi; bir xil apparatda TPOT prima.cpp'dan yomon emas |
 | **B2 Tarmoq** | iroh, gossip, Raft, QR + SAS, iroh-blobs, havolalarni o'lchash; panel: birinchi ishga tushirish, Halqa, Qurilmalar | NAT ortidagi 2 xil tarmoqdagi qurilmalar bitta klasterda; 70B bo'laklari P2P tarqaladi (internetdan 1 marta); turmoil'da 1000 ssenariy |
 | **B3 Rejalashtiruvchi** | profiler, HiGHS, marshrut, zaxira reja, KV nusxa, jonli qo'shilish/chiqish, TLA+; panel: «Sig'adimi?», reja ko'rinishi | W6 (≤ 1 s); TLC xossalari; 8 qurilmaga joylashtirish ≤ 1 s |
 | **B4 Tezlik** | pipeline taxminiy dekodlash, MTP/EAGLE-3, PowerInfer, MoE + EPLB, f8 faollashuv, ring attention, radix kesh, batching, prefill/dekod ajratish; panel: token yo'li, havolalar matritsasi | W1, W2, W3 |
@@ -365,7 +365,7 @@ UI har bosqich bilan birga quriladi — oxiriga qoldirilmaydi.
 | **B6 Miqyos** | markaz (OIDC/LDAP, RBAC, kvota, jadval, audit), ommaviy tarmoq (katalog, TOPLOC, kredit jurnali); panel: Tashkilot, Tarmoq, Kredit | W7; aldovchi tugunlar 100 % aniqlanadi |
 | **B7 Modallik va o'qitish** | STT, TTS, rasm (stable-diffusion.cpp), embedding; LoRA (DiLoCo), RL rollout; panel: O'qitish | internet orqali 4+ tugunda o'zbekcha LoRA o'qitiladi; audio va rasm API'lari ishlaydi |
 | **B8 Orollar va API** | MLX oroli (RDMA TB5), GPU oroli (vLLM/SGLang), to'liq API moslik; panel: Modellar katalogi | W9; rasmiy SDK'lar (openai, anthropic, ollama) bilan moslik sinovlari |
-| **B9 Jahon o'lchovi va reliz** | birlik-olchov (exo, prima, Parallax, distributed-llama, llama.cpp RPC bilan bir xil apparatda), natijalar sayti, hujjatlar 4 tilda, imzoli relizlar, do'konlar | W10; v1.0 |
+| **B9 Jahon o'lchovi va reliz** | omnarc-olchov (exo, prima, Parallax, distributed-llama, llama.cpp RPC bilan bir xil apparatda), natijalar sayti, hujjatlar 4 tilda, imzoli relizlar, do'konlar | W10; v1.0 |
 
 ## 12. Tarqatish
 

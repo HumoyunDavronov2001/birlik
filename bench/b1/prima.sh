@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds prima.cpp at the commit BIRLIK studied (UPSTREAM.md) for the TPOT comparison of the stage B1 gate
+# Builds prima.cpp at the commit Omnarc studied (UPSTREAM.md) for the TPOT comparison of the stage B1 gate
 # (bench/b1/README.md). prima.cpp needs ZeroMQ from the system (Ubuntu: sudo apt install libzmq3-dev; macOS:
 # brew install zeromq); HiGHS, which its head device needs, is built here without root.
 #

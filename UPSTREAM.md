@@ -1,6 +1,6 @@
 # Upstream projects
 
-BIRLIK reuses code from these open-source projects. The table records the exact commit we studied; when code is
+Omnarc reuses code from these open-source projects. The table records the exact commit we studied; when code is
 vendored, its directory gets its own `UPSTREAM.md` with the commit, the license text and the list of our changes,
 and `NOTICE` gains its copyright line.
 
@@ -31,8 +31,8 @@ and `NOTICE` gains its copyright line.
 
 **prima.cpp** splits one model into windows of layers that run on the devices of a ring, in several rounds, and
 reads the weights of the next window from disk while other devices compute (`src/llama.cpp`: `llama_decode_internal`,
-`manage_graph_tensors`). prima.cpp does this in its own 2024 fork of llama.cpp; BIRLIK puts the same mechanism on
+`manage_graph_tensors`). prima.cpp does this in its own 2024 fork of llama.cpp; Omnarc puts the same mechanism on
 current llama.cpp: windows are the patch above, one shard per window, and prefetching reads the window's byte ranges
-of the GGUF file (`engine/src/system.cpp`, `bk_shard_prefetch`), so it does not depend on how llama.cpp maps the
+of the GGUF file (`engine/src/system.cpp`, `om_shard_prefetch`), so it does not depend on how llama.cpp maps the
 file. prima's "the head device keeps the first layers and the output" becomes the output head as its own window,
 `[n_layer, n_layer + 1)`.

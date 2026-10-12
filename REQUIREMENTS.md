@@ -1,6 +1,6 @@
-# BIRLIK — turning every device in the world into one AI
+# Omnarc — turning every device in the world into one AI
 
-> Working name. *Birlik* means "unity" in Uzbek. Open source, Apache-2.0. Version 3 (October 12, 2026).
+> *Omnarc* = *omni* (all) + *arc*: every device is an arc of one ring. Open source, Apache-2.0. Version 3 (October 12, 2026).
 > Upstream source code lives in `upstream/`. All reused code is MIT or Apache-2.0 (table in §7).
 > **How it gets built** (architecture, technologies, design system, stages) — [PLAN.md](PLAN.md).
 > An Uzbek reading copy of these documents is kept in [docs/uz/](docs/uz/).
@@ -8,7 +8,7 @@
 ## 1. The idea
 
 Billions of phones, computers, tablets and TVs sit idle most of the day. Together they hold more compute than any
-data center. **BIRLIK is an open system that gathers that idle power into one AI network.**
+data center. **Omnarc is an open system that gathers that idle power into one AI network.**
 
 It works at three scales:
 
@@ -33,7 +33,7 @@ It covers inference (answering), training (fine-tuning, RL) and many model types
 | Prime Intellect / Psyche | training over the internet | data-center GPUs only; no inference |
 
 **None of them does three things at once: any device (phone, browser, NPU), any scale (from one home to the whole
-world), and inference together with training.** BIRLIK brings all three together.
+world), and inference together with training.** Omnarc brings all three together.
 
 ## 3. Nine ideas that make it world-class
 
@@ -238,6 +238,6 @@ stage (U1–U11), never left for the end.
 
 ## 9. GitHub
 
-- Repository: `HumoyunDavronov2001/birlik` (once the name is confirmed).
+- Repository: `HumoyunDavronov2001/omnarc`.
 - `NOTICE` lists every author from §7.
 - One pull request per stage. CI builds Linux, Windows, macOS and Android and runs the benchmarks.

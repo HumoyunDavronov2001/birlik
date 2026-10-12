@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package omnarc.v1;
+
+import "omnarc/v1/device.proto";
+
+// Thermal state as reported by the operating system.
+enum ThermalState {
+  THERMAL_STATE_UNSPECIFIED = 0;
+  THERMAL_STATE_NOMINAL = 1;
+  THERMAL_STATE_FAIR = 2;
+  THERMAL_STATE_SERIOUS = 3;
+  THERMAL_STATE_CRITICAL = 4;
+}
+
+message PowerState {
+  bool on_battery = 1;
+  bool charging = 2;
+  // 0..1; 1 when the device has no battery.
+  float battery_fraction = 3;
+}
+
+enum LinkKind {
+  LINK_KIND_UNSPECIFIED = 0;
+  LINK_KIND_WIFI = 1;
+  LINK_KIND_ETHERNET = 2;
+  LINK_KIND_USB = 3;
+  LINK_KIND_THUNDERBOLT = 4;
+  LINK_KIND_RELAY = 5;
+  LINK_KIND_WEBRTC = 6;
+}
+
+// A live measurement of the link from the reporting device to one peer.
+message LinkSample {
+  NodeId peer = 1;
+  LinkKind kind = 2;
+  float rtt_ms = 3;
+  float bandwidth_mbps = 4;
+}
+
+// Work currently running on the reporting device.
+message StageLoad {
+  // Version of the placement plan the stage belongs to.
+  uint64 plan_version = 1;
+  uint32 layer_begin = 2;
+  uint32 layer_end = 3;
+  // Share of the last second spent computing, 0..1.
+  float busy_fraction = 4;
+  // Mean compute time per token on this stage, in milliseconds.
+  float ms_per_token = 5;
+}
+
+// Sent over gossip about once per second.
+message Telemetry {
+  NodeId node = 1;
+  int64 unix_ms = 2;
+  float cpu_load = 3;
+  uint64 memory_used_bytes = 4;
+  // Memory the owner currently allows Omnarc to use.
+  uint64 memory_offered_bytes = 5;
+  ThermalState thermal = 6;
+  PowerState power = 7;
+  repeated LinkSample links = 8;
+  repeated StageLoad stages = 9;
+}

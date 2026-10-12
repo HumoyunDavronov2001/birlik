@@ -4,7 +4,7 @@
 </script>
 
 <Gallery columns={5}>
-  <Logo size={96} title="BIRLIK" />
+  <Logo size={96} title="Omnarc" />
   <Logo size={48} />
   <span class="label">Tray</span>
   <Logo size={26} load={0.12} title="Load 12%" />

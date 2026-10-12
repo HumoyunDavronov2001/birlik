@@ -1,4 +1,4 @@
-/** Types for living-ring.js — the BIRLIK living ring (WebGL2). */
+/** Types for living-ring.js — the Omnarc living ring (WebGL2). */
 export interface RingDevice {
   /** Shown on the label, e.g. "Desktop". */
   name: string;

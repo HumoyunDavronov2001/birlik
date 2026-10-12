@@ -51,7 +51,7 @@ jobs:
       - name: Configure
         run: |
           cmake -S engine -B build/engine -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DGGML_VULKAN=ON \
-            -DBIRLIK_TEST_MODEL="$PWD/build/models/stories15M-q8_0.gguf"
+            -DOMNARC_TEST_MODEL="$PWD/build/models/stories15M-q8_0.gguf"
       - name: Build
         run: |
           set -o pipefail
