@@ -11,3 +11,4 @@ design/platforms/** linguist-generated=true
 design/tokens.css linguist-generated=true
 design/tokens.json linguist-generated=true
 design/colors.json linguist-generated=true
+web/apps/panel/src/lib/gen/** linguist-generated

@@ -2,10 +2,10 @@
   let { keys }: { keys: string } = $props();
 </script>
 
-<kbd class="bk-kbd">{keys}</kbd>
+<kbd class="om-kbd">{keys}</kbd>
 
 <style>
-  .bk-kbd {
+  .om-kbd {
     font: 500 11px/1 var(--mono);
     padding: 3px 6px;
     border-radius: 6px;

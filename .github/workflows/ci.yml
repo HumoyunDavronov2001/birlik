@@ -206,6 +206,8 @@ jobs:
         run: pnpm check
       - name: Unit tests
         run: pnpm test
+      - name: Build the panel
+        run: pnpm build
       - name: Build Storybook
         run: pnpm build-storybook
       - name: Install Chromium

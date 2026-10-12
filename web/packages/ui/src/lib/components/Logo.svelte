@@ -27,7 +27,7 @@
 </script>
 
 <svg
-  class="bk-logo"
+  class="om-logo"
   viewBox="0 0 100 100"
   width={size}
   height={size}
@@ -49,7 +49,7 @@
 </svg>
 
 <style>
-  .bk-logo {
+  .om-logo {
     display: block;
     flex: none;
   }

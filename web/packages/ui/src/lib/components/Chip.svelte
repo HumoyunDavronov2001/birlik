@@ -16,13 +16,13 @@
   let { label, icon, tone, selected = false, mono = false, children }: Props = $props();
 </script>
 
-<span class="bk-chip" class:selected class:mono>
+<span class="om-chip" class:selected class:mono>
   {#if icon}<span class="icon" data-tone={tone}><Icon name={icon} size={14} /></span>{/if}
   {#if children}{@render children()}{:else}{label}{/if}
 </span>
 
 <style>
-  .bk-chip {
+  .om-chip {
     display: inline-flex;
     align-items: center;
     gap: 6px;

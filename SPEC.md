@@ -16,7 +16,7 @@ design concept (its section number), or "—".
 |---|---|---|---|---|---|---|
 | Engine | 0 | 30 | 8 | 2 | 20 | 30 % |
 | Node agent and API | 0 | 40 | 5 | 7 | 28 | 21 % |
-| Panel | 24 | 7 | 0 | 1 | 30 | 2 % |
+| Panel | 24 | 7 | 1 | 7 | 23 | 15 % |
 | Desktop app | 4 | 5 | 0 | 0 | 9 | 0 % |
 | Android app | 7 | 8 | 0 | 2 | 13 | 7 % |
 | iOS app | 8 | 6 | 0 | 2 | 12 | 7 % |
@@ -27,7 +27,7 @@ design concept (its section number), or "—".
 | Islands | 0 | 3 | 0 | 0 | 3 | 0 % |
 | Benchmarks, sites and releases | 3 | 9 | 2 | 0 | 10 | 17 % |
 | Design system and quality across all apps | 1 | 13 | 6 | 2 | 6 | 50 % |
-| **All** | **50** | **141** | **21** | **16** | **154** | **15 %** |
+| **All** | **50** | **141** | **22** | **22** | **147** | **17 %** |
 
 "Ready" counts a partly done item as half. By stage — what each stage has to deliver:
 
@@ -35,7 +35,7 @@ design concept (its section number), or "—".
 |---|---|---|---|---|
 | B0 | 10 | 9 | 1 | 0 |
 | B1 | 16 | 12 | 1 | 3 |
-| B2 | 28 | 0 | 8 | 20 |
+| B2 | 28 | 1 | 14 | 13 |
 | B3 | 14 | 0 | 0 | 14 |
 | B4 | 18 | 0 | 0 | 18 |
 | B5 | 53 | 0 | 5 | 48 |
@@ -173,11 +173,11 @@ nine sections in a rail: Ring, Devices, Models, Chat, Observe, Training, Network
 
 | ID | What | Kind | Req | Stage | Design | State |
 |---|---|---|---|---|---|---|
-| PA-01 | Frame: the rail of sections, the top bar, the footer | screen | U1 | B2 | 01 | ○ |
+| PA-01 | Frame: the rail of sections, the top bar, the footer | screen | U1 | B2 | 01 | ◐ |
 | PA-02 | First run | screen | U6 | B2 | — | ○ |
-| PA-03 | Ring (home) | screen | U1 | B2 | 01 | ○ |
-| PA-04 | Add a device | screen | U6 | B2 | 02 | ○ |
-| PA-05 | Devices | screen | — | B2 | 01 | ○ |
+| PA-03 | Ring (home) | screen | U1 | B2 | 01 | ◐ |
+| PA-04 | Add a device | screen | U6 | B2 | 02 | ◐ |
+| PA-05 | Devices | screen | — | B2 | 01 | ◐ |
 | PA-06 | A device | screen | Q1, Q5 | B2 | — | ○ |
 | PA-07 | People (the family ring) | screen | K1, Q6 | B6 | — | ○ |
 | PA-08 | Models: catalog | screen | — | B8 | — | ○ |
@@ -195,14 +195,14 @@ nine sections in a rail: Ring, Devices, Models, Chat, Observe, Training, Network
 | PA-20 | Organization: keys and quotas | screen | A3 | B6 | — | ○ |
 | PA-21 | Organization: schedules and policy | screen | K2 | B6 | — | ○ |
 | PA-22 | Organization: audit and usage | screen | K2, A3 | B6 | — | ○ |
-| PA-23 | Settings | screen | U9 | B2 | — | ○ |
+| PA-23 | Settings | screen | U9 | B2 | — | ◐ |
 | PA-24 | Command palette (⌘K) | screen | U7 | B8 | 01 | ○ |
 | PA-30 | Notifications: a device left and its replica took over, a device joined, a model is ready, errors | function | P§9 | B3 | — | ○ |
 | PA-31 | Plan suggestion card with Apply and Dismiss | function | R1 | B3 | 01 | ○ |
-| PA-32 | The ring for everyone: a table view, keyboard focus from arc to arc, a spoken summary | function | U4 | B2 | — | ○ |
+| PA-32 | The ring for everyone: a table view, keyboard focus from arc to arc, a spoken summary | function | U4 | B2 | — | ◐ |
 | PA-33 | Several models as nested rings; arcs grouped beyond 128 devices | function | U1 | B4 | — | ○ |
 | PA-34 | The living ring in the panel: intro, tilt, a new arc when a device joins | function | U11 | B2 | 01 | ◐ |
-| PA-35 | Live data over a Connect stream | function | P§9 | B2 | — | ○ |
+| PA-35 | Live data over a Connect stream | function | P§9 | B2 | — | ✓ |
 | PA-36 | A shortcut for every action | function | U7 | B8 | — | ○ |
 
 **PA-01 Frame.** *Shows:* the logo, the nine sections with icons, the cluster name and a health chip ("6 devices · all

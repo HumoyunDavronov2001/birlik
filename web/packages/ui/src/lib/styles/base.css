@@ -35,7 +35,7 @@ body {
   outline-offset: 2px;
 }
 
-.bk-visually-hidden {
+.om-visually-hidden {
   position: absolute;
   width: 1px;
   height: 1px;

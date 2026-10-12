@@ -17,7 +17,7 @@ maketi dizayn konsepsiyasida bo'lsa — uning bo'lim raqami, bo'lmasa «—».
 |---|---|---|---|---|---|---|
 | Dvigatel | 0 | 30 | 8 | 2 | 20 | 30 % |
 | Tugun agenti va API | 0 | 40 | 5 | 7 | 28 | 21 % |
-| Panel | 24 | 7 | 0 | 1 | 30 | 2 % |
+| Panel | 24 | 7 | 1 | 7 | 23 | 15 % |
 | Ish stoli ilovasi | 4 | 5 | 0 | 0 | 9 | 0 % |
 | Android ilovasi | 7 | 8 | 0 | 2 | 13 | 7 % |
 | iOS ilovasi | 8 | 6 | 0 | 2 | 12 | 7 % |
@@ -28,7 +28,7 @@ maketi dizayn konsepsiyasida bo'lsa — uning bo'lim raqami, bo'lmasa «—».
 | Orollar | 0 | 3 | 0 | 0 | 3 | 0 % |
 | O'lchovlar, saytlar va relizlar | 3 | 9 | 2 | 0 | 10 | 17 % |
 | Dizayn tizimi va barcha ilovalardagi sifat | 1 | 13 | 6 | 2 | 6 | 50 % |
-| **Jami** | **50** | **141** | **21** | **16** | **154** | **15 %** |
+| **Jami** | **50** | **141** | **22** | **22** | **147** | **17 %** |
 
 «Tayyorlik» ustunida qisman bajarilgan band yarim hisoblanadi. Bosqichlar bo'yicha — har bosqich nimani topshirishi
 kerak:
@@ -37,7 +37,7 @@ kerak:
 |---|---|---|---|---|
 | B0 | 10 | 9 | 1 | 0 |
 | B1 | 16 | 12 | 1 | 3 |
-| B2 | 28 | 0 | 8 | 20 |
+| B2 | 28 | 1 | 14 | 13 |
 | B3 | 14 | 0 | 0 | 14 |
 | B4 | 18 | 0 | 0 | 18 |
 | B5 | 53 | 0 | 5 | 48 |
@@ -175,11 +175,11 @@ Sozlamalar.
 
 | ID | Nima | Turi | Talab | Bosqich | Dizayn | Holat |
 |---|---|---|---|---|---|---|
-| PA-01 | Ramka: bo'limlar yon menyusi, yuqori qator, pastki qator | ekran | U1 | B2 | 01 | ○ |
+| PA-01 | Ramka: bo'limlar yon menyusi, yuqori qator, pastki qator | ekran | U1 | B2 | 01 | ◐ |
 | PA-02 | Birinchi ishga tushirish | ekran | U6 | B2 | — | ○ |
-| PA-03 | Halqa (bosh ekran) | ekran | U1 | B2 | 01 | ○ |
-| PA-04 | Qurilma qo'shish | ekran | U6 | B2 | 02 | ○ |
-| PA-05 | Qurilmalar | ekran | — | B2 | 01 | ○ |
+| PA-03 | Halqa (bosh ekran) | ekran | U1 | B2 | 01 | ◐ |
+| PA-04 | Qurilma qo'shish | ekran | U6 | B2 | 02 | ◐ |
+| PA-05 | Qurilmalar | ekran | — | B2 | 01 | ◐ |
 | PA-06 | Bitta qurilma | ekran | Q1, Q5 | B2 | — | ○ |
 | PA-07 | Odamlar (oila halqasi) | ekran | K1, Q6 | B6 | — | ○ |
 | PA-08 | Modellar: katalog | ekran | — | B8 | — | ○ |
@@ -197,14 +197,14 @@ Sozlamalar.
 | PA-20 | Tashkilot: kalitlar va kvotalar | ekran | A3 | B6 | — | ○ |
 | PA-21 | Tashkilot: jadvallar va siyosat | ekran | K2 | B6 | — | ○ |
 | PA-22 | Tashkilot: audit va foydalanish | ekran | K2, A3 | B6 | — | ○ |
-| PA-23 | Sozlamalar | ekran | U9 | B2 | — | ○ |
+| PA-23 | Sozlamalar | ekran | U9 | B2 | — | ◐ |
 | PA-24 | Buyruqlar paneli (⌘K) | ekran | U7 | B8 | 01 | ○ |
 | PA-30 | Bildirishnomalar: qurilma chiqdi va ishni uning zaxirasi oldi, qurilma qo'shildi, model tayyor, xatolar | funksiya | P§9 | B3 | — | ○ |
 | PA-31 | «Qo'llash» va «Rad etish» tugmalari bilan reja taklifi kartasi | funksiya | R1 | B3 | 01 | ○ |
-| PA-32 | Hamma uchun halqa: jadval ko'rinishi, yoydan yoyga klaviatura fokusi, ovoz bilan o'qiladigan xulosa | funksiya | U4 | B2 | — | ○ |
+| PA-32 | Hamma uchun halqa: jadval ko'rinishi, yoydan yoyga klaviatura fokusi, ovoz bilan o'qiladigan xulosa | funksiya | U4 | B2 | — | ◐ |
 | PA-33 | Bir nechta model — ichma-ich halqalar; 128 tadan ortiq qurilmada yoylar guruhlanadi | funksiya | U1 | B4 | — | ○ |
 | PA-34 | Paneldagi tirik belgi: kirish sahnasi, og'ish, qurilma qo'shilganda yangi yoy | funksiya | U11 | B2 | 01 | ◐ |
-| PA-35 | Connect oqimi orqali jonli ma'lumot | funksiya | P§9 | B2 | — | ○ |
+| PA-35 | Connect oqimi orqali jonli ma'lumot | funksiya | P§9 | B2 | — | ✓ |
 | PA-36 | Har amal uchun klaviatura yorlig'i | funksiya | U7 | B8 | — | ○ |
 
 **PA-01 Ramka.** *Ko'rsatadi:* logotip, belgilari bilan to'qqizta bo'lim, klaster nomi va sog'liq belgisi

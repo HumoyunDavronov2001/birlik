@@ -9,6 +9,7 @@
   "scripts": {
     "check": "pnpm -r check",
     "test": "pnpm -r test",
+    "build": "pnpm --filter @omnarc/panel build",
     "build-storybook": "pnpm --filter @omnarc/ui build-storybook",
     "test:visual": "pnpm --filter @omnarc/ui test:visual"
   },

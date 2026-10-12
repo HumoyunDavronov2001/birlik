@@ -12,7 +12,7 @@
   const id = $props.id();
 </script>
 
-<div class="bk-field">
+<div class="om-field">
   <label for={id}>{label}</label>
   <input
     {id}
@@ -29,7 +29,7 @@
 </div>
 
 <style>
-  .bk-field {
+  .om-field {
     display: grid;
     gap: 6px;
     width: 100%;

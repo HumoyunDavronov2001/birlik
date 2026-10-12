@@ -1,0 +1,6 @@
+# TypeScript for the panel from protocol/omnarc/v1 (pnpm generate); the output is committed.
+version: v2
+plugins:
+  - local: protoc-gen-es
+    out: src/lib/gen
+    opt: target=ts

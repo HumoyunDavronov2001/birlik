@@ -112,7 +112,7 @@
   }
 </script>
 
-<div class="bk-living" bind:this={host}>
+<div class="om-living" bind:this={host}>
   <div class="stage" role="img" aria-label={label} hidden={fallback}>
     <canvas bind:this={canvas} aria-hidden="true"></canvas>
   </div>
@@ -129,7 +129,7 @@
 </div>
 
 <style>
-  .bk-living {
+  .om-living {
     position: relative;
     width: min(560px, 100%);
     margin: 0 auto;

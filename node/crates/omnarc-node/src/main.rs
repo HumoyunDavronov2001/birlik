@@ -307,6 +307,8 @@ async fn serve(
         service.devices().get(&id).map_or_else(|| id.fmt_short().to_string(), |device| device.name.clone())
     };
     let mut summary = tokio::time::interval(Duration::from_secs(10));
+    // each other device is reported once, when it first tells what it is
+    let mut announced = std::collections::HashSet::new();
     loop {
         tokio::select! {
             _ = tokio::signal::ctrl_c() => break,
@@ -318,17 +320,24 @@ async fn serve(
                 }
             }
             event = events.recv() => match event {
-                Ok(Event::Device(_, device)) => {
-                    println!("{} ({}) is in the cluster.", device.name, platform_name(device.platform));
+                Ok(Event::Device(id, device)) => {
+                    if id != service.id() && announced.insert(id) {
+                        println!("{} ({}) is in the cluster.", device.name, platform_name(device.platform));
+                    }
                 }
                 Ok(Event::MemberJoined(id)) => println!("A new device joined: {}.", names(id, &service)),
                 Ok(Event::MemberLeft(id)) => println!("{} left.", names(id, &service)),
                 Ok(Event::Neighbor { id, up }) => println!("{} {}.", names(id, &service), if up { "connected" } else { "disconnected" }),
                 Ok(Event::JoinAttempt(attempt)) => {
-                    let joiner = attempt.joiner;
-                    let matches = tokio::task::spawn_blocking(move || ask_owner(&attempt)).await.unwrap_or(false);
-                    if !service.answer_join(joiner, matches) {
-                        println!("The device stopped waiting before the answer.");
+                    // the owner answers here when someone sits at this terminal, otherwise in the panel
+                    if std::io::IsTerminal::is_terminal(&std::io::stdin()) {
+                        let joiner = attempt.joiner;
+                        let matches = tokio::task::spawn_blocking(move || ask_owner(&attempt)).await.unwrap_or(false);
+                        if !service.answer_join(joiner, matches) {
+                            println!("The device stopped waiting before the answer.");
+                        }
+                    } else {
+                        println!("{} asks to join: compare the symbols in the panel.", attempt.device.name);
                     }
                 }
                 Ok(Event::Telemetry(..)) | Err(_) => {}

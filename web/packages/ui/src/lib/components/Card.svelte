@@ -10,13 +10,13 @@
   let { title, padding = 'md', children }: Props = $props();
 </script>
 
-<section class="bk-card {padding}">
+<section class="om-card {padding}">
   {#if title}<h3>{title}</h3>{/if}
   {@render children?.()}
 </section>
 
 <style>
-  .bk-card {
+  .om-card {
     display: grid;
     gap: 12px;
     align-content: start;

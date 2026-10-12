@@ -374,6 +374,7 @@ async fn speak(shared: Arc<Shared>, mut device: v1::DeviceInfo, every: Duration)
             since_announced = 0;
             device.direct_addresses = addrs;
             shared.devices.lock().expect("devices").insert(shared.key.public(), device.clone());
+            let _ = shared.events.send(Event::Device(shared.key.public(), device.clone()));
             let payload = v1::GossipPayload { kind: Some(v1::gossip_payload::Kind::Device(device.clone())) };
             let _ = shared.sender.broadcast(gossip::seal(&shared.key, &payload, now_unix_ms()).into()).await;
         }
@@ -389,7 +390,9 @@ async fn speak(shared: Arc<Shared>, mut device: v1::DeviceInfo, every: Duration)
             memory_used_bytes: system.used_memory(),
             ..Default::default()
         };
+        // this device's own telemetry reaches the panel the same way as the others'
         shared.telemetry.lock().expect("telemetry").insert(shared.key.public(), telemetry.clone());
+        let _ = shared.events.send(Event::Telemetry(shared.key.public(), telemetry.clone()));
         let payload = v1::GossipPayload { kind: Some(v1::gossip_payload::Kind::Telemetry(telemetry)) };
         let _ = shared.sender.broadcast(gossip::seal(&shared.key, &payload, now_unix_ms()).into()).await;
     }
@@ -461,6 +464,10 @@ fn admit_announced(shared: &Shared, member: &v1::Member) {
         joined_unix_ms: member.joined_unix_ms,
         addrs,
     });
+    // what the device said when it joined stands until it speaks for itself
+    if let Some(device) = member.device.as_ref().filter(|device| !device.name.is_empty()) {
+        shared.devices.lock().expect("devices").entry(id).or_insert_with(|| device.clone());
+    }
     if shared.members.insert(id) {
         let _ = shared.events.send(Event::MemberJoined(id));
     }

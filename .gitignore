@@ -4,6 +4,7 @@ target/
 build/
 dist/
 storybook-static/
+.svelte-kit/
 test-results/
 playwright-report/
 

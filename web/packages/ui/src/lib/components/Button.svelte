@@ -23,13 +23,13 @@
 {/snippet}
 
 {#if href}
-  <a class="bk-btn {variant} {size}" {href}>{@render content()}</a>
+  <a class="om-btn {variant} {size}" {href}>{@render content()}</a>
 {:else}
-  <button class="bk-btn {variant} {size}" {type} {...rest}>{@render content()}</button>
+  <button class="om-btn {variant} {size}" {type} {...rest}>{@render content()}</button>
 {/if}
 
 <style>
-  .bk-btn {
+  .om-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -47,13 +47,13 @@
       transform 0.12s var(--ease),
       background-color 0.2s var(--ease);
   }
-  .bk-btn:hover {
+  .om-btn:hover {
     background: var(--surface-3);
   }
-  .bk-btn:active {
+  .om-btn:active {
     transform: scale(0.97);
   }
-  .bk-btn:disabled {
+  .om-btn:disabled {
     cursor: not-allowed;
     opacity: 0.5;
     transform: none;

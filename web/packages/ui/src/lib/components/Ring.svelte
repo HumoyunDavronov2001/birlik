@@ -11,6 +11,8 @@
     ms?: number;
     /** Extra drafting time per token, in ms. */
     draftMs?: number;
+    /** The line under the name instead of layers and time, e.g. while no model runs: "8 GiB · 23% CPU". */
+    note?: string;
   }
 
   interface Props {
@@ -36,7 +38,10 @@
   const stageMs = $derived(devices.map((d) => (d.ms ?? 10) + (d.draftMs ?? 0)));
   const hopMs = $derived(devices.map((_, i) => hops[i] ?? 2));
   const cycle = $derived(stageMs.reduce((a, b) => a + b, 0) + hopMs.reduce((a, b) => a + b, 0));
-  const slowest = $derived(stageMs.indexOf(Math.max(...stageMs)));
+  // the slowest stage is only marked when the ring runs a model and its stages report their time
+  const slowest = $derived(devices.some((d) => d.ms !== undefined) ? stageMs.indexOf(Math.max(...stageMs)) : -1);
+  // a long name would run past the edge of the drawing
+  const shortName = (name: string) => (name.length > 18 ? `${name.slice(0, 17)}…` : name);
 
   // Token time -> angle: compute happens inside an arc, network time is spent crossing a gap.
   function angleAt(t: number): number {
@@ -82,19 +87,21 @@
   }
 </script>
 
-<svg class="bk-ring" viewBox="0 0 {box.w} {box.h}" role="img" aria-label={label}>
+<svg class="om-ring" viewBox="0 0 {box.w} {box.h}" role="img" aria-label={label}>
   <circle cx={box.cx} cy={box.cy} r={box.r} fill="none" stroke-width={box.width + 10} style:stroke="var(--surface-1)" />
   {#each arcs as arc, i (i)}
     <path d={arcPath(box.cx, box.cy, box.r, arc.a0, arc.a1)} fill="none" stroke-width={box.width} style:stroke={stroke(i)}>
-      <title>{devices[i].name}: {devices[i].layers} layers, {stageMs[i]} ms</title>
+      <title>{devices[i].name}: {devices[i].note ?? `${devices[i].layers} layers, ${stageMs[i]} ms`}</title>
     </path>
   {/each}
   {#if full}
     {#each arcs as arc, i (i)}
       {@const p = labelPos(arc.mid)}
       <line x1={p.x2} y1={p.y2} x2={p.x} y2={p.y} class="t-line" stroke-width="1" />
-      <text x={p.tx} y={p.y + p.dy} text-anchor={p.anchor} class="t-name">{devices[i].name}</text>
-      <text x={p.tx} y={p.y + p.dy + 15} text-anchor={p.anchor} class="t-note">{devices[i].layers} layers · {stageMs[i]} ms</text>
+      <text x={p.tx} y={p.y + p.dy} text-anchor={p.anchor} class="t-name">{shortName(devices[i].name)}</text>
+      <text x={p.tx} y={p.y + p.dy + 15} text-anchor={p.anchor} class="t-note"
+        >{devices[i].note ?? `${devices[i].layers} layers · ${stageMs[i]} ms`}</text
+      >
       {#if i === slowest}
         <text x={p.tx} y={p.y + p.dy + 30} text-anchor={p.anchor} class="t-bottleneck"
           ><tspan class="t-warn">▲</tspan> slowest stage</text
@@ -114,7 +121,7 @@
 </svg>
 
 <style>
-  .bk-ring {
+  .om-ring {
     display: block;
     width: 100%;
     height: auto;

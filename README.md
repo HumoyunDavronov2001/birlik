@@ -174,6 +174,13 @@ omnarc-node serve                          # on every device: it hears the other
 omnarc-node serve --invite                 # the admin's service can invite while it runs
 ```
 
+The panel — the ring of your devices, the device list and adding a device with its QR code and four symbols — is
+built once with `cd web && pnpm install && pnpm build`, then served by the node:
+
+```bash
+omnarc-node serve --panel web/apps/panel/build   # open http://127.0.0.1:7600
+```
+
 Run a ring of two devices (stage B1 wires it by hand; `omnarc-engine` must sit next to `omnarc-node`):
 
 ```bash

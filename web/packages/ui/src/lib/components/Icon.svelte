@@ -15,7 +15,7 @@
 </script>
 
 <span
-  class="bk-icon"
+  class="om-icon"
   style:width="{size}px"
   style:height="{size}px"
   role={label ? 'img' : undefined}
@@ -26,11 +26,11 @@
 </span>
 
 <style>
-  .bk-icon {
+  .om-icon {
     display: inline-flex;
     flex: none;
   }
-  .bk-icon :global(svg) {
+  .om-icon :global(svg) {
     display: block;
     fill: none;
     stroke: currentColor;

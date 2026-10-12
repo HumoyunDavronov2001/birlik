@@ -16,11 +16,11 @@
   }
 </script>
 
-<button type="button" class="bk-switch" role="switch" aria-checked={checked} aria-label={label} {disabled} onclick={toggle}
+<button type="button" class="om-switch" role="switch" aria-checked={checked} aria-label={label} {disabled} onclick={toggle}
 ></button>
 
 <style>
-  .bk-switch {
+  .om-switch {
     position: relative;
     flex: none;
     width: 40px;
@@ -31,7 +31,7 @@
     border: 1px solid var(--line-2);
     cursor: pointer;
   }
-  .bk-switch::after {
+  .om-switch::after {
     content: '';
     position: absolute;
     top: 3px;
@@ -44,15 +44,15 @@
       transform 0.2s var(--ease),
       background-color 0.2s var(--ease);
   }
-  .bk-switch[aria-checked='true'] {
+  .om-switch[aria-checked='true'] {
     background: var(--turquoise);
     border-color: transparent;
   }
-  .bk-switch[aria-checked='true']::after {
+  .om-switch[aria-checked='true']::after {
     transform: translateX(16px);
     background: var(--bg);
   }
-  .bk-switch:disabled {
+  .om-switch:disabled {
     cursor: not-allowed;
     opacity: 0.5;
   }
