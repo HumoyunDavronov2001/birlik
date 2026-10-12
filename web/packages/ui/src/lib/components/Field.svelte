@@ -62,8 +62,15 @@
   .error {
     color: var(--text-1);
   }
+  /* Drawn with CSS, not a text glyph: a fallback font would render differently on every system. */
   .error::before {
-    content: '● ';
-    color: var(--status-critical);
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 6px;
+    vertical-align: 1px;
+    border-radius: 50%;
+    background: var(--status-critical);
   }
 </style>
