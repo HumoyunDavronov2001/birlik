@@ -345,7 +345,7 @@ The UI is built together with every stage — it is never left for the end.
 
 | Stage | Work | Gate (proves the stage is done) |
 |---|---|---|
-| **B0 Foundation** | monorepo, CI matrix, `protocol/` v1, design tokens → CSS/Swift/Kotlin, Svelte component library (Storybook), NOTICE/UPSTREAM.md | CI green on 6 platforms; components pass visual regression; axe — 0 violations |
+| **B0 Foundation** ✓ (October 12, 2026) | monorepo, CI matrix, `protocol/` v1, design tokens → CSS/Swift/Kotlin, Svelte component library (Storybook), NOTICE/UPSTREAM.md | CI green on 6 platforms; components pass visual regression; axe — 0 violations |
 | **B1 Engine** | libbirlik: patches, prima piped-ring + prefetching, CUDA/Vulkan/Metal/CPU, Windows, separate process | accuracy gate (Llama 3.x 8B, Qwen3 32B, R1-Distill 70B); 70B runs on Linux + Windows computers; TPOT no worse than prima.cpp on the same hardware |
 | **B2 Network** | iroh, gossip, Raft, QR + SAS, iroh-blobs, link measurement; panel: first run, the Ring, Devices, the living ring | devices on two different networks behind NAT form one cluster; 70B slices spread P2P (internet used once); 1,000 turmoil scenarios |
 | **B3 Scheduler** | profiler, HiGHS, routing, backup plans, KV copies, live join/leave, TLA+; panel: "Will it fit?", plan view | W6 (≤ 1 s); TLC properties; placement on 8 devices ≤ 1 s |

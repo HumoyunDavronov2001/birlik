@@ -11,7 +11,7 @@ from the devices in one home to idle devices around the world.
 
 [![CI](https://github.com/HumoyunDavronov2001/birlik/actions/workflows/ci.yml/badge.svg)](https://github.com/HumoyunDavronov2001/birlik/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-3dd7cf)](LICENSE)
-![Status: pre-alpha, stage B0](https://img.shields.io/badge/status-pre--alpha%20%C2%B7%20stage%20B0-f2c156)
+![Status: pre-alpha, stage B1 next](https://img.shields.io/badge/status-pre--alpha%20%C2%B7%20B0%20done-f2c156)
 
 [Plan](PLAN.md) · [Requirements](REQUIREMENTS.md) · [Design concept](design/concept.html) · [Protocol](protocol/README.md) · [Contributing](CONTRIBUTING.md)
 
@@ -85,7 +85,8 @@ See the full [design concept](design/concept.html) (download it and open it in a
 
 ## Status
 
-**Pre-alpha — stage B0 (foundation).** Nothing runs as a cluster yet. Stage B0 delivers:
+**Pre-alpha.** Stage B0 (foundation) is complete; stage B1 (engine) is next. Nothing runs as a cluster yet.
+Stage B0 delivered:
 
 - [`protocol/`](protocol) — `birlik.v1` messages and the tensor frame spec, with a Rust implementation and property tests.
 - [`node/`](node) — the Rust workspace; `birlik-node info` describes a device the way it will announce itself.
@@ -98,8 +99,8 @@ See the full [design concept](design/concept.html) (download it and open it in a
 
 | Stage | Scope | Gate |
 |---|---|---|
-| **B0 Foundation** ← now | monorepo, CI, protocol v1, design system | CI green on 6 platforms; visual and accessibility checks |
-| B1 Engine | llama.cpp + prima.cpp piped-ring, Windows, Vulkan | a 70B model across Linux and Windows machines |
+| **B0 Foundation** ✓ done | monorepo, CI, protocol v1, design system | CI green on 6 platforms; visual and accessibility checks |
+| **B1 Engine** ← next | llama.cpp + prima.cpp piped-ring, Windows, Vulkan | a 70B model across Linux and Windows machines |
 | B2 Network | iroh P2P, QR pairing, peer-to-peer model distribution | two networks behind NAT form one cluster |
 | B3 Scheduler | placement, live join and leave, replicas | recovery within 1 s |
 | B4 Speed | pipelined speculation, MoE, sparse FFN | single-request speed grows with the device count |
