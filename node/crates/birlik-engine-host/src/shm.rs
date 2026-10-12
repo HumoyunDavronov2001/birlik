@@ -137,6 +137,7 @@ impl SharedMemory {
 
     /// Removes the name once the engine has opened the region, so nothing is left behind if either process dies.
     /// The mappings stay valid. On Windows the name disappears with the last handle, so this does nothing.
+    #[cfg_attr(windows, allow(clippy::unused_self))]
     pub fn unlink(&self) {
         #[cfg(unix)]
         if let Ok(cname) = std::ffi::CString::new(self.name.as_str()) {

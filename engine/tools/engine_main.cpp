@@ -29,7 +29,7 @@
 
 namespace {
 
-enum op : uint16_t {
+enum opcode : uint16_t {
     OP_HELLO = 1,
     OP_MODEL_INFO = 2,
     OP_OPEN = 3,

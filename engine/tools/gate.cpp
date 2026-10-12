@@ -279,7 +279,7 @@ int main(int argc, char **argv) {
             kl = std::max(kl, 0.0);
             kl_sum += kl;
             kl_max = std::max(kl_max, kl);
-            same_top += top_a == top_b;
+            same_top += top_a == top_b ? 1 : 0;
 
             const auto next = static_cast<size_t>(chunk[t + 1]);
             nll_ref -= ref_lp[next];
