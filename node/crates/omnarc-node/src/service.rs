@@ -138,7 +138,13 @@ impl Service {
         });
         joins.0.set(Arc::clone(&shared)).expect("set once");
 
+        // the name the owner gave this device when it joined or created the cluster stays its name
         let mut device = config.device;
+        if let Some(me) = known.iter().find(|member| member.id == shared.key.public())
+            && !me.device.name.is_empty()
+        {
+            device.name.clone_from(&me.device.name);
+        }
         device.id = Some(node_id(shared.key.public()));
         let tasks = vec![
             tokio::spawn(listen(Arc::clone(&shared), receiver)),
@@ -228,6 +234,12 @@ impl Service {
         waiting.is_some_and(|answer| answer.send(matches).is_ok())
     }
 
+    /// The control API's view of this service.
+    #[must_use]
+    pub fn api(&self) -> Arc<dyn omnarc_api::Cluster> {
+        Arc::new(ApiView(Arc::clone(&self.shared)))
+    }
+
     /// Tells the cluster that this device leaves, then stops.
     pub async fn shutdown(self) {
         let leave = v1::GossipPayload { kind: Some(v1::gossip_payload::Kind::Leave(v1::LeaveNotice {})) };
@@ -236,6 +248,96 @@ impl Service {
             task.abort();
         }
         let _ = self.router.shutdown().await;
+    }
+}
+
+// What the control API sees of the service.
+struct ApiView(Arc<Shared>);
+
+impl ApiView {
+    fn device(&self, id: EndpointId) -> v1::DeviceInfo {
+        let known = self.0.devices.lock().expect("devices").get(&id).cloned();
+        known.unwrap_or_else(|| v1::DeviceInfo { id: Some(node_id(id)), ..Default::default() })
+    }
+}
+
+impl omnarc_api::Cluster for ApiView {
+    fn snapshot(&self) -> v1::ClusterSnapshot {
+        let shared = &self.0;
+        v1::ClusterSnapshot {
+            id: Some(v1::ClusterId { ed25519_public_key: shared.cluster.id.as_bytes().to_vec() }),
+            name: shared.cluster.name.clone(),
+            devices: shared.members.list().into_iter().map(|id| self.device(id)).collect(),
+            telemetry: shared.telemetry.lock().expect("telemetry").values().cloned().collect(),
+            plans: vec![],
+            this_node: Some(node_id(shared.key.public())),
+            can_invite: shared.cluster_key.is_some(),
+        }
+    }
+
+    fn watch(&self) -> n0_future::boxed::BoxStream<v1::WatchClusterResponse> {
+        use v1::watch_cluster_response::Event as Out;
+        let view = ApiView(Arc::clone(&self.0));
+        let events = self.0.events.subscribe();
+        Box::pin(n0_future::stream::unfold((view, events), |(view, mut events)| async move {
+            loop {
+                let event = match events.recv().await {
+                    Ok(Event::Telemetry(_, telemetry)) => Out::Telemetry(telemetry),
+                    Ok(Event::Device(_, device)) => Out::DeviceJoined(device),
+                    Ok(Event::MemberJoined(id)) => Out::DeviceJoined(view.device(id)),
+                    Ok(Event::MemberLeft(id)) => Out::DeviceLeft(node_id(id)),
+                    Ok(Event::JoinAttempt(attempt)) => Out::JoinAttempt(v1::JoinAttempt {
+                        joiner: Some(node_id(attempt.joiner)),
+                        device: Some(attempt.device),
+                        symbols: attempt
+                            .emoji
+                            .iter()
+                            .map(|e| v1::SasSymbol { emoji: e.symbol.into(), name: e.name.into() })
+                            .collect(),
+                    }),
+                    Ok(Event::Neighbor { .. }) | Err(broadcast::error::RecvError::Lagged(_)) => continue,
+                    Err(broadcast::error::RecvError::Closed) => return None,
+                };
+                return Some((v1::WatchClusterResponse { event: Some(event) }, (view, events)));
+            }
+        }))
+    }
+
+    fn create_ticket(&self, ttl_seconds: u32) -> Result<v1::CreateTicketResponse, omnarc_api::Error> {
+        use omnarc_api::{Code, Error};
+        let shared = &self.0;
+        if shared.cluster_key.is_none() {
+            return Err(Error::new(Code::FailedPrecondition, "this device holds no cluster key"));
+        }
+        let ttl = Duration::from_secs(u64::from(ttl_seconds.clamp(1, 600)));
+        let ticket = Ticket::new(
+            shared.cluster.id,
+            shared.key.public(),
+            own_addrs(&shared.endpoint),
+            vec![],
+            ttl,
+            now_unix_ms(),
+        )
+        .map_err(|e| Error::new(Code::Internal, e.to_string()))?;
+        *shared.invitation.lock().expect("invitation") = Some(Arc::new(Invitation::new(ticket.clone())));
+        let qr_payload = ticket.encode();
+        let qr_svg = qrcode::QrCode::new(qr_payload.as_bytes())
+            .map(|code| {
+                code.render::<qrcode::render::svg::Color<'_>>().min_dimensions(240, 240).quiet_zone(true).build()
+            })
+            .unwrap_or_default();
+        Ok(v1::CreateTicketResponse { ticket: Some(ticket.to_proto()), qr_payload, qr_svg })
+    }
+
+    fn answer_join(&self, request: &v1::AnswerJoinRequest) -> Result<bool, omnarc_api::Error> {
+        let joiner = request
+            .joiner
+            .as_ref()
+            .and_then(|id| <[u8; 32]>::try_from(id.ed25519_public_key.as_slice()).ok())
+            .and_then(|bytes| EndpointId::from_bytes(&bytes).ok())
+            .ok_or_else(|| omnarc_api::Error::new(omnarc_api::Code::InvalidArgument, "no device named"))?;
+        let waiting = self.0.answers.lock().expect("answers").remove(&joiner);
+        Ok(waiting.is_some_and(|answer| answer.send(request.matches).is_ok()))
     }
 }
 

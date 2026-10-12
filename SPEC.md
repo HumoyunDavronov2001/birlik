@@ -15,7 +15,7 @@ design concept (its section number), or "—".
 | Part | Screens | Functions | ✓ done | ◐ partly | ○ not started | Ready |
 |---|---|---|---|---|---|---|
 | Engine | 0 | 30 | 8 | 2 | 20 | 30 % |
-| Node agent and API | 0 | 40 | 5 | 6 | 29 | 20 % |
+| Node agent and API | 0 | 40 | 5 | 7 | 28 | 21 % |
 | Panel | 24 | 7 | 0 | 1 | 30 | 2 % |
 | Desktop app | 4 | 5 | 0 | 0 | 9 | 0 % |
 | Android app | 7 | 8 | 0 | 2 | 13 | 7 % |
@@ -27,7 +27,7 @@ design concept (its section number), or "—".
 | Islands | 0 | 3 | 0 | 0 | 3 | 0 % |
 | Benchmarks, sites and releases | 3 | 9 | 2 | 0 | 10 | 17 % |
 | Design system and quality across all apps | 1 | 13 | 6 | 2 | 6 | 50 % |
-| **All** | **50** | **141** | **21** | **15** | **155** | **15 %** |
+| **All** | **50** | **141** | **21** | **16** | **154** | **15 %** |
 
 "Ready" counts a partly done item as half. By stage — what each stage has to deliver:
 
@@ -35,7 +35,7 @@ design concept (its section number), or "—".
 |---|---|---|---|---|
 | B0 | 10 | 9 | 1 | 0 |
 | B1 | 16 | 12 | 1 | 3 |
-| B2 | 28 | 0 | 7 | 21 |
+| B2 | 28 | 0 | 8 | 20 |
 | B3 | 14 | 0 | 0 | 14 |
 | B4 | 18 | 0 | 0 | 18 |
 | B5 | 53 | 0 | 5 | 48 |
@@ -157,7 +157,7 @@ design concept (its section number), or "—".
 
 | ID | What | Kind | Req | Stage | Design | State |
 |---|---|---|---|---|---|---|
-| AP-01 | Control API (Connect RPC) for the panel and the apps, with a live stream | function | P§3 | B2 | — | ○ |
+| AP-01 | Control API (Connect RPC) for the panel and the apps, with a live stream | function | P§3 | B2 | — | ◐ |
 | AP-02 | OpenAI-compatible: chat completions, completions, embeddings, models, streaming | function | A1 | B8 | — | ○ |
 | AP-03 | Claude Messages compatible | function | A1 | B8 | — | ○ |
 | AP-04 | Ollama compatible | function | A1 | B8 | — | ○ |

@@ -63,7 +63,8 @@ async fn devices_admitted_by_an_admin_hear_each_other() {
     let desktop = start(&a, "Desktop").await;
 
     admit(&desktop, &b, "Laptop").await;
-    let laptop = start(&b, "Laptop").await;
+    // the service describes the device by its host name; the name it joined with wins
+    let laptop = start(&b, "laptop-host-name").await;
     let (desktop_id, laptop_id) = (desktop.id(), laptop.id());
     eventually("the desktop hears the laptop", || desktop.telemetry().contains_key(&laptop_id)).await;
     eventually("the laptop hears the desktop", || laptop.telemetry().contains_key(&desktop_id)).await;
@@ -71,6 +72,15 @@ async fn devices_admitted_by_an_admin_hear_each_other() {
         laptop.devices().get(&desktop_id).is_some_and(|d| d.name == "Desktop")
     })
     .await;
+    eventually("the desktop knows the laptop by the name it joined with", || {
+        desktop.devices().get(&laptop_id).is_some_and(|d| d.name == "Laptop")
+    })
+    .await;
+    let snapshot = desktop.api().snapshot();
+    assert_eq!(snapshot.name, "Home cluster");
+    assert!(snapshot.can_invite);
+    assert!(snapshot.devices.iter().any(|d| d.name == "Laptop"));
+    assert!(!laptop.api().snapshot().can_invite, "the laptop holds no cluster key");
 
     // the phone is admitted by the desktop alone; the laptop learns of it through gossip
     admit(&desktop, &c, "Phone").await;

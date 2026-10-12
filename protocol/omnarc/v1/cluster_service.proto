@@ -7,7 +7,7 @@ import "omnarc/v1/pairing.proto";
 import "omnarc/v1/plan.proto";
 import "omnarc/v1/telemetry.proto";
 
-// The control API every node serves to the panel and to apps (Connect RPC).
+// The control API every node serves to the panel and to apps (Connect RPC, protocol/CLUSTER.md §5).
 service ClusterService {
   // A snapshot of the cluster.
   rpc GetCluster(GetClusterRequest) returns (GetClusterResponse);
@@ -15,6 +15,8 @@ service ClusterService {
   rpc WatchCluster(WatchClusterRequest) returns (stream WatchClusterResponse);
   // Creates a one-time ticket for the QR code that adds a device.
   rpc CreateTicket(CreateTicketRequest) returns (CreateTicketResponse);
+  // The owner's answer for a device that asked to join: whether the four symbols match on both screens.
+  rpc AnswerJoin(AnswerJoinRequest) returns (AnswerJoinResponse);
 }
 
 message ClusterSnapshot {
@@ -23,6 +25,10 @@ message ClusterSnapshot {
   repeated DeviceInfo devices = 3;
   repeated Telemetry telemetry = 4;
   repeated PlacementPlan plans = 5;
+  // The node that serves this API.
+  NodeId this_node = 6;
+  // Whether this node can admit devices (it holds the cluster key).
+  bool can_invite = 7;
 }
 
 message GetClusterRequest {}
@@ -36,11 +42,27 @@ message WatchClusterRequest {}
 message WatchClusterResponse {
   oneof event {
     ClusterSnapshot snapshot = 1;
+    // A device joined, or what it is changed.
     DeviceInfo device_joined = 2;
     NodeId device_left = 3;
     Telemetry telemetry = 4;
     PlacementPlan plan_changed = 5;
+    // A device asks to join and waits for the owner: answer with AnswerJoin.
+    JoinAttempt join_attempt = 6;
   }
+}
+
+// One of the four symbols both screens show while a device joins (protocol/CLUSTER.md §2.4).
+message SasSymbol {
+  string emoji = 1;
+  // The English name, for screen readers.
+  string name = 2;
+}
+
+message JoinAttempt {
+  NodeId joiner = 1;
+  DeviceInfo device = 2;
+  repeated SasSymbol symbols = 3;
 }
 
 message CreateTicketRequest {
@@ -50,6 +72,18 @@ message CreateTicketRequest {
 
 message CreateTicketResponse {
   ClusterTicket ticket = 1;
-  // The ticket encoded for a QR code: "omnarc:" + base32 of the serialized ticket.
+  // The ticket encoded for a QR code: "OMNARC:" + base32 of the serialized ticket.
   string qr_payload = 2;
+  // The QR code as an SVG image.
+  string qr_svg = 3;
+}
+
+message AnswerJoinRequest {
+  NodeId joiner = 1;
+  bool matches = 2;
+}
+
+message AnswerJoinResponse {
+  // Whether the device was still waiting for the answer.
+  bool waited = 1;
 }

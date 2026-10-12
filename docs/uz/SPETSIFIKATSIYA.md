@@ -16,7 +16,7 @@ maketi dizayn konsepsiyasida bo'lsa — uning bo'lim raqami, bo'lmasa «—».
 | Qism | Ekranlar | Funksiyalar | ✓ tayyor | ◐ qisman | ○ boshlanmagan | Tayyorlik |
 |---|---|---|---|---|---|---|
 | Dvigatel | 0 | 30 | 8 | 2 | 20 | 30 % |
-| Tugun agenti va API | 0 | 40 | 5 | 6 | 29 | 20 % |
+| Tugun agenti va API | 0 | 40 | 5 | 7 | 28 | 21 % |
 | Panel | 24 | 7 | 0 | 1 | 30 | 2 % |
 | Ish stoli ilovasi | 4 | 5 | 0 | 0 | 9 | 0 % |
 | Android ilovasi | 7 | 8 | 0 | 2 | 13 | 7 % |
@@ -28,7 +28,7 @@ maketi dizayn konsepsiyasida bo'lsa — uning bo'lim raqami, bo'lmasa «—».
 | Orollar | 0 | 3 | 0 | 0 | 3 | 0 % |
 | O'lchovlar, saytlar va relizlar | 3 | 9 | 2 | 0 | 10 | 17 % |
 | Dizayn tizimi va barcha ilovalardagi sifat | 1 | 13 | 6 | 2 | 6 | 50 % |
-| **Jami** | **50** | **141** | **21** | **15** | **155** | **15 %** |
+| **Jami** | **50** | **141** | **21** | **16** | **154** | **15 %** |
 
 «Tayyorlik» ustunida qisman bajarilgan band yarim hisoblanadi. Bosqichlar bo'yicha — har bosqich nimani topshirishi
 kerak:
@@ -37,7 +37,7 @@ kerak:
 |---|---|---|---|---|
 | B0 | 10 | 9 | 1 | 0 |
 | B1 | 16 | 12 | 1 | 3 |
-| B2 | 28 | 0 | 7 | 21 |
+| B2 | 28 | 0 | 8 | 20 |
 | B3 | 14 | 0 | 0 | 14 |
 | B4 | 18 | 0 | 0 | 18 |
 | B5 | 53 | 0 | 5 | 48 |
@@ -158,7 +158,7 @@ kerak:
 
 | ID | Nima | Turi | Talab | Bosqich | Dizayn | Holat |
 |---|---|---|---|---|---|---|
-| AP-01 | Panel va ilovalar uchun boshqaruv API (Connect RPC), jonli oqim bilan | funksiya | P§3 | B2 | — | ○ |
+| AP-01 | Panel va ilovalar uchun boshqaruv API (Connect RPC), jonli oqim bilan | funksiya | P§3 | B2 | — | ◐ |
 | AP-02 | OpenAI'ga mos: chat completions, completions, embeddings, models, oqimli javob | funksiya | A1 | B8 | — | ○ |
 | AP-03 | Claude Messages'ga mos | funksiya | A1 | B8 | — | ○ |
 | AP-04 | Ollama'ga mos | funksiya | A1 | B8 | — | ○ |

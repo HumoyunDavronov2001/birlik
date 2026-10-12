@@ -56,9 +56,10 @@ enum Command {
         name: String,
     },
     /// Invite one device: show a ticket as a QR code, then confirm the four symbols when the device asks to join.
+    /// While `serve` runs, use `serve --invite` instead.
     Invite {
-        /// Where this node listens for the new device.
-        #[arg(long, default_value = "0.0.0.0:0")]
+        /// Where this node listens for the new device: the port `serve` uses, so the ticket stays right for it.
+        #[arg(long, default_value = "0.0.0.0:7700")]
         listen: SocketAddr,
         /// Minutes the ticket stays valid, at most 10.
         #[arg(long, default_value_t = 10)]
@@ -85,6 +86,12 @@ enum Command {
         /// Open an invitation for one device right away and show its QR code.
         #[arg(long)]
         invite: bool,
+        /// Where the control API and the panel listen; only this device can reach the default.
+        #[arg(long, default_value = "127.0.0.1:7600")]
+        api: SocketAddr,
+        /// The panel's built files (web/apps/panel/build), served at the API's address.
+        #[arg(long)]
+        panel: Option<PathBuf>,
     },
 }
 
@@ -268,12 +275,24 @@ fn print_ticket(ticket: &Ticket) {
     println!("On the new device run:\n\n  omnarc-node join {text}\n");
 }
 
-async fn serve(data: &Path, listen: SocketAddr, invite: bool) -> Result<(), ring::BoxError> {
+async fn serve(
+    data: &Path,
+    listen: SocketAddr,
+    invite: bool,
+    api: SocketAddr,
+    panel: Option<PathBuf>,
+) -> Result<(), ring::BoxError> {
     use omnarc_node::service::{Config, Event, Service};
     let config =
         Config { data: data.to_path_buf(), listen, device: describe(), telemetry_every: Duration::from_secs(1) };
     let service = Service::start(config).await?;
     let mut events = service.events();
+    let listener = tokio::net::TcpListener::bind(api).await.map_err(|e| format!("the control API on {api}: {e}"))?;
+    let has_panel = panel.is_some();
+    tokio::spawn(axum::serve(listener, omnarc_api::router(service.api(), panel)).into_future());
+    if has_panel {
+        println!("The panel: http://{api}");
+    }
     println!(
         "{} — {} members. This device is {}.",
         service.cluster().name,
@@ -367,9 +386,9 @@ fn cluster_command(data: &Path, command: Command) -> Result<(), ring::BoxError> 
                 println!("  {:<24} {:<8} {}", name, platform_name(member.device.platform), member.id.fmt_short());
             }
         }
-        Command::Serve { listen, invite } => {
+        Command::Serve { listen, invite, api, panel } => {
             let runtime = tokio::runtime::Runtime::new()?;
-            runtime.block_on(serve(data, listen, invite))?;
+            runtime.block_on(serve(data, listen, invite, api, panel))?;
         }
         Command::Info { .. } | Command::Id { .. } | Command::Ring(_) => unreachable!("not a cluster command"),
     }
