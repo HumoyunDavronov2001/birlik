@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../protocol");
-    let files = ["device", "pairing", "telemetry", "plan", "cluster_service"]
+    let files = ["device", "pairing", "gossip", "telemetry", "plan", "cluster_service"]
         .map(|name| root.join(format!("omnarc/v1/{name}.proto")));
     for file in &files {
         println!("cargo:rerun-if-changed={}", file.display());

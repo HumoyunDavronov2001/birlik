@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package omnarc.v1;
+
+import "omnarc/v1/device.proto";
+import "omnarc/v1/telemetry.proto";
+
+// Everything a member says on the cluster's gossip topic (protocol/CLUSTER.md §3.1).
+message GossipPayload {
+  oneof kind {
+    // About once per second.
+    Telemetry telemetry = 1;
+    // When the device's hardware or name changes.
+    DeviceInfo device = 2;
+    // The device is leaving the cluster on purpose.
+    LeaveNotice leave = 3;
+  }
+}
+
+message LeaveNotice {}
+
+// A gossip message signed by its author, so a member relaying it cannot change it.
+message SignedGossip {
+  NodeId sender = 1;
+  int64 unix_ms = 2;
+  // A serialized GossipPayload.
+  bytes payload = 3;
+  // Ed25519 signature by the sender's node key over "omnarc/v1/gossip" || unix_ms (8 bytes, little-endian) || payload.
+  bytes signature = 4;
+}

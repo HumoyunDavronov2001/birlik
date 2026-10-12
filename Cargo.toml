@@ -21,6 +21,10 @@ proptest = "1.12"
 omnarc-engine-host = { path = "node/crates/omnarc-engine-host" }
 omnarc-network = { path = "node/crates/omnarc-network" }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "io-util", "time", "sync", "fs"] }
+biscuit-auth = "6.0"
+blake3 = "1.8"
+data-encoding = "2.11"
+getrandom = "0.4"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

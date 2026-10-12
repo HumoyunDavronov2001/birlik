@@ -4,7 +4,8 @@ package omnarc.v1;
 
 import "omnarc/v1/device.proto";
 
-// The content of the QR code shown on a device that invites another device.
+// The content of the QR code shown on a device that invites another device: "OMNARC:" followed by this message in
+// RFC 4648 base32 without padding.
 message ClusterTicket {
   ClusterId cluster = 1;
   // The inviting device; the new device dials it first.
@@ -16,14 +17,14 @@ message ClusterTicket {
   int64 expires_unix_ms = 5;
 }
 
-// Sent by the new device after it dials the inviter.
+// Sent by the new device after it dials the inviter on the ALPN "omnarc/join/1" (protocol/CLUSTER.md §2).
 //
 // Both devices derive a short authentication string (SAS) from
 // BLAKE3("omnarc/v1/sas" || inviter key || joiner key || one_time_secret) and show the first
 // four 6-bit groups as emoji. The owner confirms that both screens show the same four symbols.
 message JoinRequest {
   DeviceInfo device = 1;
-  // HMAC-BLAKE3 of the joiner's public key, keyed with the ticket's one_time_secret.
+  // Keyed BLAKE3 of the joiner's public key, keyed with the ticket's one_time_secret.
   bytes secret_proof = 2;
 }
 
@@ -33,4 +34,8 @@ message JoinResponse {
   string reason = 2;
   // Biscuit token granting the device its rights in the cluster (node, user, admin).
   bytes membership_token = 3;
+  // The cluster the device joined.
+  string cluster_name = 4;
+  // The members at the moment of joining, so the new device can reach them.
+  repeated NodeId members = 5;
 }

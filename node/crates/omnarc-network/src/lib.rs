@@ -2,8 +2,12 @@
 //!
 //! Stage B1 covers what a ring of devices given by hand needs: a node identity, an endpoint on a known address
 //! without relays or address lookup, and links — unidirectional streams of tensor frames
-//! (`protocol/FRAME.md`) that feed one window of layers on the next device. Discovery, pairing, relays and gossip
-//! come in stage B2.
+//! (`protocol/FRAME.md`) that feed one window of layers on the next device. Stage B2 adds clusters
+//! (`protocol/CLUSTER.md`): the cluster key and membership tokens ([`cluster`]), the ticket and four-emoji check of
+//! joining ([`ticket`]); discovery, relays and gossip follow.
+
+pub mod cluster;
+pub mod ticket;
 
 use std::fmt;
 use std::net::SocketAddr;

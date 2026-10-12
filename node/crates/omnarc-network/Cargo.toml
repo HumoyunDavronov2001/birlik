@@ -1,6 +1,6 @@
 [package]
 name = "omnarc-network"
-description = "Networking of Omnarc nodes: iroh QUIC endpoints and tensor streams."
+description = "Networking of Omnarc nodes: iroh QUIC endpoints, tensor streams, cluster identity and joining."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,6 +9,11 @@ rust-version.workspace = true
 
 [dependencies]
 omnarc-protocol.workspace = true
+prost.workspace = true
+biscuit-auth.workspace = true
+blake3.workspace = true
+data-encoding.workspace = true
+getrandom.workspace = true
 # no relays, no address lookup, no port mapping: nothing leaves the device unless a peer is dialed
 iroh = { version = "1.3", default-features = false, features = ["tls-ring", "fast-apple-datapath"] }
 tokio = { workspace = true }
