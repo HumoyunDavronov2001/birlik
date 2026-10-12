@@ -252,7 +252,7 @@ int main(int argc, char **argv) {
         uint32_t head[4] = {};  // vocab, ctx, chunks, tokens
         ref_in.read(magic, 4);
         ref_in.read(reinterpret_cast<char *>(head), sizeof(head));
-        if (!ref_in || std::memcmp(magic, "BKR1", 4) != 0 || head[0] != vocab) {
+        if (!ref_in || std::memcmp(magic, "OMR1", 4) != 0 || head[0] != vocab) {
             std::fprintf(stderr, "omnarc-gate: %s is not a reference for this model\n", opt.reference.c_str());
             return 1;
         }
@@ -307,7 +307,7 @@ int main(int argc, char **argv) {
             return 1;
         }
         const uint32_t head[4] = {static_cast<uint32_t>(vocab), ctx, n_chunks, static_cast<uint32_t>(tokens.size())};
-        ref_out.write("BKR1", 4);
+        ref_out.write("OMR1", 4);
         ref_out.write(reinterpret_cast<const char *>(head), sizeof(head));
         ref_out.write(reinterpret_cast<const char *>(tokens.data()), static_cast<std::streamsize>(tokens.size() * 4));
     }

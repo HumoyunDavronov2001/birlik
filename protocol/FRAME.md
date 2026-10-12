@@ -8,7 +8,7 @@ A frame is a fixed **32-byte header** followed by the payload. All integers are 
 
 | Offset | Size | Field | Meaning |
 |---:|---:|---|---|
-| 0 | 4 | `magic` | ASCII `BKT1` |
+| 0 | 4 | `magic` | ASCII `OMT1` |
 | 4 | 1 | `version` | `1` |
 | 5 | 1 | `dtype` | element type of the hidden state (table below) |
 | 6 | 2 | `flags` | bit field (table below) |

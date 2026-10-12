@@ -8,7 +8,7 @@ use std::fmt;
 /// Size of the frame header in bytes.
 pub const HEADER_LEN: usize = 32;
 /// Magic bytes at the start of every frame.
-pub const MAGIC: [u8; 4] = *b"BKT1";
+pub const MAGIC: [u8; 4] = *b"OMT1";
 /// Frame format version implemented here.
 pub const VERSION: u8 = 1;
 
@@ -245,7 +245,7 @@ mod tests {
     #[test]
     fn layout_matches_the_specification() {
         let bytes = sample().encode();
-        assert_eq!(&bytes[0..4], b"BKT1");
+        assert_eq!(&bytes[0..4], b"OMT1");
         assert_eq!(bytes[4], 1);
         assert_eq!(bytes[5], 1, "f16");
         assert_eq!(u16::from_le_bytes([bytes[6], bytes[7]]), 0b11, "DRAFT | LAST_STAGE");
