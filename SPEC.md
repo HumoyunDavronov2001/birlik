@@ -1,4 +1,4 @@
-# Omnarc — product specification (v1, October 13, 2026)
+# Omnarc — product specification (v1.1, October 13, 2026)
 
 > Every app, screen and function of Omnarc 1.0, each with the stage that builds it and its state today.
 > **What** gets built and why — [REQUIREMENTS.md](REQUIREMENTS.md); **how** — [PLAN.md](PLAN.md); how the screens
@@ -184,7 +184,7 @@ nine sections in a rail: Ring, Devices, Models, Chat, Observe, Training, Network
 | PA-09 | Will it fit? and the placement plan | screen | — | B3 | 04 | ○ |
 | PA-10 | Running models and downloads | screen | T5 | B3 | — | ○ |
 | PA-11 | Use from apps and agents | screen | A4 | B8 | — | ○ |
-| PA-12 | Chat | screen | D8 | B? → B4 | — | ○ |
+| PA-12 | Chat | screen | D8 | B4 | — | ○ |
 | PA-13 | Observe: token path | screen | — | B4 | 05 | ○ |
 | PA-14 | Observe: links and traces | screen | T4 | B4 | 05 | ○ |
 | PA-15 | Training | screen | O1, O2 | B7 | — | ○ |
@@ -195,9 +195,9 @@ nine sections in a rail: Ring, Devices, Models, Chat, Observe, Training, Network
 | PA-20 | Organization: keys and quotas | screen | A3 | B6 | — | ○ |
 | PA-21 | Organization: schedules and policy | screen | K2 | B6 | — | ○ |
 | PA-22 | Organization: audit and usage | screen | K2, A3 | B6 | — | ○ |
-| PA-23 | Settings | screen | U9 | B? → B2 | — | ○ |
+| PA-23 | Settings | screen | U9 | B2 | — | ○ |
 | PA-24 | Command palette (⌘K) | screen | U7 | B8 | 01 | ○ |
-| PA-30 | Notifications: a device left and its replica took over, a device joined, a model is ready, errors | function | P§9 | B? → B3 | — | ○ |
+| PA-30 | Notifications: a device left and its replica took over, a device joined, a model is ready, errors | function | P§9 | B3 | — | ○ |
 | PA-31 | Plan suggestion card with Apply and Dismiss | function | R1 | B3 | 01 | ○ |
 | PA-32 | The ring for everyone: a table view, keyboard focus from arc to arc, a spoken summary | function | U4 | B2 | — | ○ |
 | PA-33 | Several models as nested rings; arcs grouped beyond 128 devices | function | U1 | B4 | — | ○ |
@@ -460,7 +460,7 @@ The screens are in the panel (PA-18 to PA-22); this is the service behind them.
 | BE-04 | B1 gate: a 70B model across Linux and Windows computers | function | P§11 | B1 | — | ○ |
 | BE-05 | B1 gate: time per output token no worse than prima.cpp's | function | P§11 | B1 | — | ○ |
 | BE-06 | `omnarc-bench`: W1–W13 against exo, prima.cpp, Parallax, distributed-llama, llama.cpp RPC, Mesh LLM, colibri | function | W1–W13 | B9 | — | ○ |
-| BE-07 | 24-hour fuzzing of the frame parser, protobuf and the GGUF reader | function | P§8 | B? → B2 | — | ○ |
+| BE-07 | 24-hour fuzzing of the frame parser, protobuf and the GGUF reader | function | P§8 | B2 | — | ○ |
 | BE-08 | Results site | screen | W10 | B9 | — | ○ |
 | BE-09 | Docs site (Astro Starlight, 8 languages, offline search) | screen | U9 | B9 | — | ○ |
 | BE-10 | Project site with the browser-node page on its own HTTPS domain | screen | Q4 | B5 | — | ○ |
@@ -473,14 +473,14 @@ The screens are in the panel (PA-18 to PA-22); this is the service behind them.
 |---|---|---|---|---|---|---|
 | DS-01 | Tokens from one source into CSS, Swift, Kotlin and TypeScript; the contrast gate | function | U2 | B0 | 07 | ✓ |
 | DS-02 | Self-hosted fonts: Inter and IBM Plex Mono | function | U3 | B0 | 07 | ✓ |
-| DS-03 | Noto Sans SC, Arabic and Devanagari, loaded per language | function | U3 | B? → B5 | — | ○ |
+| DS-03 | Noto Sans SC, Arabic and Devanagari, loaded per language | function | U3 | B5 | — | ○ |
 | DS-04 | Components built and tested (unit, visual, axe): Button, Card, Chip, Field, Icon, Kbd, Logo, Meter, Ring, Status, Switch, LivingRing | function | U2, U4 | B0 | 07 | ✓ |
 | DS-05 | Components the screens still need: Tabs, Table, Dialog, Toast, Menu, Select, Slider, Tooltip, Progress, Empty state, Skeleton, QR code, Emoji check, Code block, Message, Voice button, Agreement badge | function | U2 | B2–B8 | — | ○ |
 | DS-06 | Charts: uPlot series, the token-path timeline, the link matrix | function | U4 | B4 | 05 | ○ |
 | DS-07 | The globe: MapLibre GL, deck.gl and offline Protomaps tiles | function | A2 | B6 | 06 | ○ |
 | DS-08 | The living ring (WebGL2) and its SVG fallback | function | U11 | B0 | 01 | ✓ |
 | DS-09 | Design concept page and README pictures | screen | — | B0 | — | ✓ |
-| XC-01 | Translations into Chinese, Spanish, Hindi, Arabic (right to left), French, Portuguese and Russian | function | U9 | B? → B5 | — | ○ |
+| XC-01 | Translations into Chinese, Spanish, Hindi, Arabic (right to left), French, Portuguese and Russian | function | U9 | B5 | — | ○ |
 | XC-02 | WCAG 2.2 AA, keyboard only, reduced motion, charts safe for color-vision deficiency | function | U4, U5 | B0 → | 07 | ◐ |
 | XC-03 | Budgets: panel JS ≤ 180 KB, browser page ≤ 60 KB, 60 fps with 1,000 devices, LCP ≤ 1.5 s, cold start ≤ 1 s | function | U10 | B2 → | — | ○ |
 | XC-04 | Encryption on every link; models checked with BLAKE3 | function | P§7 | B2 | — | ◐ |
@@ -488,10 +488,10 @@ The screens are in the panel (PA-18 to PA-22); this is the service behind them.
 
 ## 16. Items the plan has not placed in a stage yet
 
-These items are needed by the screens above but PLAN.md §11 names no stage for them. The proposal follows the stage
-that first needs them; it becomes part of the plan only once agreed.
+None. An item that the plan does not place yet is marked "B? → Bn" in its table and listed here until it is agreed.
+The first count (October 13, 2026) found six, and the same day they joined the plan (PLAN.md v3.2, §11):
 
-| ID | Item | Proposed stage | Why |
+| ID | Item | Stage | Why there |
 |---|---|---|---|
 | PA-12 | Chat | B4 | the first stage whose answers show their devices and accuracy mode |
 | PA-23 | Settings | B2 | the first panel needs language and theme |

@@ -1,6 +1,6 @@
 # Omnarc — dunyodagi har qanday qurilmani bitta AI kuchiga aylantirish
 
-> **Oʻzbekcha oʻqish nusxasi (13.10.2026, v3.1).** Loyihaning asosiy hujjatlari endi ingliz tilida:
+> **Oʻzbekcha oʻqish nusxasi (13.10.2026, v3.2).** Loyihaning asosiy hujjatlari endi ingliz tilida:
 > [PLAN.md](../../PLAN.md) va [REQUIREMENTS.md](../../REQUIREMENTS.md). Bu nusxa siz oʻqishingiz uchun saqlangan.
 > Loyihadagi fayl va token nomlari ham inglizchaga oʻtdi: `dizayn/` → `design/`, `konsepsiya.html` → `concept.html`,
 > `tirik-halqa.js` → `living-ring.js`, `ranglar.py` → `colors.py`, `tokenlar.*` → `tokens.*`, `manba/` → `upstream/`;
@@ -8,8 +8,8 @@
 > `--oltin` → `--gold`, `--oltin-belgi` → `--gold-mark`, `--lojuvard` → `--lapis`, `--yuklama-N` → `--load-N`.
 > Interfeysning asosiy tili — ingliz tili; tarjimalar: xitoy, ispan, hind, arab, fransuz, portugal va rus tillari.
 
-> *Omnarc* = *omni* (hammasi) + *arc* (yoy): har bir qurilma — bitta halqaning yoyi. Ochiq loyiha, Apache-2.0. Versiya 3.1 (13.10.2026): uchta asosiy qo'llanish, aniqlik rejimi (Y10) va «hech qachon sekinlashtirmaydi»
-> qoidasi (R6) qo'shildi.
+> *Omnarc* = *omni* (hammasi) + *arc* (yoy): har bir qurilma — bitta halqaning yoyi. Ochiq loyiha, Apache-2.0. Versiya 3.2 (13.10.2026): uchta asosiy qo'llanish, aniqlik rejimi (Y10), «hech qachon sekinlashtirmaydi» qoidasi (R6);
+> bosqichsiz qolgan oltita band bosqichlarga joylandi.
 > Manba kodlar `manba/` ichida. Ishlatiladigan kodlarning litsenziyalari Apache-2.0 bilan mos (jadval 7-bo'limda).
 > **Qanday qilinadi** (arxitektura, texnologiyalar, dizayn tizimi, bosqichlar) — [REJA.md](REJA.md). Har bir ekran
 > va funksiya holati bilan — [SPETSIFIKATSIYA.md](SPETSIFIKATSIYA.md).
@@ -284,11 +284,11 @@ quriladi (U1–U10), oxirga qoldirilmaydi.
 | B2 Tarmoq | T1–T5, U1, U6 |
 | B3 Rejalashtiruvchi | R1–R6 |
 | B4 Tezlik va aniqlik | D3, D4, D6, D8, Y9 |
-| B5 Qurilmalar | Q1–Q6, D5, U8, U10 |
+| B5 Qurilmalar | Q1–Q6, D5, U3 (Noto shriftlari), U8, U9 (tarjimalar), U10 |
 | B6 Miqyos | K1–K3 |
 | B7 Modallik va o'qitish | D7, O1, O2 |
 | B8 Orollar va API | A1–A4, U7 |
-| B9 Jahon o'lchovi | W1–W13, U9 |
+| B9 Jahon o'lchovi | W1–W13, U9 (hujjatlar 8 tilda) |
 
 ## 9. GitHub
 

@@ -1,6 +1,6 @@
-# Omnarc — mahsulot spetsifikatsiyasi (v1, 13.10.2026)
+# Omnarc — mahsulot spetsifikatsiyasi (v1.1, 13.10.2026)
 
-> **Oʻzbekcha oʻqish nusxasi (13.10.2026, v1).** Asl hujjat ingliz tilida: [SPEC.md](../../SPEC.md).
+> **Oʻzbekcha oʻqish nusxasi (13.10.2026, v1.1).** Asl hujjat ingliz tilida: [SPEC.md](../../SPEC.md).
 
 > Omnarc 1.0 ning barcha ilovalari, ekranlari va funksiyalari — har biri o'zini quradigan bosqich va bugungi holati
 > bilan. **Nima** quriladi va nima uchun — [TALABLAR.md](TALABLAR.md); **qanday** quriladi — [REJA.md](REJA.md);
@@ -186,7 +186,7 @@ Sozlamalar.
 | PA-09 | «Sig'adimi?» va joylashuv rejasi | ekran | — | B3 | 04 | ○ |
 | PA-10 | Ishlayotgan modellar va yuklashlar | ekran | T5 | B3 | — | ○ |
 | PA-11 | Ilovalar va agentlar orqali foydalanish | ekran | A4 | B8 | — | ○ |
-| PA-12 | Suhbat | ekran | D8 | B? → B4 | — | ○ |
+| PA-12 | Suhbat | ekran | D8 | B4 | — | ○ |
 | PA-13 | Kuzatuv: token yo'li | ekran | — | B4 | 05 | ○ |
 | PA-14 | Kuzatuv: havolalar va izlar | ekran | T4 | B4 | 05 | ○ |
 | PA-15 | O'qitish | ekran | O1, O2 | B7 | — | ○ |
@@ -197,9 +197,9 @@ Sozlamalar.
 | PA-20 | Tashkilot: kalitlar va kvotalar | ekran | A3 | B6 | — | ○ |
 | PA-21 | Tashkilot: jadvallar va siyosat | ekran | K2 | B6 | — | ○ |
 | PA-22 | Tashkilot: audit va foydalanish | ekran | K2, A3 | B6 | — | ○ |
-| PA-23 | Sozlamalar | ekran | U9 | B? → B2 | — | ○ |
+| PA-23 | Sozlamalar | ekran | U9 | B2 | — | ○ |
 | PA-24 | Buyruqlar paneli (⌘K) | ekran | U7 | B8 | 01 | ○ |
-| PA-30 | Bildirishnomalar: qurilma chiqdi va ishni uning zaxirasi oldi, qurilma qo'shildi, model tayyor, xatolar | funksiya | P§9 | B? → B3 | — | ○ |
+| PA-30 | Bildirishnomalar: qurilma chiqdi va ishni uning zaxirasi oldi, qurilma qo'shildi, model tayyor, xatolar | funksiya | P§9 | B3 | — | ○ |
 | PA-31 | «Qo'llash» va «Rad etish» tugmalari bilan reja taklifi kartasi | funksiya | R1 | B3 | 01 | ○ |
 | PA-32 | Hamma uchun halqa: jadval ko'rinishi, yoydan yoyga klaviatura fokusi, ovoz bilan o'qiladigan xulosa | funksiya | U4 | B2 | — | ○ |
 | PA-33 | Bir nechta model — ichma-ich halqalar; 128 tadan ortiq qurilmada yoylar guruhlanadi | funksiya | U1 | B4 | — | ○ |
@@ -477,7 +477,7 @@ Ekranlar panelda (PA-18 dan PA-22 gacha); bu yerda — ularning ortidagi xizmat.
 | BE-04 | B1 darvozasi: 70B model Linux va Windows kompyuterlarida birgalikda ishlaydi | funksiya | P§11 | B1 | — | ○ |
 | BE-05 | B1 darvozasi: bitta chiqish tokeniga ketadigan vaqt prima.cpp'nikidan yomon emas | funksiya | P§11 | B1 | — | ○ |
 | BE-06 | `omnarc-bench`: W1–W13 bo'yicha exo, prima.cpp, Parallax, distributed-llama, llama.cpp RPC, Mesh LLM, colibri bilan solishtirish | funksiya | W1–W13 | B9 | — | ○ |
-| BE-07 | Freym tahlilchisi, protobuf va GGUF o'quvchisi uchun 24 soatlik fuzzing | funksiya | P§8 | B? → B2 | — | ○ |
+| BE-07 | Freym tahlilchisi, protobuf va GGUF o'quvchisi uchun 24 soatlik fuzzing | funksiya | P§8 | B2 | — | ○ |
 | BE-08 | Natijalar sayti | ekran | W10 | B9 | — | ○ |
 | BE-09 | Hujjatlar sayti (Astro Starlight, 8 til, oflayn qidiruv) | ekran | U9 | B9 | — | ○ |
 | BE-10 | O'z HTTPS domenidagi loyiha sayti, brauzer tuguni sahifasi bilan | ekran | Q4 | B5 | — | ○ |
@@ -490,14 +490,14 @@ Ekranlar panelda (PA-18 dan PA-22 gacha); bu yerda — ularning ortidagi xizmat.
 |---|---|---|---|---|---|---|
 | DS-01 | Tokenlar bitta manbadan CSS, Swift, Kotlin va TypeScript'ga; kontrast darvozasi | funksiya | U2 | B0 | 07 | ✓ |
 | DS-02 | O'z serverimizdan beriladigan shriftlar: Inter va IBM Plex Mono | funksiya | U3 | B0 | 07 | ✓ |
-| DS-03 | Noto Sans SC, Arabic va Devanagari — tilga qarab yuklanadi | funksiya | U3 | B? → B5 | — | ○ |
+| DS-03 | Noto Sans SC, Arabic va Devanagari — tilga qarab yuklanadi | funksiya | U3 | B5 | — | ○ |
 | DS-04 | Qurilgan va sinalgan komponentlar (unit, vizual, axe): Button, Card, Chip, Field, Icon, Kbd, Logo, Meter, Ring, Status, Switch, LivingRing | funksiya | U2, U4 | B0 | 07 | ✓ |
 | DS-05 | Ekranlarga hali kerak bo'lgan komponentlar: Tabs, Table, Dialog, Toast, Menu, Select, Slider, Tooltip, Progress, Empty state, Skeleton, QR code, Emoji check, Code block, Message, Voice button, Agreement badge | funksiya | U2 | B2–B8 | — | ○ |
 | DS-06 | Grafiklar: uPlot ma'lumot qatorlari, token yo'li vaqt chizig'i, havolalar matritsasi | funksiya | U4 | B4 | 05 | ○ |
 | DS-07 | Globus: MapLibre GL, deck.gl va oflayn Protomaps xarita plitkalari | funksiya | A2 | B6 | 06 | ○ |
 | DS-08 | Tirik belgi (WebGL2) va WebGL2 bo'lmasa chiqadigan SVG varianti | funksiya | U11 | B0 | 01 | ✓ |
 | DS-09 | Dizayn konsepsiyasi sahifasi va README rasmlari | ekran | — | B0 | — | ✓ |
-| XC-01 | Xitoy, ispan, hind, arab (o'ngdan chapga), fransuz, portugal va rus tillariga tarjimalar | funksiya | U9 | B? → B5 | — | ○ |
+| XC-01 | Xitoy, ispan, hind, arab (o'ngdan chapga), fransuz, portugal va rus tillariga tarjimalar | funksiya | U9 | B5 | — | ○ |
 | XC-02 | WCAG 2.2 AA, faqat klaviatura bilan boshqarish, kam harakat rejimi, rang ko'rligiga chidamli grafiklar | funksiya | U4, U5 | B0 → | 07 | ◐ |
 | XC-03 | Byudjetlar: panel JS ≤ 180 KB, brauzer sahifasi ≤ 60 KB, 1000 qurilmada 60 fps, LCP ≤ 1,5 s, sovuq start ≤ 1 s | funksiya | U10 | B2 → | — | ○ |
 | XC-04 | Har havolada shifrlash; modellar BLAKE3 bilan tekshiriladi | funksiya | P§7 | B2 | — | ◐ |
@@ -505,10 +505,10 @@ Ekranlar panelda (PA-18 dan PA-22 gacha); bu yerda — ularning ortidagi xizmat.
 
 ## 16. Reja hali bosqichga joylamagan bandlar
 
-Bu bandlar yuqoridagi ekranlarga kerak, lekin REJA.md §11 ular uchun bosqich ko'rsatmaydi. Taklif — ular birinchi
-bo'lib kerak bo'ladigan bosqich; u faqat kelishilgandan keyin rejaning bir qismiga aylanadi.
+Hozir yo'q. Reja hali joylamagan band o'z jadvalida «B? → Bn» deb belgilanadi va kelishilguncha shu yerda turadi.
+Birinchi sanoq (13.10.2026) oltita shunday band topdi; o'sha kuni ular rejaga qo'shildi (REJA.md v3.2, §11):
 
-| ID | Band | Taklif qilingan bosqich | Nega |
+| ID | Band | Bosqich | Nega aynan u yerda |
 |---|---|---|---|
 | PA-12 | Suhbat | B4 | javoblarda ularni hisoblagan qurilmalar va aniqlik rejimi ko'rinadigan birinchi bosqich |
 | PA-23 | Sozlamalar | B2 | birinchi panelga til va mavzu kerak |

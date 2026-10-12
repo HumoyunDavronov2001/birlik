@@ -1,6 +1,6 @@
 # Omnarc — turning every device in the world into one AI
 
-> *Omnarc* = *omni* (all) + *arc*: every device is an arc of one ring. Open source, Apache-2.0. Version 3.1 (October 13, 2026).
+> *Omnarc* = *omni* (all) + *arc*: every device is an arc of one ring. Open source, Apache-2.0. Version 3.2 (October 13, 2026).
 > Upstream source code lives in `upstream/`. All reused code is MIT or Apache-2.0 (table in §7).
 > **How it gets built** (architecture, technologies, design system, stages) — [PLAN.md](PLAN.md). Every screen and
 > function with its state — [SPEC.md](SPEC.md).
@@ -272,11 +272,11 @@ stage (U1–U11), never left for the end.
 | B2 Network | T1–T5, U1, U6, U11 |
 | B3 Scheduler | R1–R6 |
 | B4 Speed and accuracy | D3, D4, D6, D8, Y9 |
-| B5 Devices | Q1–Q6, D5, U8, U10 |
+| B5 Devices | Q1–Q6, D5, U3 (the Noto fonts), U8, U9 (the translations), U10 |
 | B6 Scale | K1–K3 |
 | B7 Modalities and training | D7, O1, O2 |
 | B8 Islands and API | A1–A4, U7 |
-| B9 World benchmark | W1–W13, U9 |
+| B9 World benchmark | W1–W13, U9 (docs in 8 languages) |
 
 ## 9. GitHub
 

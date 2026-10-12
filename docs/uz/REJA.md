@@ -1,6 +1,6 @@
-# Omnarc — to'liq reja (v3.1, 13.10.2026)
+# Omnarc — to'liq reja (v3.2, 13.10.2026)
 
-> **Oʻzbekcha oʻqish nusxasi (13.10.2026, v3.1).** Loyihaning asosiy hujjatlari endi ingliz tilida:
+> **Oʻzbekcha oʻqish nusxasi (13.10.2026, v3.2).** Loyihaning asosiy hujjatlari endi ingliz tilida:
 > [PLAN.md](../../PLAN.md) va [REQUIREMENTS.md](../../REQUIREMENTS.md). Bu nusxa siz oʻqishingiz uchun saqlangan.
 > Loyihadagi fayl va token nomlari ham inglizchaga oʻtdi: `dizayn/` → `design/`, `konsepsiya.html` → `concept.html`,
 > `tirik-halqa.js` → `living-ring.js`, `ranglar.py` → `colors.py`, `tokenlar.*` → `tokens.*`, `manba/` → `upstream/`;
@@ -368,10 +368,10 @@ UI har bosqich bilan birga quriladi — oxiriga qoldirilmaydi.
 |---|---|---|
 | **B0 Poydevor** | monorepo, CI matritsasi, `protokol/` v1, dizayn tokenlari → CSS/Swift/Kotlin, Svelte komponent kutubxonasi (Storybook), NOTICE/MANBA.md | 6 platformada CI yashil; komponentlar vizual regressiyadan o'tadi; axe — 0 xato |
 | **B1 Dvigatel** | libomnarc: yamoqlar, prima piped-ring + oldindan o'qish, CUDA/Vulkan/Metal/CPU, Windows, alohida jarayon | aniqlik darvozasi (Llama 3.x 8B, Qwen3 32B, R1-Distill 70B); Linux + Windows kompyuterlarda 70B ishlaydi; bir xil apparatda TPOT prima.cpp'dan yomon emas |
-| **B2 Tarmoq** | iroh, gossip, Raft, QR + SAS, iroh-blobs, havolalarni o'lchash; panel: birinchi ishga tushirish, Halqa, Qurilmalar | NAT ortidagi 2 xil tarmoqdagi qurilmalar bitta klasterda; 70B bo'laklari P2P tarqaladi (internetdan 1 marta); turmoil'da 1000 ssenariy |
-| **B3 Rejalashtiruvchi** | profiler, HiGHS, marshrut, zaxira reja, KV nusxa, jonli qo'shilish/chiqish, TLA+, sekinlashtirmaslik qoidasi (R6); panel: «Sig'adimi?», reja ko'rinishi | W6 (≤ 1 s); W11; TLC xossalari; 8 qurilmaga joylashtirish ≤ 1 s |
-| **B4 Tezlik va aniqlik** | pipeline taxminiy dekodlash, MTP/EAGLE-3, PowerInfer, MoE + EPLB, f8 faollashuv, ring attention, radix kesh, batching, prefill/dekod ajratish, aniqlik rejimi (Y10); panel: token yo'li, havolalar matritsasi | W1, W2, W3, W12 |
-| **B5 Qurilmalar** | Tauri, Android (Compose, Hexagon, `specialUse`), iOS (SwiftUI, Metal, Tun rejimi, Live Activity), brauzer PWA (WASM + WebGPU, WebRTC), faqat mijoz telefonlar (Q6), NPU darvozasi | W4, W5, W8; Maestro oqimlari; Android API 26–36 |
+| **B2 Tarmoq** | iroh, gossip, Raft, QR + SAS, iroh-blobs, havolalarni o'lchash, freym tahlilchisi, protobuf va GGUF o'quvchisi uchun fuzzing (§8); panel: birinchi ishga tushirish, Halqa, Qurilmalar, Sozlamalar, tirik belgi | NAT ortidagi 2 xil tarmoqdagi qurilmalar bitta klasterda; 70B bo'laklari P2P tarqaladi (internetdan 1 marta); turmoil'da 1000 ssenariy |
+| **B3 Rejalashtiruvchi** | profiler, HiGHS, marshrut, zaxira reja, KV nusxa, jonli qo'shilish/chiqish, TLA+, sekinlashtirmaslik qoidasi (R6); panel: «Sig'adimi?», reja ko'rinishi, bildirishnomalar | W6 (≤ 1 s); W11; TLC xossalari; 8 qurilmaga joylashtirish ≤ 1 s |
+| **B4 Tezlik va aniqlik** | pipeline taxminiy dekodlash, MTP/EAGLE-3, PowerInfer, MoE + EPLB, f8 faollashuv, ring attention, radix kesh, batching, prefill/dekod ajratish, aniqlik rejimi (Y10); panel: token yo'li, havolalar matritsasi, Suhbat | W1, W2, W3, W12 |
+| **B5 Qurilmalar** | Tauri, Android (Compose, Hexagon, `specialUse`), iOS (SwiftUI, Metal, Tun rejimi, Live Activity), brauzer PWA (WASM + WebGPU, WebRTC), faqat mijoz telefonlar (Q6), NPU darvozasi, yettita tarjima (arabchasi o'ngdan chapga) va Noto shriftlari | W4, W5, W8; Maestro oqimlari; Android API 26–36 |
 | **B6 Miqyos** | markaz (OIDC/LDAP, RBAC, kvota, jadval, audit), ommaviy tarmoq (katalog, TOPLOC, kredit jurnali); panel: Tashkilot, Tarmoq, Kredit | W7; aldovchi tugunlar 100 % aniqlanadi |
 | **B7 Modallik va o'qitish** | STT, TTS, rasm (stable-diffusion.cpp), embedding; LoRA (DiLoCo), RL rollout; panel: O'qitish | internet orqali 4+ tugunda kam resursli til uchun LoRA o'qitiladi; audio va rasm API'lari ishlaydi; oila halqasi: kuchsiz telefondan (≤ 4 GB) ovozli savolga ovozli javob, birinchi tovush savol tugagach ≤ 3 s, internet o'chiq bo'lsa ham |
 | **B8 Orollar va API** | MLX oroli (RDMA TB5), GPU oroli (vLLM/SGLang), to'liq API moslik, agentlar uchun backend (A4); panel: Modellar katalogi | W9; W13; rasmiy SDK'lar (openai, anthropic, ollama) bilan moslik sinovlari |

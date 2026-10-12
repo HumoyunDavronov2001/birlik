@@ -1,4 +1,4 @@
-# Omnarc — the full plan (v3.1, October 13, 2026)
+# Omnarc — the full plan (v3.2, October 13, 2026)
 
 > **What gets built** — [REQUIREMENTS.md](REQUIREMENTS.md). **How it gets built** — this file: architecture,
 > technologies, protocols, design system, screens and stages. **Every screen and function with its state** —
@@ -357,10 +357,10 @@ The UI is built together with every stage — it is never left for the end.
 |---|---|---|
 | **B0 Foundation** ✓ (October 12, 2026) | monorepo, CI matrix, `protocol/` v1, design tokens → CSS/Swift/Kotlin, Svelte component library (Storybook), NOTICE/UPSTREAM.md | CI green on 6 platforms; components pass visual regression; axe — 0 violations |
 | **B1 Engine** | libomnarc: patches, prima piped-ring + prefetching, CUDA/Vulkan/Metal/CPU, Windows, separate process | accuracy gate (Llama 3.x 8B, Qwen3 32B, R1-Distill 70B); 70B runs on Linux + Windows computers; TPOT no worse than prima.cpp on the same hardware |
-| **B2 Network** | iroh, gossip, Raft, QR + SAS, iroh-blobs, link measurement; panel: first run, the Ring, Devices, the living ring | devices on two different networks behind NAT form one cluster; 70B slices spread P2P (internet used once); 1,000 turmoil scenarios |
-| **B3 Scheduler** | profiler, HiGHS, routing, backup plans, KV copies, live join/leave, TLA+, the never-slower rule (R6); panel: "Will it fit?", plan view | W6 (≤ 1 s); W11; TLC properties; placement on 8 devices ≤ 1 s |
-| **B4 Speed and accuracy** | pipelined speculative decoding, MTP/EAGLE-3, PowerInfer, MoE + EPLB, f8 activations, ring attention, radix cache, batching, prefill/decode split, accuracy mode (Y10); panel: token path, link matrix | W1, W2, W3, W12 |
-| **B5 Devices** | Tauri, Android (Compose, Hexagon, `specialUse`), iOS (SwiftUI, Metal, Night mode, Live Activity), browser PWA (WASM + WebGPU, WebRTC), client-only phones (Q6), NPU gate | W4, W5, W8; Maestro flows; Android API 26–36 |
+| **B2 Network** | iroh, gossip, Raft, QR + SAS, iroh-blobs, link measurement, fuzzers for the frame parser, protobuf and the GGUF reader (§8); panel: first run, the Ring, Devices, Settings, the living ring | devices on two different networks behind NAT form one cluster; 70B slices spread P2P (internet used once); 1,000 turmoil scenarios |
+| **B3 Scheduler** | profiler, HiGHS, routing, backup plans, KV copies, live join/leave, TLA+, the never-slower rule (R6); panel: "Will it fit?", plan view, notifications | W6 (≤ 1 s); W11; TLC properties; placement on 8 devices ≤ 1 s |
+| **B4 Speed and accuracy** | pipelined speculative decoding, MTP/EAGLE-3, PowerInfer, MoE + EPLB, f8 activations, ring attention, radix cache, batching, prefill/decode split, accuracy mode (Y10); panel: token path, link matrix, Chat | W1, W2, W3, W12 |
+| **B5 Devices** | Tauri, Android (Compose, Hexagon, `specialUse`), iOS (SwiftUI, Metal, Night mode, Live Activity), browser PWA (WASM + WebGPU, WebRTC), client-only phones (Q6), NPU gate, the seven translations (Arabic right to left) with the Noto fonts | W4, W5, W8; Maestro flows; Android API 26–36 |
 | **B6 Scale** | control (OIDC/LDAP, RBAC, quotas, schedules, audit), public network (directory, TOPLOC, credit log); panel: Organization, Network, Credits | W7; cheating nodes are caught 100% of the time |
 | **B7 Modalities and training** | speech-to-text, text-to-speech, images (stable-diffusion.cpp), embeddings; LoRA (DiLoCo), RL rollouts; panel: Training | LoRA training for a low-resource language succeeds on 4+ nodes over the internet; audio and image APIs work; the family ring: a spoken question from a weak phone (≤ 4 GB) gets a spoken answer, the first sound ≤ 3 s after the question ends, also with the internet switched off |
 | **B8 Islands and API** | MLX island (RDMA TB5), GPU island (vLLM/SGLang), full API compatibility, agent backend (A4); panel: model catalog | W9; W13; compatibility tests with the official SDKs (openai, anthropic, ollama) |
