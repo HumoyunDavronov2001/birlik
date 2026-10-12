@@ -53,6 +53,9 @@ def main() -> int:
     writer.add_file_type(gguf.LlamaFileType.ALL_F32)
 
     writer.add_tensor("token_embd.weight", rng.standard_normal((n_vocab, n_embd)).astype(np.float32))
+    if args.arch == "llama":
+        # Llama 3 keeps one rope frequency table for all layers; every window must find it, not only the first
+        writer.add_tensor("rope_freqs.weight", (1.0 + rng.random(head_dim // 2)).astype(np.float32))
     for i in range(n_layer):
         writer.add_tensor(f"blk.{i}.attn_norm.weight", norm(n_embd))
         writer.add_tensor(f"blk.{i}.attn_q.weight", matrix(n_head * head_dim, n_embd))
