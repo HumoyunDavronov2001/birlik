@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Card, Icon, Status } from '@omnarc/ui';
   import { cluster } from '$lib/cluster.svelte';
-  import { deviceName, formatGib, isOnline, platformIcon, platformName, short } from '$lib/model';
+  import { deviceName, formatGib, formatLink, isOnline, linkTo, platformIcon, platformName, short } from '$lib/model';
 
   const view = $derived(cluster.view);
   const ids = $derived(Object.keys(view.devices));
@@ -18,6 +18,7 @@
           <th class="py-2 pr-3 font-normal">System</th>
           <th class="py-2 pr-3 text-right font-normal">CPU</th>
           <th class="py-2 pr-3 text-right font-normal">Memory</th>
+          <th class="py-2 pr-3 font-normal">Link from this device</th>
           <th class="py-2 pr-3 font-normal">State</th>
           <th class="py-2 font-normal">Id</th>
         </tr>
@@ -27,6 +28,7 @@
           {@const device = view.devices[id]}
           {@const telemetry = view.telemetry[id]}
           {@const online = isOnline(view, id, cluster.now)}
+          {@const link = linkTo(view, id)}
           <tr class="border-t border-line">
             <td class="py-2.5 pr-3">
               <span class="flex items-center gap-2.5">
@@ -39,6 +41,7 @@
             <td class="py-2.5 pr-3 text-right font-mono text-text-2">
               {online && telemetry ? `${formatGib(telemetry.memoryUsedBytes)} / ` : ''}{device.memoryTotalBytes ? formatGib(device.memoryTotalBytes) : '—'}
             </td>
+            <td class="py-2.5 pr-3 whitespace-nowrap text-text-2">{online && link ? formatLink(link) : '—'}</td>
             <td class="py-2.5 pr-3"><Status kind={online ? 'good' : 'warning'} label={online ? 'Online' : 'Offline'} /></td>
             <td class="py-2.5 font-mono text-12 text-text-3">{short(id)}</td>
           </tr>

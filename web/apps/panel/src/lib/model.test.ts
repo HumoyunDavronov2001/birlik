@@ -6,8 +6,8 @@ import {
   WatchClusterResponseSchema,
 } from './gen/omnarc/v1/cluster_service_pb';
 import { DeviceInfoSchema, NodeIdSchema, Platform } from './gen/omnarc/v1/device_pb';
-import { TelemetrySchema } from './gen/omnarc/v1/telemetry_pb';
-import { apply, deviceName, formatGib, fromSnapshot, hex, isOnline, ONLINE_MS, platformName } from './model';
+import { LinkKind, LinkSampleSchema, TelemetrySchema } from './gen/omnarc/v1/telemetry_pb';
+import { apply, deviceName, formatGib, formatLink, fromSnapshot, hex, isOnline, linkTo, ONLINE_MS, platformName } from './model';
 
 const id = (byte: number) => create(NodeIdSchema, { ed25519PublicKey: new Uint8Array(32).fill(byte) });
 
@@ -58,5 +58,23 @@ describe('the cluster view', () => {
     expect(platformName(Platform.MACOS)).toBe('macOS');
     const view = fromSnapshot(snapshot, 0);
     expect(deviceName(view, 'abcdef0123456789')).toBe('abcdef0123');
+  });
+});
+
+describe('links', () => {
+  it('reads this device\'s link to another from its own telemetry', () => {
+    const link = create(LinkSampleSchema, { peer: id(2), kind: LinkKind.WIFI, rttMs: 3.24, bandwidthMbps: 421.6 });
+    const view = fromSnapshot(
+      create(ClusterSnapshotSchema, { thisNode: id(1), telemetry: [create(TelemetrySchema, { node: id(1), links: [link] })] }),
+      0,
+    );
+    expect(linkTo(view, hex(id(2)))).toBe(view.telemetry[hex(id(1))].links[0]);
+    expect(linkTo(view, hex(id(1)))).toBeUndefined();
+    expect(linkTo(view, hex(id(3)))).toBeUndefined();
+    expect(formatLink(link)).toBe('Wi-Fi · 3.2 ms · 422 Mbit/s');
+    expect(formatLink(create(LinkSampleSchema, { kind: LinkKind.ETHERNET, rttMs: 41, bandwidthMbps: 2350 }))).toBe(
+      'Ethernet · 41 ms · 2.4 Gbit/s',
+    );
+    expect(formatLink(create(LinkSampleSchema, { rttMs: 0.4 }))).toBe('0.4 ms');
   });
 });

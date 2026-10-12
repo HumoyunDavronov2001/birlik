@@ -358,9 +358,16 @@ async fn serve(
             _ = tokio::signal::ctrl_c() => break,
             _ = summary.tick() => {
                 let devices = service.devices();
-                for (id, telemetry) in service.telemetry() {
-                    let name = devices.get(&id).map_or_else(|| id.fmt_short().to_string(), |device| device.name.clone());
-                    println!("  {:<24} CPU {:>3.0} %   memory {:.1} GiB", name, telemetry.cpu_load * 100.0, gib(telemetry.memory_used_bytes));
+                let telemetry = service.telemetry();
+                let links = telemetry.get(&service.id()).map(|t| t.links.clone()).unwrap_or_default();
+                for (id, telemetry) in &telemetry {
+                    let name = devices.get(id).map_or_else(|| id.fmt_short().to_string(), |device| device.name.clone());
+                    let link = links
+                        .iter()
+                        .find(|link| link.peer.as_ref().is_some_and(|p| p.ed25519_public_key == id.as_bytes()))
+                        .map(describe_link)
+                        .unwrap_or_default();
+                    println!("  {:<24} CPU {:>3.0} %   memory {:.1} GiB   {link}", name, telemetry.cpu_load * 100.0, gib(telemetry.memory_used_bytes));
                 }
             }
             event = events.recv() => match event {
@@ -391,6 +398,23 @@ async fn serve(
     println!("Stopping.");
     service.shutdown().await;
     Ok(())
+}
+
+/// A link as the summary shows it: `Wi-Fi 3 ms 420 Mbit/s`.
+fn describe_link(link: &omnarc_protocol::v1::LinkSample) -> String {
+    use omnarc_protocol::v1::LinkKind;
+    let kind = match LinkKind::try_from(link.kind).unwrap_or(LinkKind::Unspecified) {
+        LinkKind::Wifi => "Wi-Fi ",
+        LinkKind::Ethernet => "Ethernet ",
+        LinkKind::Usb => "USB ",
+        LinkKind::Thunderbolt => "Thunderbolt ",
+        LinkKind::Relay => "relay ",
+        LinkKind::Webrtc => "WebRTC ",
+        LinkKind::Unspecified => "",
+    };
+    let bandwidth =
+        if link.bandwidth_mbps > 0.0 { format!(" {:.0} Mbit/s", link.bandwidth_mbps) } else { String::new() };
+    format!("{kind}{:.1} ms{bandwidth}", link.rtt_ms)
 }
 
 fn cluster_command(data: &Path, command: Command) -> Result<(), ring::BoxError> {

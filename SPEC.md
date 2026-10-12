@@ -15,7 +15,7 @@ design concept (its section number), or "—".
 | Part | Screens | Functions | ✓ done | ◐ partly | ○ not started | Ready |
 |---|---|---|---|---|---|---|
 | Engine | 0 | 30 | 8 | 2 | 20 | 30 % |
-| Node agent and API | 0 | 40 | 6 | 8 | 26 | 25 % |
+| Node agent and API | 0 | 40 | 7 | 8 | 25 | 28 % |
 | Panel | 24 | 7 | 1 | 7 | 23 | 15 % |
 | Desktop app | 4 | 5 | 0 | 0 | 9 | 0 % |
 | Android app | 7 | 8 | 0 | 2 | 13 | 7 % |
@@ -27,7 +27,7 @@ design concept (its section number), or "—".
 | Islands | 0 | 3 | 0 | 0 | 3 | 0 % |
 | Benchmarks, sites and releases | 3 | 9 | 2 | 1 | 9 | 21 % |
 | Design system and quality across all apps | 1 | 13 | 6 | 2 | 6 | 50 % |
-| **All** | **50** | **141** | **23** | **24** | **144** | **18 %** |
+| **All** | **50** | **141** | **24** | **24** | **143** | **19 %** |
 
 "Ready" counts a partly done item as half. By stage — what each stage has to deliver:
 
@@ -35,7 +35,7 @@ design concept (its section number), or "—".
 |---|---|---|---|---|
 | B0 | 10 | 9 | 1 | 0 |
 | B1 | 16 | 12 | 1 | 3 |
-| B2 | 28 | 2 | 16 | 10 |
+| B2 | 28 | 3 | 16 | 9 |
 | B3 | 14 | 0 | 0 | 14 |
 | B4 | 18 | 0 | 0 | 18 |
 | B5 | 53 | 0 | 5 | 48 |
@@ -124,7 +124,7 @@ design concept (its section number), or "—".
 | NO-14 | Cluster key and membership tokens (Biscuit) with node, user and admin rights | function | P§3 | B2 | — | ◐ |
 | NO-15 | Telemetry once per second over gossip | function | P§3 | B2 | — | ◐ |
 | NO-16 | Raft on 3–5 stable nodes: plan version, placement, keys | function | P§3 | B2 | — | ○ |
-| NO-17 | Latency and bandwidth of every link, measured live | function | T4 | B2 | — | ○ |
+| NO-17 | Latency and bandwidth of every link, measured live | function | T4 | B2 | — | ✓ |
 | NO-18 | Every link type (Wi-Fi, Ethernet, USB-C, Thunderbolt, Wi-Fi Direct), several at once | function | T3, Y6 | B5 | — | ○ |
 | NO-19 | WebRTC to browser nodes, signaling through the relay | function | Q4 | B5 | — | ○ |
 | NO-20 | Message schemas `omnarc.v1` (device, pairing, telemetry, plan, cluster service) and the tensor frame | function | P§3 | B0 | — | ✓ |

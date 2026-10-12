@@ -2,7 +2,7 @@
 
 import type { ClusterSnapshot, JoinAttempt, WatchClusterResponse } from './gen/omnarc/v1/cluster_service_pb';
 import { Platform, type DeviceInfo, type NodeId } from './gen/omnarc/v1/device_pb';
-import type { Telemetry } from './gen/omnarc/v1/telemetry_pb';
+import { LinkKind, type LinkSample, type Telemetry } from './gen/omnarc/v1/telemetry_pb';
 
 /** A device is online while its telemetry keeps arriving; it is sent every second. */
 export const ONLINE_MS = 5_000;
@@ -131,4 +131,28 @@ export function platformIcon(platform: Platform): 'desktop' | 'laptop' | 'phone'
 /** A device's name, or its short id before it has told the cluster what it is. */
 export function deviceName(view: ClusterView, id: string): string {
   return view.devices[id]?.name || short(id);
+}
+
+/** This device's measured link to the device `id`, from this device's own telemetry. */
+export function linkTo(view: ClusterView, id: string): LinkSample | undefined {
+  if (id === view.thisNode) return undefined;
+  return view.telemetry[view.thisNode]?.links.find((link) => hex(link.peer) === id);
+}
+
+/** A link as the panel shows it: `Wi-Fi · 3 ms · 420 Mbit/s`. */
+export function formatLink(link: LinkSample): string {
+  const kind: Partial<Record<LinkKind, string>> = {
+    [LinkKind.WIFI]: 'Wi-Fi',
+    [LinkKind.ETHERNET]: 'Ethernet',
+    [LinkKind.USB]: 'USB',
+    [LinkKind.THUNDERBOLT]: 'Thunderbolt',
+    [LinkKind.RELAY]: 'Relay',
+    [LinkKind.WEBRTC]: 'WebRTC',
+  };
+  const ms = link.rttMs < 10 ? link.rttMs.toFixed(1) : Math.round(link.rttMs).toString();
+  const parts = [kind[link.kind], `${ms} ms`];
+  if (link.bandwidthMbps > 0) {
+    parts.push(link.bandwidthMbps >= 1000 ? `${(link.bandwidthMbps / 1000).toFixed(1)} Gbit/s` : `${Math.round(link.bandwidthMbps)} Mbit/s`);
+  }
+  return parts.filter(Boolean).join(' · ');
 }

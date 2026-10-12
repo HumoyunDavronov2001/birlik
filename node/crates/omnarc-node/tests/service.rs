@@ -77,6 +77,17 @@ async fn devices_admitted_by_an_admin_hear_each_other() {
         desktop.devices().get(&laptop_id).is_some_and(|d| d.name == "Laptop")
     })
     .await;
+    // each measures its link to the other: a ping's round trip and a probe's bandwidth
+    eventually("the desktop measures its link to the laptop", || {
+        desktop.telemetry().get(&desktop_id).is_some_and(|t| {
+            t.links.iter().any(|link| {
+                link.peer.as_ref().is_some_and(|p| p.ed25519_public_key == laptop_id.as_bytes())
+                    && link.rtt_ms > 0.0
+                    && link.bandwidth_mbps > 0.0
+            })
+        })
+    })
+    .await;
     let snapshot = desktop.api().snapshot();
     assert_eq!(snapshot.name, "Home cluster");
     assert!(snapshot.can_invite);

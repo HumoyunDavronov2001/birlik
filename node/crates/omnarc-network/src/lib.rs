@@ -4,11 +4,13 @@
 //! without relays or address lookup, and links — unidirectional streams of tensor frames
 //! (`protocol/FRAME.md`) that feed one window of layers on the next device. Stage B2 adds clusters
 //! (`protocol/CLUSTER.md`): the cluster key and membership tokens ([`cluster`]), the ticket and four-emoji check of
-//! joining ([`ticket`]), the join conversation itself ([`join`]) and the signed gossip of a cluster ([`gossip`]).
+//! joining ([`ticket`]), the join conversation itself ([`join`]), the signed gossip of a cluster ([`gossip`]) and the
+//! measurement of the links between members ([`links`]).
 
 pub mod cluster;
 pub mod gossip;
 pub mod join;
+pub mod links;
 pub mod ticket;
 
 use std::fmt;

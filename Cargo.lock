@@ -2811,6 +2811,7 @@ dependencies = [
  "getrandom 0.4.3",
  "iroh",
  "iroh-gossip",
+ "netdev 0.46.3",
  "omnarc-protocol",
  "prost 0.14.4",
  "tokio",

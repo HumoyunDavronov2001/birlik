@@ -4,13 +4,14 @@
 //! The service keeps the set of members a node lets in, admits devices through the invitations its owner opens, and
 //! talks on the cluster's gossip topic: its `DeviceInfo` when it starts, telemetry once per interval, and every
 //! member an admin admits. What it hears it keeps in memory and passes on as [`Event`]s, which the control API and
-//! the panel stream. It also serves the models on this device to the other members (`protocol/CLUSTER.md` §4).
+//! the panel stream. It also serves the models on this device to the other members (`protocol/CLUSTER.md` §4), and
+//! measures its link to every member: a ping each telemetry interval, a bandwidth probe once a minute (§3.3).
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, OnceLock};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use n0_future::StreamExt as _;
 use omnarc_network::cluster::{self, ClusterKey};
@@ -18,6 +19,7 @@ use omnarc_network::gossip::{
     self, GOSSIP_ALPN, Gossip, GossipEvent, GossipReceiver, GossipSender, Members, MembersOnly,
 };
 use omnarc_network::join::{self, ClusterContext, Invitation, JOIN_ALPN, JoinAttempt};
+use omnarc_network::links::{self, PROBE_ALPN, ProbeHandler};
 use omnarc_network::protocol::{AcceptError, ProtocolHandler};
 use omnarc_network::ticket::Ticket;
 use omnarc_network::{Connection, Endpoint, EndpointAddr, EndpointId, MemoryLookup, Router, SecretKey, TransportAddr};
@@ -85,10 +87,15 @@ struct Shared {
     answers: Mutex<HashMap<EndpointId, oneshot::Sender<bool>>>,
     // wakes the speaker to announce this device again, e.g. when a neighbor comes up
     announce: tokio::sync::Notify,
+    // the latest measurement of the link to each member, and when it was taken
+    links: Mutex<HashMap<EndpointId, (v1::LinkSample, Instant)>>,
 }
 
 /// Telemetry ticks between two announcements of the device even when nothing changed.
 const ANNOUNCE_EVERY: u32 = 60;
+
+/// How often the bandwidth of a link is probed, besides when the link changes.
+const BANDWIDTH_EVERY: Duration = Duration::from_secs(60);
 
 impl Service {
     /// Starts the service of the node in `config.data`, which must belong to a cluster.
@@ -119,6 +126,7 @@ impl Service {
             .accept(GOSSIP_ALPN, MembersOnly::new(gossip.clone(), members.clone()))
             .accept(JOIN_ALPN, joins.clone())
             .accept(BLOBS_ALPN, MembersOnly::new(models.protocol(), members.clone()))
+            .accept(PROBE_ALPN, MembersOnly::new(ProbeHandler, members.clone()))
             .spawn();
 
         let others: Vec<EndpointId> = members.list().into_iter().filter(|id| *id != key.public()).collect();
@@ -140,6 +148,7 @@ impl Service {
             invitation: Mutex::default(),
             answers: Mutex::default(),
             announce: tokio::sync::Notify::new(),
+            links: Mutex::default(),
         });
         joins.0.set(Arc::clone(&shared)).expect("set once");
 
@@ -154,6 +163,7 @@ impl Service {
         let tasks = vec![
             tokio::spawn(listen(Arc::clone(&shared), receiver)),
             tokio::spawn(speak(Arc::clone(&shared), device, config.telemetry_every)),
+            tokio::spawn(measure(Arc::clone(&shared), config.telemetry_every)),
         ];
         Ok(Self { shared, router, tasks })
     }
@@ -381,6 +391,74 @@ fn own_addrs(endpoint: &Endpoint) -> Vec<SocketAddr> {
     endpoint.addr().ip_addrs().copied().filter(|addr| !addr.ip().is_unspecified()).collect()
 }
 
+// Measures the link to every other member, each in a task of its own, as members come and go.
+async fn measure(shared: Arc<Shared>, every: Duration) {
+    let mut tasks: HashMap<EndpointId, tokio::task::JoinHandle<()>> = HashMap::new();
+    let mut ticks = tokio::time::interval(every);
+    loop {
+        ticks.tick().await;
+        let me = shared.key.public();
+        let members: HashSet<EndpointId> = shared.members.list().into_iter().filter(|id| *id != me).collect();
+        tasks.retain(|id, task| {
+            let keep = members.contains(id);
+            if !keep {
+                task.abort();
+                shared.links.lock().expect("links").remove(id);
+            }
+            keep
+        });
+        for id in members {
+            tasks.entry(id).or_insert_with(|| tokio::spawn(measure_link(Arc::clone(&shared), id, every)));
+        }
+    }
+}
+
+// Keeps a probe connection to `member` and measures it: a ping every `every`, the bandwidth once a minute and when
+// the kind of link changes. A probe aims at about a quarter of a second of sending, so it grows on fast links.
+async fn measure_link(shared: Arc<Shared>, member: EndpointId, every: Duration) {
+    let patience = every.max(Duration::from_secs(2));
+    let (mut probe_bytes, mut mbps) = (1u64 << 20, 0.0f32);
+    let (mut probed, mut probed_kind) = (None::<Instant>, None);
+    loop {
+        let Ok(Ok(connection)) = tokio::time::timeout(patience * 2, shared.endpoint.connect(member, PROBE_ALPN)).await
+        else {
+            tokio::time::sleep(patience * 5).await;
+            continue;
+        };
+        let mut ticks = tokio::time::interval(every);
+        loop {
+            ticks.tick().await;
+            let Ok(Ok(rtt)) = tokio::time::timeout(patience, links::ping(&connection)).await else {
+                break;
+            };
+            let kind = links::kind(&connection);
+            if probed.is_none_or(|at| at.elapsed() >= BANDWIDTH_EVERY) || probed_kind != Some(kind) {
+                if let Ok(Ok(measured)) =
+                    tokio::time::timeout(Duration::from_secs(10), links::bandwidth(&connection, probe_bytes)).await
+                {
+                    #[allow(clippy::cast_possible_truncation)] // megabits per second fit an f32
+                    let measured_mbps = measured.mbps as f32;
+                    mbps = measured_mbps;
+                    if measured.took < Duration::from_millis(200) {
+                        probe_bytes = (probe_bytes * 4).min(links::MAX_PROBE_BYTES);
+                    } else if measured.took > Duration::from_secs(1) {
+                        probe_bytes = (probe_bytes / 2).max(256 << 10);
+                    }
+                }
+                (probed, probed_kind) = (Some(Instant::now()), Some(kind));
+            }
+            let sample = v1::LinkSample {
+                peer: Some(node_id(member)),
+                kind: kind as i32,
+                rtt_ms: rtt.as_secs_f32() * 1000.0,
+                bandwidth_mbps: mbps,
+            };
+            shared.links.lock().expect("links").insert(member, (sample, Instant::now()));
+        }
+        connection.close(0u32.into(), b"probing again");
+    }
+}
+
 // Sends this node's device once and its telemetry every `every`.
 async fn speak(shared: Arc<Shared>, mut device: v1::DeviceInfo, every: Duration) {
     let mut system = sysinfo::System::new();
@@ -411,11 +489,22 @@ async fn speak(shared: Arc<Shared>, mut device: v1::DeviceInfo, every: Duration)
         }
         system.refresh_cpu_usage();
         system.refresh_memory();
+        // links measured within the last few intervals; a member that stopped answering drops out
+        let fresh = every * 5 + Duration::from_secs(2);
+        let links = shared
+            .links
+            .lock()
+            .expect("links")
+            .values()
+            .filter(|(_, at)| at.elapsed() < fresh)
+            .map(|(sample, _)| sample.clone())
+            .collect();
         let telemetry = v1::Telemetry {
             node: Some(node_id(shared.key.public())),
             unix_ms: now_unix_ms(),
             cpu_load: system.global_cpu_usage() / 100.0,
             memory_used_bytes: system.used_memory(),
+            links,
             ..Default::default()
         };
         // this device's own telemetry reaches the panel the same way as the others'

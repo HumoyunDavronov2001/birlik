@@ -100,8 +100,17 @@ A cluster of one or two computers runs Raft with that many voters.
 
 ### 3.3 Links
 
-Every device measures the round-trip time of each connection to another member every second and the bandwidth with a
-short probe once a minute and whenever a link changes. The samples travel in `Telemetry.links`.
+Every device keeps a probe connection to each other member on the ALPN `omnarc/probe/1` (members only) and measures it:
+
+- **Round-trip time**, every telemetry interval (one second): a stream carrying the byte `1`, echoed back.
+- **Bandwidth**, once a minute and whenever the kind of link changes: a stream carrying the byte `2`, a length
+  (u64, little-endian, at most 64 MiB) and that many bytes. The answer is the time between the first and the last byte
+  arriving, in microseconds (u64), so opening the stream is not counted. A probe aims at about a quarter of a second:
+  it grows fourfold while it takes under 200 ms and halves when it takes over a second.
+- **Kind**: a relay path is `RELAY`; a direct path takes the kind of the local interface it leaves by — Wi-Fi,
+  Ethernet, USB (a cable between two devices) or Thunderbolt.
+
+The samples travel in `Telemetry.links`; a member that stops answering drops out of them within a few seconds.
 
 ## 4. Spreading a model
 
