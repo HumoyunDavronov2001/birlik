@@ -1,7 +1,8 @@
 # Omnarc — the full plan (v3.1, October 13, 2026)
 
 > **What gets built** — [REQUIREMENTS.md](REQUIREMENTS.md). **How it gets built** — this file: architecture,
-> technologies, protocols, design system, screens and stages.
+> technologies, protocols, design system, screens and stages. **Every screen and function with its state** —
+> [SPEC.md](SPEC.md).
 > Design concept (screens): [design/concept.html](design/concept.html). The living ring: [design/living-ring.js](design/living-ring.js),
 > video: [design/living-ring.mp4](design/living-ring.mp4).
 > Design tokens: [design/tokens.json](design/tokens.json) (W3C DTCG), [design/tokens.css](design/tokens.css);

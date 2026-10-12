@@ -2,7 +2,8 @@
 
 > *Omnarc* = *omni* (all) + *arc*: every device is an arc of one ring. Open source, Apache-2.0. Version 3.1 (October 13, 2026).
 > Upstream source code lives in `upstream/`. All reused code is MIT or Apache-2.0 (table in §7).
-> **How it gets built** (architecture, technologies, design system, stages) — [PLAN.md](PLAN.md).
+> **How it gets built** (architecture, technologies, design system, stages) — [PLAN.md](PLAN.md). Every screen and
+> function with its state — [SPEC.md](SPEC.md).
 > An Uzbek reading copy of these documents is kept in [docs/uz/](docs/uz/).
 
 ## 1. The idea

@@ -7,12 +7,16 @@ export CARGO_BUILD_JOBS := jobs
 # Run every check that CI runs (Linux subset).
 default: check
 
-check: design protocol rust engine web
+check: design docs protocol rust engine web
 
 # Tokens for every platform, the contrast gate, and the design concept page.
 design:
     python3 design/colors.py
     python3 design/build.py
+
+# The count at the top of SPEC.md matches its tables.
+docs:
+    python3 .github/scripts/spec_count.py SPEC.md --check
 
 protocol:
     cd protocol && buf lint

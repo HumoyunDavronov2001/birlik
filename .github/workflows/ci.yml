@@ -29,6 +29,14 @@ jobs:
       - name: Generated files are committed
         run: git diff --exit-code -- design
 
+  docs:
+    name: Docs (the count in SPEC.md)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: The count matches the tables
+        run: python3 .github/scripts/spec_count.py SPEC.md --check
+
   protocol:
     name: Protocol (buf lint)
     runs-on: ubuntu-24.04

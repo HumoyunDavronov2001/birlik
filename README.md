@@ -13,7 +13,7 @@ from the devices in one home to idle devices around the world.
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-3dd7cf)](LICENSE)
 ![Status: pre-alpha, stage B1 in progress](https://img.shields.io/badge/status-pre--alpha%20%C2%B7%20B1%20in%20progress-f2c156)
 
-[Plan](PLAN.md) · [Requirements](REQUIREMENTS.md) · [Design concept](design/concept.html) · [Protocol](protocol/README.md) · [Contributing](CONTRIBUTING.md)
+[Plan](PLAN.md) · [Requirements](REQUIREMENTS.md) · [Specification](SPEC.md) · [Design concept](design/concept.html) · [Protocol](protocol/README.md) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
@@ -139,7 +139,8 @@ Stage B0 delivered:
 | B8 Islands and API | MLX, vLLM/SGLang, OpenAI/Claude/Ollama APIs, agent backend | throughput on par with vLLM on NVIDIA; agents on a frontier-class open model |
 | B9 World benchmark | open benchmarks against exo, prima.cpp, Parallax, Mesh LLM, colibri and others | v1.0 |
 
-Details: [PLAN.md](PLAN.md) and [REQUIREMENTS.md](REQUIREMENTS.md).
+Details: [PLAN.md](PLAN.md), [REQUIREMENTS.md](REQUIREMENTS.md) and [SPEC.md](SPEC.md) — every screen and function with its
+state.
 
 ## Build
 
@@ -183,7 +184,7 @@ node/       Rust workspace: omnarc-protocol, omnarc-engine-host, omnarc-network,
 engine/     libomnarc — C++20 engine on llama.cpp with a C ABI
 design/     design tokens, the living ring, the design concept
 web/        Svelte 5 component library (Storybook)
-docs/uz/    Uzbek reading copy of the plan
+docs/uz/    Uzbek reading copy of the plan, the requirements and the specification
 ```
 
 ## Credits

@@ -9,7 +9,8 @@
 > Interfeysning asosiy tili — ingliz tili; tarjimalar: xitoy, ispan, hind, arab, fransuz, portugal va rus tillari.
 
 > **Nima qilinadi** — [TALABLAR.md](TALABLAR.md). **Qanday qilinadi** — shu fayl: arxitektura, texnologiyalar,
-> protokollar, dizayn tizimi, ekranlar va bosqichlar.
+> protokollar, dizayn tizimi, ekranlar va bosqichlar. **Har bir ekran va funksiya holati bilan** —
+> [SPETSIFIKATSIYA.md](SPETSIFIKATSIYA.md).
 > Dizayn konsepsiyasi (ekranlar ko'rinishi): [dizayn/konsepsiya.html](../../design/concept.html).
 > Dizayn tokenlari: [dizayn/tokenlar.json](../../design/tokens.json) (W3C DTCG), [dizayn/tokenlar.css](../../design/tokens.css),
 > manbasi va kontrast o'lchovi — [dizayn/ranglar.py](../../design/colors.py).

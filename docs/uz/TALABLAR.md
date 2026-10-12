@@ -11,7 +11,8 @@
 > *Omnarc* = *omni* (hammasi) + *arc* (yoy): har bir qurilma — bitta halqaning yoyi. Ochiq loyiha, Apache-2.0. Versiya 3.1 (13.10.2026): uchta asosiy qo'llanish, aniqlik rejimi (Y10) va «hech qachon sekinlashtirmaydi»
 > qoidasi (R6) qo'shildi.
 > Manba kodlar `manba/` ichida. Ishlatiladigan kodlarning litsenziyalari Apache-2.0 bilan mos (jadval 7-bo'limda).
-> **Qanday qilinadi** (arxitektura, texnologiyalar, dizayn tizimi, bosqichlar) — [REJA.md](REJA.md).
+> **Qanday qilinadi** (arxitektura, texnologiyalar, dizayn tizimi, bosqichlar) — [REJA.md](REJA.md). Har bir ekran
+> va funksiya holati bilan — [SPETSIFIKATSIYA.md](SPETSIFIKATSIYA.md).
 
 ## 1. G'oya
 
