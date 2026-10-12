@@ -142,6 +142,12 @@ jobs:
           BIRLIK_ENGINE: ${{ github.workspace }}/build/engine/${{ runner.os == 'Windows' && 'Release/birlik-engine.exe' || 'birlik-engine' }}
           BIRLIK_TEST_MODEL: ${{ github.workspace }}/build/models/stories15M-q8_0.gguf
         run: cargo test -p birlik-engine-host --features engine-tests
+      - name: A ring of two nodes generates what one device generates
+        shell: bash
+        env:
+          BIRLIK_ENGINE: ${{ github.workspace }}/build/engine/${{ runner.os == 'Windows' && 'Release/birlik-engine.exe' || 'birlik-engine' }}
+          BIRLIK_TEST_MODEL: ${{ github.workspace }}/build/models/stories15M-q8_0.gguf
+        run: cargo test -p birlik-node --features engine-tests
 
   web:
     name: Web components

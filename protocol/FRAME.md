@@ -52,3 +52,18 @@ A receiver rejects a frame with unknown `magic`, an unsupported `version` or `dt
 
 Integrity and confidentiality come from the transport (QUIC with TLS 1.3, DTLS for WebRTC), so frames carry no
 checksum. The reference implementation is `node/crates/birlik-protocol/src/frame.rs`.
+
+## Links
+
+Between neighbors on a ring, frames travel on **links**: unidirectional QUIC streams (ALPN `birlik/tensor/1`), one
+for each window of layers that the sending device feeds on the receiving one. A link starts with an 8-byte header and
+then carries frames back to back until the stream ends.
+
+| Offset | Size | Field | Meaning |
+|---:|---:|---|---|
+| 0 | 4 | `magic` | ASCII `BKL1` |
+| 4 | 4 | `window_begin` | the first layer of the receiver's window that the frames feed |
+
+Layers are numbered as in the engine: the repeating layers are `0 … n − 1` and the output head is layer `n`. A
+receiver rejects a link whose `window_begin` is not the start of one of its windows. The reference implementation is
+`node/crates/birlik-network/src/lib.rs`.

@@ -31,6 +31,7 @@ engine-real:
     cmake --build build/engine --parallel
     ctest --test-dir build/engine --output-on-failure
     BIRLIK_ENGINE="$PWD/build/engine/birlik-engine" BIRLIK_TEST_MODEL="$PWD/build/models/stories15M-q8_0.gguf" cargo test -p birlik-engine-host --features engine-tests
+    BIRLIK_ENGINE="$PWD/build/engine/birlik-engine" BIRLIK_TEST_MODEL="$PWD/build/models/stories15M-q8_0.gguf" cargo test -p birlik-node --features engine-tests
 
 web:
     cd web && pnpm install --frozen-lockfile && pnpm check && pnpm test && pnpm build-storybook && pnpm test:visual

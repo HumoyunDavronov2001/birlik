@@ -206,10 +206,13 @@ dependencies = [
 name = "birlik-node"
 version = "0.1.0"
 dependencies = [
+ "birlik-engine-host",
+ "birlik-network",
  "birlik-protocol",
  "clap",
  "serde_json",
  "sysinfo",
+ "tokio",
 ]
 
 [[package]]

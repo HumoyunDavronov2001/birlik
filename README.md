@@ -85,7 +85,8 @@ See the full [design concept](design/concept.html) (download it and open it in a
 
 ## Status
 
-**Pre-alpha.** Stage B0 (foundation) is complete; stage B1 (engine) is in progress. Nothing runs as a cluster yet.
+**Pre-alpha.** Stage B0 (foundation) is complete; stage B1 (engine) is in progress. Devices can already run one
+model together as a ring wired by hand; discovery, pairing and planning come in stages B2 and B3.
 
 Stage B1 so far:
 
@@ -95,6 +96,10 @@ Stage B1 so far:
   and with the hidden state sent as `f16` the perplexity stays within 0.2%.
 - The engine runs in **its own process**, driven by the agent through shared memory
   ([`engine/HOST.md`](engine/HOST.md), [`birlik-engine-host`](node/crates/birlik-engine-host)).
+- **The ring** — prima.cpp's piped ring on BIRLIK's engine and network
+  ([`birlik-node ring`](node/crates/birlik-node/src/ring.rs), [`birlik-network`](node/crates/birlik-network)): the
+  device that serves the request keeps the first layers and the output head, the hidden state travels around the
+  ring over QUIC (iroh), and a ring of two nodes generates token for token what one device generates.
 
 Stage B0 delivered:
 
@@ -142,11 +147,25 @@ pnpm install && pnpm check && pnpm test && pnpm build-storybook && pnpm test:vis
 
 With [just](https://github.com/casey/just) installed, `just check` runs all of it.
 
+Run a ring of two devices (stage B1 wires it by hand; `birlik-engine` must sit next to `birlik-node`):
+
+```bash
+birlik-node id    # on each device: its node id
+
+# the worker: layers 40–79 of an 80-layer model
+birlik-node ring --model model.gguf --layers 40:80 --listen 0.0.0.0:7700 \
+  --next <head id>@<head ip>:7700 --prev <head id>
+
+# the head: layers 0–39 and the output head (layer 80); it generates and prints the time per token
+birlik-node ring --model model.gguf --layers 0:40,80:81 --listen 0.0.0.0:7700 \
+  --next <worker id>@<worker ip>:7700 --prev <worker id> --prompt "Tell me about Samarkand." --generate 64
+```
+
 ## Repository
 
 ```
 protocol/   Protobuf messages (birlik.v1) and the tensor frame spec
-node/       Rust workspace: birlik-protocol, birlik-engine-host, birlik-node
+node/       Rust workspace: birlik-protocol, birlik-engine-host, birlik-network, birlik-node
 engine/     libbirlik — C++20 engine on llama.cpp with a C ABI
 design/     design tokens, the living ring, the design concept
 web/        Svelte 5 component library (Storybook)

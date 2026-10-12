@@ -1,8 +1,16 @@
 //! `birlik-node` — the agent that runs on every device.
 //!
-//! Stage B0 ships the skeleton: `birlik-node info` describes this device in the same shape
-//! (`birlik.v1.DeviceInfo`) that it will announce to a cluster.
+//! - `birlik-node info` describes this device in the same shape (`birlik.v1.DeviceInfo`) that it announces to a
+//!   cluster.
+//! - `birlik-node id` prints this node's id, the public half of its key.
+//! - `birlik-node ring` runs windows of a model as one node of a ring of devices given by hand (stage B1).
 
+use std::net::SocketAddr;
+use std::path::PathBuf;
+
+use birlik_engine_host::{Backend, DType};
+use birlik_network::{EndpointId, Peer};
+use birlik_node::ring;
 use birlik_protocol::v1::{DeviceInfo, Platform};
 use clap::{Parser, Subcommand};
 use sysinfo::System;
@@ -22,6 +30,118 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Print this node's id, creating its key if needed.
+    Id {
+        /// The key file (default: the user's data directory, birlik/node.key).
+        #[arg(long)]
+        key: Option<PathBuf>,
+    },
+    /// Run windows of a model as one node of a ring. The node with a prompt is the head: it holds layer 0 and the
+    /// output head and generates; the others serve until stopped.
+    Ring(Box<RingArgs>),
+}
+
+#[derive(Debug, clap::Args)]
+struct RingArgs {
+    /// The GGUF model; every node of the ring uses the same file.
+    #[arg(long)]
+    model: PathBuf,
+    /// This node's windows in ring order, e.g. `0:20,40:60,80:81`; layer N of an N-layer model is the output head.
+    #[arg(long, value_delimiter = ',', required = true)]
+    layers: Vec<ring::Window>,
+    /// The next node of the ring: `<node id>@<ip:port>`.
+    #[arg(long)]
+    next: Peer,
+    /// The id of the previous node; connections from other nodes are refused.
+    #[arg(long)]
+    prev: EndpointId,
+    /// Where this node listens for the previous node.
+    #[arg(long, default_value = "0.0.0.0:7700")]
+    listen: SocketAddr,
+    /// The prompt; given only on the head.
+    #[arg(long)]
+    prompt: Option<String>,
+    /// Tokens to generate (head).
+    #[arg(long, default_value_t = 64)]
+    generate: u32,
+    /// Backend for this node's layers: auto, cpu, cuda, hip, vulkan, metal, opencl, sycl.
+    #[arg(long, default_value = "auto", value_parser = parse_backend)]
+    backend: Backend,
+    /// KV cache capacity in tokens.
+    #[arg(long, default_value_t = 4096)]
+    max_tokens: u32,
+    /// Prompt tokens per prefill step.
+    #[arg(long, default_value_t = 256)]
+    chunk: u32,
+    /// Element type of the hidden state between nodes: f16, bf16 or f32; the same on every node.
+    #[arg(long, default_value = "f16", value_parser = parse_wire)]
+    wire: DType,
+    /// The key file (default: the user's data directory, birlik/node.key).
+    #[arg(long)]
+    key: Option<PathBuf>,
+    /// The birlik-engine executable (default: next to birlik-node).
+    #[arg(long)]
+    engine: Option<PathBuf>,
+}
+
+fn parse_backend(name: &str) -> Result<Backend, String> {
+    Ok(match name {
+        "auto" => Backend::Unspecified,
+        "cpu" => Backend::Cpu,
+        "cuda" => Backend::Cuda,
+        "hip" => Backend::Hip,
+        "vulkan" => Backend::Vulkan,
+        "metal" => Backend::Metal,
+        "opencl" => Backend::Opencl,
+        "sycl" => Backend::Sycl,
+        other => return Err(format!("unknown backend {other}")),
+    })
+}
+
+fn parse_wire(name: &str) -> Result<DType, String> {
+    match name {
+        "f16" => Ok(DType::F16),
+        "bf16" => Ok(DType::Bf16),
+        "f32" => Ok(DType::F32),
+        other => Err(format!("unknown wire format {other}; use f16, bf16 or f32")),
+    }
+}
+
+fn ring(args: RingArgs) -> Result<(), ring::BoxError> {
+    let config = ring::Config {
+        model: args.model,
+        windows: args.layers,
+        listen: args.listen,
+        next: args.next,
+        prev: args.prev,
+        key: args.key.unwrap_or_else(ring::default_key_path),
+        engine: args.engine.unwrap_or_else(ring::default_engine_path),
+        backend: args.backend,
+        max_tokens: args.max_tokens,
+        chunk: args.chunk.max(1),
+        wire: args.wire,
+        prompt: args.prompt,
+        generate: args.generate,
+    };
+    let runtime = tokio::runtime::Runtime::new()?;
+    if config.prompt.is_none() {
+        return runtime.block_on(ring::serve(config));
+    }
+    let report = runtime.block_on(ring::generate(config))?;
+    eprintln!(
+        "birlik: {} prompt tokens, {} generated; first token after {:.0} ms",
+        report.prompt_tokens,
+        report.generated.len(),
+        report.ttft.as_secs_f64() * 1e3
+    );
+    if let Some(tpot) = report.tpot {
+        eprintln!(
+            "birlik: {:.1} ms per output token ({:.2} tokens/s)",
+            tpot.as_secs_f64() * 1e3,
+            1.0 / tpot.as_secs_f64()
+        );
+    }
+    Ok(())
 }
 
 fn platform() -> Platform {
@@ -65,6 +185,19 @@ fn gib(bytes: u64) -> f64 {
 fn main() {
     let cli = Cli::parse();
     match cli.command {
+        Command::Id { key } => match ring::node_id(&key.unwrap_or_else(ring::default_key_path)) {
+            Ok(id) => println!("{id}"),
+            Err(e) => {
+                eprintln!("birlik-node: {e}");
+                std::process::exit(1);
+            }
+        },
+        Command::Ring(args) => {
+            if let Err(e) = ring(*args) {
+                eprintln!("birlik-node: {e}");
+                std::process::exit(1);
+            }
+        }
         Command::Info { json } => {
             let info = describe();
             let platform = Platform::try_from(info.platform).unwrap_or(Platform::Unspecified);
