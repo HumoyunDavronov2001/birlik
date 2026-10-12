@@ -37,6 +37,7 @@ tower = { version = "0.5", features = ["util"] }
 http-body-util = "0.1"
 omnarc-api = { path = "node/crates/omnarc-api" }
 iroh-gossip = { version = "0.101", default-features = false, features = ["net"] }
+iroh-mdns-address-lookup = "0.6"
 qrcode = { version = "0.14", default-features = false, features = ["svg"] }
 iroh-blobs = { version = "0.103", default-features = false, features = ["fs-store"] }
 omnarc-store = { path = "node/crates/omnarc-store" }

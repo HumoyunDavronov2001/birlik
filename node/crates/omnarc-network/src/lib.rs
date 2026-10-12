@@ -23,6 +23,7 @@ pub use iroh::endpoint::{Connection, RecvStream, SendStream};
 pub use iroh::protocol::{self, Router};
 pub use iroh::{Endpoint, EndpointAddr, EndpointId, SecretKey, TransportAddr};
 use iroh::{RelayMode, endpoint::presets};
+pub use iroh_mdns_address_lookup::{DiscoveryEvent, MdnsAddressLookup};
 use omnarc_protocol::frame::{FrameError, FrameHeader, HEADER_LEN};
 
 /// ALPN of the tensor streams between neighbors on a ring.
@@ -147,14 +148,22 @@ pub async fn bind_with(key: SecretKey, listen: SocketAddr, alpns: Vec<Vec<u8>>) 
 }
 
 /// Binds the endpoint of a cluster node on `listen`: no public relays and no public address lookup; members are
-/// found through `lookup`, which the node fills with the addresses it learns from tickets and gossip.
+/// found through `lookup`, which the node fills with the addresses it learns from tickets and gossip, and on the
+/// local network through `lan` ([`lan_lookup`]).
 ///
 /// # Errors
 /// The address cannot be bound.
-pub async fn bind_cluster(key: SecretKey, listen: SocketAddr, lookup: MemoryLookup) -> Result<Endpoint> {
-    Endpoint::builder(presets::Minimal)
-        .secret_key(key)
-        .address_lookup(lookup)
+pub async fn bind_cluster(
+    key: SecretKey,
+    listen: SocketAddr,
+    lookup: MemoryLookup,
+    lan: Option<MdnsAddressLookup>,
+) -> Result<Endpoint> {
+    let mut builder = Endpoint::builder(presets::Minimal).secret_key(key).address_lookup(lookup);
+    if let Some(lan) = lan {
+        builder = builder.address_lookup(lan);
+    }
+    builder
         .relay_mode(RelayMode::Disabled)
         .clear_ip_transports()
         .bind_addr(listen)
@@ -162,6 +171,21 @@ pub async fn bind_cluster(key: SecretKey, listen: SocketAddr, lookup: MemoryLook
         .bind()
         .await
         .map_err(|e| Error::new("binding the endpoint", e))
+}
+
+/// The service name Omnarc nodes announce themselves under on the local network: `<id>._omnarc._udp.local`.
+pub const MDNS_SERVICE: &str = "omnarc";
+
+/// Announces the node `id` on the local network by mDNS and finds the other nodes there, so a member is found even
+/// after its address changed (`protocol/CLUSTER.md` §3.4). Give it to [`bind_cluster`].
+///
+/// # Errors
+/// The network allows neither IPv4 nor IPv6 multicast.
+///
+/// # Panics
+/// Outside a tokio runtime.
+pub fn lan_lookup(id: EndpointId) -> Result<MdnsAddressLookup> {
+    MdnsAddressLookup::builder().service_name(MDNS_SERVICE).build(id).map_err(|e| Error::new("mDNS", e))
 }
 
 /// Dials a peer by its id at a known address.
@@ -239,6 +263,27 @@ pub async fn read_frame(stream: &mut RecvStream, payload: &mut Vec<u8>) -> Resul
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    #[cfg_attr(not(target_os = "linux"), ignore = "multicast on the CI runners of this system is untested")]
+    async fn nodes_on_one_network_find_each_other_by_id_alone() {
+        let (a, b) = (SecretKey::generate(), SecretKey::generate());
+        let any: SocketAddr = "0.0.0.0:0".parse().unwrap();
+        let lan_a = lan_lookup(a.public()).unwrap();
+        let server = bind_cluster(a, any, MemoryLookup::new(), Some(lan_a)).await.unwrap();
+        let router = Router::builder(server.clone()).accept(links::PROBE_ALPN, links::ProbeHandler).spawn();
+        let lan_b = lan_lookup(b.public()).unwrap();
+        let client = bind_cluster(b, any, MemoryLookup::new(), Some(lan_b)).await.unwrap();
+        // no address is given: mDNS finds it
+        let connection =
+            tokio::time::timeout(std::time::Duration::from_secs(30), client.connect(server.id(), links::PROBE_ALPN))
+                .await
+                .expect("found within 30 s")
+                .unwrap();
+        links::ping(&connection).await.unwrap();
+        client.close().await;
+        router.shutdown().await.unwrap();
+    }
     use omnarc_protocol::frame::{DType, Flags};
 
     #[test]

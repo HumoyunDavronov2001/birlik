@@ -112,6 +112,18 @@ Every device keeps a probe connection to each other member on the ALPN `omnarc/p
 
 The samples travel in `Telemetry.links`; a member that stops answering drops out of them within a few seconds.
 
+### 3.4 Discovery
+
+On the local network every running node announces itself by mDNS under the service name `omnarc`
+(`<node id>._omnarc._udp.local`) with its direct addresses
+([iroh-mdns-address-lookup](https://github.com/n0-computer/iroh-address-lookups), which uses
+[swarm-discovery](https://crates.io/crates/swarm-discovery) to keep the traffic flat however many nodes there are). A
+node dials a member by its id; when the addresses it knows are stale — a laptop got a new address from the router —
+mDNS finds the member, and the node keeps the new addresses for the next time. The announcement shows only that an
+Omnarc node runs there and its public id; whether a device may connect is still decided by its membership token
+(§1). Across networks members are found through the addresses gossip spreads; DNS and pkarr records follow with the
+relay.
+
 ## 4. Spreading a model
 
 1. One device downloads the GGUF file from Hugging Face and adds it to its

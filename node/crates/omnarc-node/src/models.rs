@@ -72,7 +72,9 @@ pub async fn fetch(
         lookup.add_endpoint_info(addr_of(member.id, &member.addrs));
     }
     let any: SocketAddr = "0.0.0.0:0".parse()?;
-    let endpoint = omnarc_network::bind_cluster(key, any, lookup).await?;
+    // a member whose address changed is found on the local network
+    let lan = omnarc_network::lan_lookup(me).ok();
+    let endpoint = omnarc_network::bind_cluster(key, any, lookup, lan).await?;
 
     let mut failures = Vec::new();
     let mut fetched = None;

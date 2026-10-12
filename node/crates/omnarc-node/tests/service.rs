@@ -26,6 +26,8 @@ async fn start(data: &Path, name: &str) -> Service {
         listen: "127.0.0.1:0".parse().unwrap(),
         device: device(name),
         telemetry_every: Duration::from_millis(200),
+        // the tests find each other through tickets and gossip, as across networks
+        lan: false,
     };
     Service::start(config).await.unwrap()
 }

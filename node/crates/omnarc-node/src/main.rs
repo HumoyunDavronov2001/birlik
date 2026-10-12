@@ -327,8 +327,13 @@ async fn serve(
     panel: Option<PathBuf>,
 ) -> Result<(), ring::BoxError> {
     use omnarc_node::service::{Config, Event, Service};
-    let config =
-        Config { data: data.to_path_buf(), listen, device: describe(), telemetry_every: Duration::from_secs(1) };
+    let config = Config {
+        data: data.to_path_buf(),
+        listen,
+        device: describe(),
+        telemetry_every: Duration::from_secs(1),
+        lan: true,
+    };
     let service = Service::start(config).await?;
     let mut events = service.events();
     let listener = tokio::net::TcpListener::bind(api).await.map_err(|e| format!("the control API on {api}: {e}"))?;

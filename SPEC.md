@@ -15,7 +15,7 @@ design concept (its section number), or "—".
 | Part | Screens | Functions | ✓ done | ◐ partly | ○ not started | Ready |
 |---|---|---|---|---|---|---|
 | Engine | 0 | 30 | 8 | 2 | 20 | 30 % |
-| Node agent and API | 0 | 40 | 7 | 8 | 25 | 28 % |
+| Node agent and API | 0 | 40 | 7 | 9 | 24 | 29 % |
 | Panel | 24 | 7 | 1 | 7 | 23 | 15 % |
 | Desktop app | 4 | 5 | 0 | 0 | 9 | 0 % |
 | Android app | 7 | 8 | 0 | 2 | 13 | 7 % |
@@ -27,7 +27,7 @@ design concept (its section number), or "—".
 | Islands | 0 | 3 | 0 | 0 | 3 | 0 % |
 | Benchmarks, sites and releases | 3 | 9 | 2 | 1 | 9 | 21 % |
 | Design system and quality across all apps | 1 | 13 | 6 | 2 | 6 | 50 % |
-| **All** | **50** | **141** | **24** | **24** | **143** | **19 %** |
+| **All** | **50** | **141** | **24** | **25** | **142** | **19 %** |
 
 "Ready" counts a partly done item as half. By stage — what each stage has to deliver:
 
@@ -35,7 +35,7 @@ design concept (its section number), or "—".
 |---|---|---|---|---|
 | B0 | 10 | 9 | 1 | 0 |
 | B1 | 16 | 12 | 1 | 3 |
-| B2 | 28 | 3 | 16 | 9 |
+| B2 | 28 | 3 | 17 | 8 |
 | B3 | 14 | 0 | 0 | 14 |
 | B4 | 18 | 0 | 0 | 18 |
 | B5 | 53 | 0 | 5 | 48 |
@@ -119,7 +119,7 @@ design concept (its section number), or "—".
 |---|---|---|---|---|---|---|
 | NO-10 | QUIC links dialed by node key (iroh); tensor frames on streams; only the expected neighbor is accepted | function | T2 | B1 | — | ✓ |
 | NO-11 | NAT hole punching, and our own relay when punching fails | function | T2 | B2 | — | ○ |
-| NO-12 | Discovery: mDNS on the LAN, DNS/pkarr on the internet | function | T2 | B2 | — | ○ |
+| NO-12 | Discovery: mDNS on the LAN, DNS/pkarr on the internet | function | T2 | B2 | — | ◐ |
 | NO-13 | Pairing: QR ticket with a 10-minute secret, four-emoji confirmation on both screens | function | P§3 | B2 | 02 | ◐ |
 | NO-14 | Cluster key and membership tokens (Biscuit) with node, user and admin rights | function | P§3 | B2 | — | ◐ |
 | NO-15 | Telemetry once per second over gossip | function | P§3 | B2 | — | ◐ |

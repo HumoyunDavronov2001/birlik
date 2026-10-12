@@ -59,6 +59,8 @@ pub struct Config {
     pub device: v1::DeviceInfo,
     /// How often the node sends its telemetry.
     pub telemetry_every: Duration,
+    /// Announce the node on the local network by mDNS and find members there (`protocol/CLUSTER.md` §3.4).
+    pub lan: bool,
 }
 
 /// A running service.
@@ -119,7 +121,9 @@ impl Service {
         }
 
         let models = crate::models::open(&config.data).await?;
-        let endpoint = omnarc_network::bind_cluster(key.clone(), config.listen, lookup.clone()).await?;
+        // a network without multicast only loses the local discovery
+        let lan = if config.lan { omnarc_network::lan_lookup(key.public()).ok() } else { None };
+        let endpoint = omnarc_network::bind_cluster(key.clone(), config.listen, lookup.clone(), lan.clone()).await?;
         let gossip = Gossip::builder().spawn(endpoint.clone());
         let joins = JoinHandler(Arc::new(OnceLock::new()));
         let router = Router::builder(endpoint.clone())
@@ -160,11 +164,14 @@ impl Service {
             device.name.clone_from(&me.device.name);
         }
         device.id = Some(node_id(shared.key.public()));
-        let tasks = vec![
+        let mut tasks = vec![
             tokio::spawn(listen(Arc::clone(&shared), receiver)),
             tokio::spawn(speak(Arc::clone(&shared), device, config.telemetry_every)),
             tokio::spawn(measure(Arc::clone(&shared), config.telemetry_every)),
         ];
+        if let Some(lan) = lan {
+            tasks.push(tokio::spawn(discover(Arc::clone(&shared), lan)));
+        }
         Ok(Self { shared, router, tasks })
     }
 
@@ -389,6 +396,22 @@ pub(crate) fn addr_of(id: EndpointId, addrs: &[SocketAddr]) -> EndpointAddr {
 
 fn own_addrs(endpoint: &Endpoint) -> Vec<SocketAddr> {
     endpoint.addr().ip_addrs().copied().filter(|addr| !addr.ip().is_unspecified()).collect()
+}
+
+// Keeps the addresses at which mDNS finds members on the local network, so they are known after a restart too.
+async fn discover(shared: Arc<Shared>, lan: omnarc_network::MdnsAddressLookup) {
+    let mut events = lan.subscribe().await;
+    while let Some(event) = events.next().await {
+        let omnarc_network::DiscoveryEvent::Discovered { endpoint_info, .. } = event else {
+            continue;
+        };
+        let id = endpoint_info.endpoint_id;
+        let addrs: Vec<SocketAddr> = endpoint_info.data.ip_addrs().copied().collect();
+        if id == shared.key.public() || !shared.members.contains(&id) || addrs.is_empty() {
+            continue;
+        }
+        let _ = shared.store.update_member(id, None, Some(addrs));
+    }
 }
 
 // Measures the link to every other member, each in a task of its own, as members come and go.

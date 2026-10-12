@@ -20,6 +20,10 @@ pub const PROBE_ALPN: &[u8] = b"omnarc/probe/1";
 const PING: u8 = 1;
 const BANDWIDTH: u8 = 2;
 
+/// Name prefixes of bridges, tunnels and the interfaces of containers and virtual machines: no physical link.
+const VIRTUAL_INTERFACES: [&str; 11] =
+    ["docker", "br-", "veth", "virbr", "vmnet", "vboxnet", "tun", "tap", "wg", "utun", "zt"];
+
 /// The largest bandwidth probe a node answers.
 pub const MAX_PROBE_BYTES: u64 = 64 << 20;
 
@@ -147,6 +151,9 @@ pub fn interface_kind(ip: IpAddr) -> LinkKind {
         return LinkKind::Unspecified;
     };
     let name = interface.name.to_ascii_lowercase();
+    if VIRTUAL_INTERFACES.iter().any(|prefix| name.starts_with(prefix)) {
+        return LinkKind::Unspecified;
+    }
     if name.contains("thunderbolt") || name.starts_with("bridge") && cfg!(target_os = "macos") {
         return LinkKind::Thunderbolt;
     }
