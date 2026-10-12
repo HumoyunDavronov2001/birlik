@@ -3,3 +3,11 @@
 *.webp binary
 *.mp4 binary
 *.woff2 binary
+
+# GitHub language statistics: generated files and the design concept are not source code
+design/concept.html linguist-generated=true
+design/concept.src.html linguist-documentation=true
+design/platforms/** linguist-generated=true
+design/tokens.css linguist-generated=true
+design/tokens.json linguist-generated=true
+design/colors.json linguist-generated=true
