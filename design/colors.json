@@ -1,0 +1,30 @@
+{
+ "dark": {
+  "bg": "#060a13",
+  "surface-1": "#0d131d",
+  "surface-2": "#151c28",
+  "surface-3": "#1e2533",
+  "text-1": "#f1f3f8",
+  "text-2": "#bcc3cf",
+  "text-3": "#949ca9",
+  "turquoise": "#3dd7cf",
+  "turquoise-strong": "#08b6af",
+  "gold": "#f2c156",
+  "gold-mark": "#f2c156",
+  "lapis": "#6189f0"
+ },
+ "light": {
+  "bg": "#fbf9f6",
+  "surface-1": "#ffffff",
+  "surface-2": "#f4f2ee",
+  "surface-3": "#ece9e4",
+  "text-1": "#0f1726",
+  "text-2": "#3f4858",
+  "text-3": "#5d6574",
+  "turquoise": "#007573",
+  "turquoise-strong": "#006462",
+  "gold": "#966000",
+  "gold-mark": "#c17b00",
+  "lapis": "#2243ae"
+ }
+}

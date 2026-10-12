@@ -1,0 +1,138 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  design:
+    name: Design tokens
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Tokens for every platform + contrast gate
+        run: python3 design/colors.py
+      - name: Design concept page
+        run: python3 design/build.py
+      - name: Generated files are committed
+        run: git diff --exit-code -- design
+
+  protocol:
+    name: Protocol (buf lint)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: bufbuild/buf-action@v1
+        with:
+          input: protocol
+          lint: true
+          format: false
+          breaking: false
+          push: false
+          pr_comment: false
+
+  rust:
+    name: Rust (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Format
+        if: matrix.os == 'ubuntu-24.04'
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Test
+        run: cargo test --workspace
+      - name: Describe the runner
+        run: cargo run -q -p birlik-node -- info
+
+  mobile:
+    name: Rust (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: aarch64-linux-android
+          - os: macos-15
+            target: aarch64-apple-ios
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - run: cargo check -p birlik-protocol --target ${{ matrix.target }}
+
+  engine:
+    name: Engine (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - run: cmake -S engine -B build/engine -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build/engine --config Release
+      - run: ctest --test-dir build/engine -C Release --output-on-failure
+
+  web:
+    name: Web components
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Types and Svelte checks
+        run: pnpm check
+      - name: Unit tests
+        run: pnpm test
+      - name: Build Storybook
+        run: pnpm build-storybook
+      - name: Install Chromium
+        run: pnpm --filter @birlik/ui exec playwright install --with-deps chromium
+      - name: Visual regression + axe (WCAG 2.2 AA)
+        run: pnpm test:visual
+      - name: Upload the visual report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-report
+          path: |
+            web/packages/ui/playwright-report
+            web/packages/ui/test-results
+          retention-days: 14

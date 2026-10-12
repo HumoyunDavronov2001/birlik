@@ -1,0 +1,15 @@
+# dependencies and build output
+node_modules/
+target/
+build/
+dist/
+storybook-static/
+test-results/
+playwright-report/
+
+# local only (studied upstream sources and archived drafts)
+upstream/
+_archive/
+
+.DS_Store
+*.log

@@ -1,0 +1,20 @@
+{
+  "name": "birlik-web",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.34.7",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "check": "pnpm -r check",
+    "test": "pnpm -r test",
+    "build-storybook": "pnpm --filter @birlik/ui build-storybook",
+    "test:visual": "pnpm --filter @birlik/ui test:visual"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

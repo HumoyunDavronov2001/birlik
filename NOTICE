@@ -1,0 +1,12 @@
+BIRLIK
+Copyright 2026 Humoyun Davronov and the BIRLIK contributors
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+No third-party source code is vendored in this repository yet. Each project whose code is
+brought in later is added here with its copyright notice and license, and to UPSTREAM.md
+with the exact upstream commit and the list of our changes.
+
+Bundled at build time through npm (not vendored):
+  - Inter, (c) The Inter Project Authors, SIL Open Font License 1.1 (@fontsource-variable/inter)
+  - IBM Plex Mono, (c) IBM Corp., SIL Open Font License 1.1 (@fontsource/ibm-plex-mono)
