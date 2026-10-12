@@ -25,6 +25,8 @@ biscuit-auth = "6.0"
 blake3 = "1.8"
 data-encoding = "2.11"
 getrandom = "0.4"
+redb = "4.3"
+qrcode = { version = "0.14", default-features = false }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

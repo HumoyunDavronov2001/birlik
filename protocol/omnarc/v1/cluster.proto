@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package omnarc.v1;
+
+import "omnarc/v1/device.proto";
+
+// A device of the cluster, as every member records it (protocol/CLUSTER.md §3).
+message Member {
+  NodeId id = 1;
+  // What the device said it is; filled in or updated through gossip.
+  DeviceInfo device = 2;
+  // Its Biscuit membership token.
+  bytes membership_token = 3;
+  int64 joined_unix_ms = 4;
+}

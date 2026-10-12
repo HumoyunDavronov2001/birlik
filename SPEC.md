@@ -15,7 +15,7 @@ design concept (its section number), or "—".
 | Part | Screens | Functions | ✓ done | ◐ partly | ○ not started | Ready |
 |---|---|---|---|---|---|---|
 | Engine | 0 | 30 | 8 | 2 | 20 | 30 % |
-| Node agent and API | 0 | 40 | 5 | 1 | 34 | 14 % |
+| Node agent and API | 0 | 40 | 5 | 4 | 31 | 18 % |
 | Panel | 24 | 7 | 0 | 1 | 30 | 2 % |
 | Desktop app | 4 | 5 | 0 | 0 | 9 | 0 % |
 | Android app | 7 | 8 | 0 | 2 | 13 | 7 % |
@@ -27,7 +27,7 @@ design concept (its section number), or "—".
 | Islands | 0 | 3 | 0 | 0 | 3 | 0 % |
 | Benchmarks, sites and releases | 3 | 9 | 2 | 0 | 10 | 17 % |
 | Design system and quality across all apps | 1 | 13 | 6 | 2 | 6 | 50 % |
-| **All** | **50** | **141** | **21** | **10** | **160** | **14 %** |
+| **All** | **50** | **141** | **21** | **13** | **157** | **14 %** |
 
 "Ready" counts a partly done item as half. By stage — what each stage has to deliver:
 
@@ -35,7 +35,7 @@ design concept (its section number), or "—".
 |---|---|---|---|---|
 | B0 | 10 | 9 | 1 | 0 |
 | B1 | 16 | 12 | 1 | 3 |
-| B2 | 28 | 0 | 2 | 26 |
+| B2 | 28 | 0 | 5 | 23 |
 | B3 | 14 | 0 | 0 | 14 |
 | B4 | 18 | 0 | 0 | 18 |
 | B5 | 53 | 0 | 5 | 48 |
@@ -109,7 +109,7 @@ design concept (its section number), or "—".
 | NO-02 | `omnarc-node id`: the node key (Ed25519), created on first use | function | P§3 | B1 | — | ✓ |
 | NO-03 | `omnarc-node ring`: a ring wired by hand — head and workers, time per output token | function | D1 | B1 | — | ✓ |
 | NO-04 | A long-running service (systemd, launchd, Windows service) that serves the panel on a local port | function | T1 | B2 | — | ○ |
-| NO-05 | Creating and joining clusters from the command line (ticket, code) | function | P§3 | B2 | — | ○ |
+| NO-05 | Creating and joining clusters from the command line (ticket, code) | function | P§3 | B2 | — | ◐ |
 | NO-06 | One Rust program for Linux, Windows, macOS, Android and iOS | function | T1 | B5 | — | ◐ |
 | NO-07 | Docker image and Helm chart for servers | function | P§6 | B9 | — | ○ |
 
@@ -120,8 +120,8 @@ design concept (its section number), or "—".
 | NO-10 | QUIC links dialed by node key (iroh); tensor frames on streams; only the expected neighbor is accepted | function | T2 | B1 | — | ✓ |
 | NO-11 | NAT hole punching, and our own relay when punching fails | function | T2 | B2 | — | ○ |
 | NO-12 | Discovery: mDNS on the LAN, DNS/pkarr on the internet | function | T2 | B2 | — | ○ |
-| NO-13 | Pairing: QR ticket with a 10-minute secret, four-emoji confirmation on both screens | function | P§3 | B2 | 02 | ○ |
-| NO-14 | Cluster key and membership tokens (Biscuit) with node, user and admin rights | function | P§3 | B2 | — | ○ |
+| NO-13 | Pairing: QR ticket with a 10-minute secret, four-emoji confirmation on both screens | function | P§3 | B2 | 02 | ◐ |
+| NO-14 | Cluster key and membership tokens (Biscuit) with node, user and admin rights | function | P§3 | B2 | — | ◐ |
 | NO-15 | Telemetry once per second over gossip | function | P§3 | B2 | — | ○ |
 | NO-16 | Raft on 3–5 stable nodes: plan version, placement, keys | function | P§3 | B2 | — | ○ |
 | NO-17 | Latency and bandwidth of every link, measured live | function | T4 | B2 | — | ○ |

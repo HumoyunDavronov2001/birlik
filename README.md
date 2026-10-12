@@ -162,6 +162,15 @@ pnpm install && pnpm check && pnpm test && pnpm build-storybook && pnpm test:vis
 
 With [just](https://github.com/casey/just) installed, `just check` runs all of it.
 
+Form a cluster (stage B2, in progress):
+
+```bash
+omnarc-node create --name "Home cluster"   # on the first device: it becomes the cluster's admin
+omnarc-node invite                         # prints a QR code and a ticket, valid for 10 minutes
+omnarc-node join OMNARC:...                # on the new device; both screens show the same four symbols
+omnarc-node members
+```
+
 Run a ring of two devices (stage B1 wires it by hand; `omnarc-engine` must sit next to `omnarc-node`):
 
 ```bash

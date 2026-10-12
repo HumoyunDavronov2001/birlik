@@ -16,7 +16,7 @@ maketi dizayn konsepsiyasida bo'lsa — uning bo'lim raqami, bo'lmasa «—».
 | Qism | Ekranlar | Funksiyalar | ✓ tayyor | ◐ qisman | ○ boshlanmagan | Tayyorlik |
 |---|---|---|---|---|---|---|
 | Dvigatel | 0 | 30 | 8 | 2 | 20 | 30 % |
-| Tugun agenti va API | 0 | 40 | 5 | 1 | 34 | 14 % |
+| Tugun agenti va API | 0 | 40 | 5 | 4 | 31 | 18 % |
 | Panel | 24 | 7 | 0 | 1 | 30 | 2 % |
 | Ish stoli ilovasi | 4 | 5 | 0 | 0 | 9 | 0 % |
 | Android ilovasi | 7 | 8 | 0 | 2 | 13 | 7 % |
@@ -28,7 +28,7 @@ maketi dizayn konsepsiyasida bo'lsa — uning bo'lim raqami, bo'lmasa «—».
 | Orollar | 0 | 3 | 0 | 0 | 3 | 0 % |
 | O'lchovlar, saytlar va relizlar | 3 | 9 | 2 | 0 | 10 | 17 % |
 | Dizayn tizimi va barcha ilovalardagi sifat | 1 | 13 | 6 | 2 | 6 | 50 % |
-| **Jami** | **50** | **141** | **21** | **10** | **160** | **14 %** |
+| **Jami** | **50** | **141** | **21** | **13** | **157** | **14 %** |
 
 «Tayyorlik» ustunida qisman bajarilgan band yarim hisoblanadi. Bosqichlar bo'yicha — har bosqich nimani topshirishi
 kerak:
@@ -37,7 +37,7 @@ kerak:
 |---|---|---|---|---|
 | B0 | 10 | 9 | 1 | 0 |
 | B1 | 16 | 12 | 1 | 3 |
-| B2 | 28 | 0 | 2 | 26 |
+| B2 | 28 | 0 | 5 | 23 |
 | B3 | 14 | 0 | 0 | 14 |
 | B4 | 18 | 0 | 0 | 18 |
 | B5 | 53 | 0 | 5 | 48 |
@@ -110,7 +110,7 @@ kerak:
 | NO-02 | `omnarc-node id`: tugun kaliti (Ed25519), birinchi ishlatilganda yaratiladi | funksiya | P§3 | B1 | — | ✓ |
 | NO-03 | `omnarc-node ring`: qo'lda ulangan halqa — bosh tugun va ishchi tugunlar, bitta chiqish tokeniga ketadigan vaqt | funksiya | D1 | B1 | — | ✓ |
 | NO-04 | Doimiy ishlaydigan xizmat (systemd, launchd, Windows xizmati): panelni mahalliy portda beradi | funksiya | T1 | B2 | — | ○ |
-| NO-05 | Buyruq qatoridan klaster yaratish va unga qo'shilish (chipta, kod) | funksiya | P§3 | B2 | — | ○ |
+| NO-05 | Buyruq qatoridan klaster yaratish va unga qo'shilish (chipta, kod) | funksiya | P§3 | B2 | — | ◐ |
 | NO-06 | Linux, Windows, macOS, Android va iOS uchun bitta Rust dasturi | funksiya | T1 | B5 | — | ◐ |
 | NO-07 | Serverlar uchun Docker tasviri va Helm chart | funksiya | P§6 | B9 | — | ○ |
 
@@ -121,8 +121,8 @@ kerak:
 | NO-10 | QUIC havolalari tugun kaliti orqali ulanadi (iroh); tenzor freymlari oqimlar orqali boradi; faqat kutilgan qo'shni qabul qilinadi | funksiya | T2 | B1 | — | ✓ |
 | NO-11 | NAT teshish; teshib bo'lmasa — o'z rele serverimiz | funksiya | T2 | B2 | — | ○ |
 | NO-12 | Topish: LAN'da mDNS, internetda DNS/pkarr | funksiya | T2 | B2 | — | ○ |
-| NO-13 | Juftlash: ichida 10 daqiqalik sir bo'lgan QR chipta; ikkala ekranda to'rtta emoji bilan tasdiqlash | funksiya | P§3 | B2 | 02 | ○ |
-| NO-14 | Klaster kaliti va a'zolik tokenlari (Biscuit): tugun, foydalanuvchi va admin huquqlari | funksiya | P§3 | B2 | — | ○ |
+| NO-13 | Juftlash: ichida 10 daqiqalik sir bo'lgan QR chipta; ikkala ekranda to'rtta emoji bilan tasdiqlash | funksiya | P§3 | B2 | 02 | ◐ |
+| NO-14 | Klaster kaliti va a'zolik tokenlari (Biscuit): tugun, foydalanuvchi va admin huquqlari | funksiya | P§3 | B2 | — | ◐ |
 | NO-15 | Gossip orqali sekundiga bir marta telemetriya | funksiya | P§3 | B2 | — | ○ |
 | NO-16 | 3–5 barqaror tugunda Raft: reja versiyasi, joylashuv, kalitlar | funksiya | P§3 | B2 | — | ○ |
 | NO-17 | Har havolaning kechikishi va o'tkazuvchanligi jonli o'lchanadi | funksiya | T4 | B2 | — | ○ |

@@ -68,17 +68,27 @@ pub fn load_or_create_key(path: &Path) -> Result<SecretKey> {
     }
 }
 
+/// Writes a new file that only this user can read: a key or another secret. An existing file is never overwritten.
+///
+/// # Errors
+/// The file exists or cannot be written.
 #[cfg(unix)]
-fn write_private(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+pub fn write_private(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     use std::io::Write;
     use std::os::unix::fs::OpenOptionsExt;
     let mut file = std::fs::OpenOptions::new().write(true).create_new(true).mode(0o600).open(path)?;
     file.write_all(bytes)
 }
 
+/// Writes a new file that only this user can read: a key or another secret. An existing file is never overwritten.
+///
+/// # Errors
+/// The file exists or cannot be written.
 #[cfg(not(unix))]
-fn write_private(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
-    std::fs::write(path, bytes)
+pub fn write_private(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    use std::io::Write;
+    let mut file = std::fs::OpenOptions::new().write(true).create_new(true).open(path)?;
+    file.write_all(bytes)
 }
 
 /// A peer given by hand: `<node id>@<ip:port>`.
