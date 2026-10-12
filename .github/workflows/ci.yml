@@ -119,8 +119,9 @@ jobs:
             https://huggingface.co/ggml-org/models-moved/resolve/main/tinyllamas/stories15M-q8_0.gguf
       - name: Configure (llama.cpp + engine/patches)
         shell: bash
+        # GGML_NATIVE=OFF: the programs run on other machines too (x86-64 with AVX2, or ARM64)
         run: |
-          cmake -S engine -B build/engine -DCMAKE_BUILD_TYPE=Release \
+          cmake -S engine -B build/engine -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF \
             -DBIRLIK_TEST_MODEL="${{ github.workspace }}/build/models/stories15M-q8_0.gguf"
       - name: Build
         shell: bash
@@ -148,6 +149,22 @@ jobs:
           BIRLIK_ENGINE: ${{ github.workspace }}/build/engine/${{ runner.os == 'Windows' && 'Release/birlik-engine.exe' || 'birlik-engine' }}
           BIRLIK_TEST_MODEL: ${{ github.workspace }}/build/models/stories15M-q8_0.gguf
         run: cargo test -p birlik-node --features engine-tests
+      - name: Programs to try on real devices (birlik-node next to birlik-engine)
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          cargo build --release -p birlik-node
+          mkdir -p dist
+          exe=${{ runner.os == 'Windows' && '.exe' || '' }}
+          cp "target/release/birlik-node$exe" dist/
+          cp "build/engine/${{ runner.os == 'Windows' && 'Release/' || '' }}birlik-engine$exe" dist/
+          cp "build/engine/${{ runner.os == 'Windows' && 'Release/' || '' }}birlik-gate$exe" dist/
+      - if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: birlik-${{ runner.os }}-${{ runner.arch }}
+          path: dist/
+          retention-days: 30
 
   web:
     name: Web components
