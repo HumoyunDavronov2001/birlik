@@ -35,26 +35,28 @@ A device joins with a one-time ticket shown as a QR code on an admin device (or 
 
 ### 2.1 The ticket
 
-`ClusterTicket` (pairing.proto): the cluster id, the inviting node, relay URLs, 16 random bytes `one_time_secret` and
-an expiry of at most 10 minutes. The QR code carries `OMNARC:` followed by the serialized ticket in RFC 4648 base32
-without padding. Uppercase letters and digits keep the QR code in its compact alphanumeric mode; readers accept any
-case.
+`ClusterTicket` (pairing.proto): the cluster id, the inviting node, its direct addresses and relay URLs, 16 random
+bytes `one_time_secret` and an expiry of at most 10 minutes. The QR code carries `OMNARC:` followed by the serialized
+ticket in RFC 4648 base32 without padding. Uppercase letters and digits keep the QR code in its compact alphanumeric
+mode; readers accept any case.
 
 ### 2.2 Joining
 
 1. The new device dials the inviter by its `NodeId` (directly, through LAN discovery or through a relay from the
    ticket) on the ALPN `omnarc/join/1`, opens one bidirectional stream and sends a `JoinRequest`: its `DeviceInfo` and
-   `secret_proof = BLAKE3-keyed(one_time_secret, joiner NodeId)`.
+   `secret_proof`, the keyed BLAKE3 hash of the joiner's `NodeId` under the key
+   `BLAKE3-derive-key("omnarc/v1/join-proof", one_time_secret)`.
 2. The inviter checks the expiry and the proof. A wrong proof counts as an attempt; after 3 attempts the ticket is
-   void. A ticket admits exactly one device.
+   void. A ticket admits exactly one device, and while one device waits for the owner's answer, others are refused.
 3. Both devices derive the short authentication string:
    `BLAKE3("omnarc/v1/sas" ‖ inviter NodeId ‖ joiner NodeId ‖ one_time_secret)`; its first 24 bits are four 6-bit
    indices into the 64-emoji table (§2.4). Both screens show the four emoji.
 4. The owner compares the screens and confirms on the inviter. On "No, they're different", or after 2 minutes, the
    inviter answers `accepted = false` and voids the ticket.
-5. On confirmation the inviter signs a membership token with the `node` right and answers `JoinResponse`: the token,
-   the cluster's name and its current members, so the new device can reach them. The inviter announces the new member
-   to the cluster (§3).
+5. On confirmation the inviter signs a membership token with the `node` and `user` rights and answers
+   `JoinResponse`: the token, the cluster's name and its current members, so the new device can reach them. The new
+   device checks that the token is signed by the cluster of the ticket. The inviter announces the new member to the
+   cluster (§3).
 
 Messages on a join stream are protobuf, each prefixed by its length as an unsigned 32-bit little-endian integer, at
 most 64 KiB.

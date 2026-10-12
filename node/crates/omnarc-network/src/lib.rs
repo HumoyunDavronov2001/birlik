@@ -4,9 +4,10 @@
 //! without relays or address lookup, and links — unidirectional streams of tensor frames
 //! (`protocol/FRAME.md`) that feed one window of layers on the next device. Stage B2 adds clusters
 //! (`protocol/CLUSTER.md`): the cluster key and membership tokens ([`cluster`]), the ticket and four-emoji check of
-//! joining ([`ticket`]); discovery, relays and gossip follow.
+//! joining ([`ticket`]) and the join conversation itself ([`join`]); discovery, relays and gossip follow.
 
 pub mod cluster;
+pub mod join;
 pub mod ticket;
 
 use std::fmt;
@@ -110,9 +111,17 @@ impl fmt::Display for Peer {
 /// # Errors
 /// The address cannot be bound.
 pub async fn bind(key: SecretKey, listen: SocketAddr) -> Result<Endpoint> {
+    bind_with(key, listen, vec![TENSOR_ALPN.to_vec()]).await
+}
+
+/// Binds an endpoint on `listen` that accepts the protocols `alpns`, with no relays and no address lookup.
+///
+/// # Errors
+/// The address cannot be bound.
+pub async fn bind_with(key: SecretKey, listen: SocketAddr, alpns: Vec<Vec<u8>>) -> Result<Endpoint> {
     Endpoint::builder(presets::Minimal)
         .secret_key(key)
-        .alpns(vec![TENSOR_ALPN.to_vec()])
+        .alpns(alpns)
         .relay_mode(RelayMode::Disabled)
         .clear_ip_transports()
         .bind_addr(listen)

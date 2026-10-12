@@ -1,5 +1,6 @@
 //! The one-time ticket that adds a device to a cluster, and the four-emoji check (`protocol/CLUSTER.md` §2).
 
+use std::net::SocketAddr;
 use std::time::Duration;
 
 use iroh::EndpointId;
@@ -25,6 +26,8 @@ pub struct Ticket {
     pub cluster: ClusterId,
     /// The device that invites; the new device dials it.
     pub inviter: EndpointId,
+    /// The inviter's IP addresses, dialed directly on a LAN.
+    pub direct_addrs: Vec<SocketAddr>,
     /// Relays to use when no direct connection works.
     pub relay_urls: Vec<String>,
     /// Valid once and only until `expires_unix_ms`.
@@ -41,6 +44,7 @@ impl Ticket {
     pub fn new(
         cluster: ClusterId,
         inviter: EndpointId,
+        direct_addrs: Vec<SocketAddr>,
         relay_urls: Vec<String>,
         ttl: Duration,
         now_unix_ms: i64,
@@ -48,7 +52,8 @@ impl Ticket {
         let mut secret = [0u8; SECRET_LEN];
         getrandom::fill(&mut secret).map_err(|e| Error::new("ticket secret", e))?;
         let ttl_ms = i64::try_from(ttl.min(MAX_TTL).as_millis()).unwrap_or(i64::MAX);
-        Ok(Self { cluster, inviter, relay_urls, secret, expires_unix_ms: now_unix_ms.saturating_add(ttl_ms) })
+        let expires_unix_ms = now_unix_ms.saturating_add(ttl_ms);
+        Ok(Self { cluster, inviter, direct_addrs, relay_urls, secret, expires_unix_ms })
     }
 
     /// Whether the ticket has expired at `now_unix_ms`.
@@ -66,6 +71,7 @@ impl Ticket {
             relay_urls: self.relay_urls.clone(),
             one_time_secret: self.secret.to_vec(),
             expires_unix_ms: self.expires_unix_ms,
+            direct_addresses: self.direct_addrs.iter().map(ToString::to_string).collect(),
         }
     }
 
@@ -83,9 +89,15 @@ impl Ticket {
             .as_slice()
             .try_into()
             .map_err(|_| Error::new("ticket", "the secret is not 16 bytes"))?;
+        let direct_addrs = ticket
+            .direct_addresses
+            .iter()
+            .map(|addr| addr.parse().map_err(|e| Error::new("ticket address", e)))
+            .collect::<Result<_>>()?;
         Ok(Self {
             cluster,
             inviter,
+            direct_addrs,
             relay_urls: ticket.relay_urls.clone(),
             secret,
             expires_unix_ms: ticket.expires_unix_ms,
@@ -117,6 +129,7 @@ impl std::fmt::Debug for Ticket {
         f.debug_struct("Ticket")
             .field("cluster", &self.cluster)
             .field("inviter", &format_args!("{}", self.inviter.fmt_short()))
+            .field("direct_addrs", &self.direct_addrs)
             .field("relay_urls", &self.relay_urls)
             .field("expires_unix_ms", &self.expires_unix_ms)
             .finish_non_exhaustive()
@@ -246,7 +259,9 @@ mod tests {
     fn ticket() -> Ticket {
         let cluster = ClusterKey::generate().id();
         let inviter = SecretKey::generate().public();
-        Ticket::new(cluster, inviter, vec!["https://relay.example/".into()], Duration::from_secs(600), 1_000).unwrap()
+        let addrs = vec!["192.168.1.20:7700".parse().unwrap(), "[fe80::1]:7700".parse().unwrap()];
+        Ticket::new(cluster, inviter, addrs, vec!["https://relay.example/".into()], Duration::from_secs(600), 1_000)
+            .unwrap()
     }
 
     #[test]
@@ -268,7 +283,7 @@ mod tests {
     fn a_ticket_lives_ten_minutes_at_most() {
         let cluster = ClusterKey::generate().id();
         let inviter = SecretKey::generate().public();
-        let ticket = Ticket::new(cluster, inviter, vec![], Duration::from_secs(3600), 0).unwrap();
+        let ticket = Ticket::new(cluster, inviter, vec![], vec![], Duration::from_secs(3600), 0).unwrap();
         assert_eq!(ticket.expires_unix_ms, 600_000);
         assert!(!ticket.is_expired(599_999));
         assert!(ticket.is_expired(600_000));
