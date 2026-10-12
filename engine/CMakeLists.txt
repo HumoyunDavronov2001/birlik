@@ -73,5 +73,14 @@ if(BUILD_TESTING)
               --backend cpu --exact)
     add_test(NAME gate_real_f16
       COMMAND birlik-gate --model ${BIRLIK_TEST_MODEL} --split even:2 --text ${story} --ctx 128 --wire f16)
+    # every GPU backend in the build is asked for by name, so a missing device fails instead of falling back
+    foreach(backend CUDA HIP VULKAN METAL)
+      if(GGML_${backend})
+        string(TOLOWER ${backend} name)
+        add_test(NAME gate_real_${name}
+          COMMAND birlik-gate --model ${BIRLIK_TEST_MODEL} --split even:3 --text ${story} --ctx 128 --wire f16
+                  --backend ${name})
+      endif()
+    endforeach()
   endif()
 endif()

@@ -133,6 +133,23 @@ std::vector<window> parse_split(const std::string &spec, uint32_t n_layer, bk_ba
     return windows;
 }
 
+const char *backend_name(bk_backend backend) {
+    switch (backend) {
+        case BK_BACKEND_AUTO: return "auto";
+        case BK_BACKEND_CPU: return "cpu";
+        case BK_BACKEND_CUDA: return "cuda";
+        case BK_BACKEND_HIP: return "hip";
+        case BK_BACKEND_VULKAN: return "vulkan";
+        case BK_BACKEND_METAL: return "metal";
+        case BK_BACKEND_OPENCL: return "opencl";
+        case BK_BACKEND_HEXAGON: return "hexagon";
+        case BK_BACKEND_SYCL: return "sycl";
+        case BK_BACKEND_CANN: return "cann";
+        case BK_BACKEND_WEBGPU: return "webgpu";
+    }
+    return "unknown";
+}
+
 bk_shard *open_shard(const std::string &model, uint32_t begin, uint32_t end, bk_backend backend, uint32_t ctx) {
     const bk_shard_params params = {model.c_str(), begin, end, backend, ctx};
     bk_shard *shard = nullptr;
@@ -143,6 +160,12 @@ bk_shard *open_shard(const std::string &model, uint32_t begin, uint32_t end, bk_
         std::exit(1);
     }
     return shard;
+}
+
+bk_backend shard_backend(const bk_shard *shard) {
+    bk_shard_info info{};
+    bk_shard_get_info(shard, &info);
+    return info.backend;
 }
 
 void check(bk_status status, const char *what) {
@@ -200,6 +223,9 @@ int main(int argc, char **argv) {
     bk_shard *whole = open_shard(opt.model, 0, end, opt.backend, opt.ctx);
     std::vector<bk_shard *> shards;
     for (const auto &w : windows) shards.push_back(open_shard(opt.model, w.begin, w.end, w.backend, opt.ctx));
+    std::printf("backend whole: %s, windows:", backend_name(shard_backend(whole)));
+    for (const bk_shard *shard : shards) std::printf(" %s", backend_name(shard_backend(shard)));
+    std::printf("\n");
 
     std::vector<int32_t> tokens;
     if (!opt.text_file.empty()) {

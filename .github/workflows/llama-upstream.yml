@@ -1,0 +1,103 @@
+name: llama.cpp upstream
+
+# Every week the patches in engine/patches move onto the newest llama.cpp release and the engine's tests run on it
+# (PLAN.md §4), so the engine never freezes on an old llama.cpp the way prima.cpp did. When everything passes, a pull
+# request moves the submodule and updates the patches; when a patch no longer applies or a test fails, this run fails.
+on:
+  schedule:
+    - cron: "0 2 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  move:
+    name: Move the patches to the newest llama.cpp
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+      - name: The newest release
+        id: upstream
+        run: |
+          api=https://api.github.com/repos/ggml-org/llama.cpp
+          tag=$(curl -sSf "$api/releases/latest" | python3 -c "import json, sys; print(json.load(sys.stdin)['tag_name'])")
+          newest=$(curl -sSf "$api/commits/$tag" | python3 -c "import json, sys; print(json.load(sys.stdin)['sha'])")
+          current=$(git -C engine/third_party/llama.cpp rev-parse HEAD)
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if [ "$newest" = "$current" ]; then echo "behind=false" >> "$GITHUB_OUTPUT"; else echo "behind=true" >> "$GITHUB_OUTPUT"; fi
+          echo "llama.cpp: at $current, newest release $tag ($newest)"
+      - name: Apply the patches to it
+        if: steps.upstream.outputs.behind == 'true'
+        env:
+          TAG: ${{ steps.upstream.outputs.tag }}
+        run: |
+          cd engine/third_party/llama.cpp
+          git fetch --depth 1 origin tag "$TAG"
+          git checkout -q "$TAG"
+          git -c user.name="BIRLIK CI" -c user.email="ci@users.noreply.github.com" \
+            am --3way "$GITHUB_WORKSPACE"/engine/patches/*.patch
+          rm "$GITHUB_WORKSPACE"/engine/patches/*.patch
+          git format-patch --zero-commit --no-signature -o "$GITHUB_WORKSPACE/engine/patches" "$TAG..HEAD"
+          # the submodule records the release itself; the patches are applied at build time
+          git checkout -q "$TAG"
+          cd "$GITHUB_WORKSPACE"
+          commit=$(git -C engine/third_party/llama.cpp rev-parse --short=12 HEAD)
+          python3 - "$commit" "$TAG" <<'EOF'
+          import datetime, re, sys
+          commit, tag = sys.argv[1], sys.argv[2]
+          today = datetime.date.today().isoformat()
+          path = "UPSTREAM.md"
+          text = open(path).read()
+          text = re.sub(r"\| `[0-9a-f]{12}` \(tag b\d+, [0-9-]+\) \| the engine and all backends",
+                        f"| `{commit}` (tag {tag}, {today}) | the engine and all backends", text)
+          open(path, "w").write(text)
+          EOF
+          git status --short
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - run: python -m pip install numpy pyyaml tqdm requests
+      - name: A real test model (stories15M, 27 MB)
+        id: model
+        uses: actions/cache@v4
+        with:
+          path: build/models
+          key: test-model-stories15M-q8_0
+      - if: steps.model.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p build/models
+          curl -sSfL --retry 3 -o build/models/stories15M-q8_0.gguf \
+            https://huggingface.co/ggml-org/models-moved/resolve/main/tinyllamas/stories15M-q8_0.gguf
+      - name: Build the engine
+        run: |
+          cmake -S engine -B build/engine -DCMAKE_BUILD_TYPE=Release \
+            -DBIRLIK_TEST_MODEL="$PWD/build/models/stories15M-q8_0.gguf"
+          cmake --build build/engine --parallel
+      - name: The accuracy gate
+        run: ctest --test-dir build/engine --output-on-failure
+      - uses: dtolnay/rust-toolchain@stable
+      - name: The engine process and the ring
+        env:
+          BIRLIK_ENGINE: ${{ github.workspace }}/build/engine/birlik-engine
+          BIRLIK_TEST_MODEL: ${{ github.workspace }}/build/models/stories15M-q8_0.gguf
+        run: |
+          cargo test -p birlik-engine-host --features engine-tests
+          cargo test -p birlik-node --features engine-tests
+      - name: Pull request
+        if: steps.upstream.outputs.behind == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: llama-cpp-${{ steps.upstream.outputs.tag }}
+          add-paths: |
+            engine/third_party/llama.cpp
+            engine/patches
+            UPSTREAM.md
+          commit-message: Move to llama.cpp ${{ steps.upstream.outputs.tag }}
+          title: Move to llama.cpp ${{ steps.upstream.outputs.tag }}
+          body: |
+            The weekly job moved `engine/patches` onto llama.cpp ${{ steps.upstream.outputs.tag }}. On that
+            release the engine builds, the accuracy gate passes, and the engine process and the ring tests pass.

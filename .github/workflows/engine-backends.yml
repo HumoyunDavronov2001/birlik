@@ -1,0 +1,134 @@
+name: Engine backends
+
+# The GPU backends of the engine (PLAN.md §11, stage B1: CUDA, Vulkan, Metal, CPU). Metal and the CPU are tested in
+# the main CI on every push. Here: Vulkan on Linux runs the accuracy gate on lavapipe, Mesa's software Vulkan driver;
+# Vulkan on Windows and CUDA on Linux are built, because the hosted runners have no GPU (PLAN.md §13).
+on:
+  push:
+    branches: [main]
+    paths: ["engine/**", ".github/workflows/engine-backends.yml"]
+  pull_request:
+    paths: ["engine/**", ".github/workflows/engine-backends.yml"]
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: engine-backends-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  vulkan-linux:
+    name: Vulkan (Linux, lavapipe)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+      - name: Vulkan headers, shader compiler and the lavapipe driver
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y glslc libvulkan-dev spirv-headers mesa-vulkan-drivers vulkan-tools
+          vulkaninfo --summary
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - run: python -m pip install numpy pyyaml tqdm requests
+      - name: A real test model (stories15M, 27 MB)
+        id: model
+        uses: actions/cache@v4
+        with:
+          path: build/models
+          key: test-model-stories15M-q8_0
+      - if: steps.model.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p build/models
+          curl -sSfL --retry 3 -o build/models/stories15M-q8_0.gguf \
+            https://huggingface.co/ggml-org/models-moved/resolve/main/tinyllamas/stories15M-q8_0.gguf
+      - name: Configure
+        run: |
+          cmake -S engine -B build/engine -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DGGML_VULKAN=ON \
+            -DBIRLIK_TEST_MODEL="$PWD/build/models/stories15M-q8_0.gguf"
+      - name: Build
+        run: |
+          set -o pipefail
+          cmake --build build/engine --parallel 2>&1 | tee build/engine-build.log
+      - name: Compiler errors as annotations
+        if: failure()
+        run: |
+          grep -E ": error:|fatal error" build/engine-build.log | sort -u | head -40 |
+            while IFS= read -r line; do echo "::error::${line}"; done
+      - name: The accuracy gate, including every split on Vulkan
+        env:
+          # lavapipe: the settings llama.cpp's own CI uses for it
+          GGML_VK_VISIBLE_DEVICES: "0"
+          GGML_VK_DISABLE_F16: "1"
+          GGML_VK_DISABLE_COOPMAT: "1"
+        run: ctest --test-dir build/engine --output-on-failure
+
+  vulkan-windows:
+    name: Vulkan (Windows, build)
+    runs-on: windows-2025
+    env:
+      VULKAN_VERSION: 1.4.357.0
+    steps:
+      - name: Keep LF line endings (the llama.cpp patches expect them)
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+      - name: Vulkan SDK
+        run: |
+          curl.exe -o $env:RUNNER_TEMP/VulkanSDK-Installer.exe -L "https://sdk.lunarg.com/sdk/download/${env:VULKAN_VERSION}/windows/vulkansdk-windows-X64-${env:VULKAN_VERSION}.exe"
+          & "$env:RUNNER_TEMP\VulkanSDK-Installer.exe" --accept-licenses --default-answer --confirm-command install
+          Add-Content $env:GITHUB_ENV "VULKAN_SDK=C:\VulkanSDK\${env:VULKAN_VERSION}"
+          Add-Content $env:GITHUB_PATH "C:\VulkanSDK\${env:VULKAN_VERSION}\bin"
+      - name: Configure
+        run: cmake -S engine -B build/engine -DGGML_NATIVE=OFF -DGGML_VULKAN=ON -DBUILD_TESTING=OFF
+      - name: Build
+        shell: bash
+        run: |
+          set -o pipefail
+          cmake --build build/engine --config Release --parallel 2>&1 | tee build/engine-build.log
+      - name: Compiler errors as annotations
+        if: failure()
+        shell: bash
+        run: |
+          grep -E "error C[0-9]+|: error:|fatal error|error LNK" build/engine-build.log | sort -u | head -40 |
+            while IFS= read -r line; do echo "::error::${line}"; done
+
+  cuda-linux:
+    name: CUDA (Linux, build)
+    runs-on: ubuntu-24.04
+    container: nvidia/cuda:12.6.2-devel-ubuntu24.04
+    steps:
+      - name: Tools (git first, so that the checkout includes the llama.cpp submodule)
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get update
+          apt-get install -y git cmake build-essential
+          git config --global --add safe.directory '*'
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+      - name: Configure
+        # one GPU architecture keeps the build short; the runner has no driver, so libcuda stays unresolved
+        run: |
+          cmake -S engine -B build/engine -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DGGML_CUDA=ON \
+            -DCMAKE_CUDA_ARCHITECTURES=89-real -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined \
+            -DBUILD_TESTING=OFF
+      - name: Build
+        shell: bash
+        run: |
+          set -o pipefail
+          cmake --build build/engine --parallel "$(nproc)" 2>&1 | tee build/engine-build.log
+      - name: Compiler errors as annotations
+        if: failure()
+        shell: bash
+        run: |
+          grep -E ": error:|fatal error|error:" build/engine-build.log | sort -u | head -40 |
+            while IFS= read -r line; do echo "::error::${line}"; done
