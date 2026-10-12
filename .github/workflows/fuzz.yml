@@ -36,12 +36,12 @@ jobs:
           key: fuzz-corpus-${{ matrix.target }}-${{ github.run_id }}
           restore-keys: fuzz-corpus-${{ matrix.target }}-
       - name: Fuzz
-        working-directory: node/fuzz
         env:
           HOURS: ${{ inputs.hours || '5.5' }}
+        # rust-toolchain.toml pins stable for the rest of the repository; cargo-fuzz needs nightly
         run: |
           seconds=$(python3 -c "print(int(float('$HOURS') * 3600))")
-          cargo fuzz run ${{ matrix.target }} -- -max_total_time="$seconds" -rss_limit_mb=2048
+          cargo +nightly fuzz run --fuzz-dir node/fuzz ${{ matrix.target }} -- -max_total_time="$seconds" -rss_limit_mb=2048
       - name: The input that failed
         if: failure()
         uses: actions/upload-artifact@v4
