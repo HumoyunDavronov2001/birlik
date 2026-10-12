@@ -224,6 +224,7 @@ struct bk_shard {
     uint32_t max_tokens = 0;
     bk_backend backend = BK_BACKEND_CPU;
     bool weights_on_host = true;  // the window's weights are read from the mapped file on every pass
+    bool fits_in_memory = true;   // the window's weights stay in the page cache once read
 
     std::unordered_map<uint64_t, llama_seq_id> requests;
     std::vector<llama_seq_id> free_seqs;
@@ -348,7 +349,8 @@ bk_status bk_shard_open(const bk_shard_params *params, bk_shard **out) {
             ggml_backend_dev_memory(cpu, &free_mem, &total_mem);
         }
         const uint64_t window_bytes = shard->info.file_size * (params->layer_end - params->layer_begin) / (n_layer + 1);
-        mparams.use_extra_bufts = free_mem > 0 && window_bytes < free_mem / 10 * 7;
+        shard->fits_in_memory = free_mem > 0 && window_bytes < free_mem / 10 * 7;
+        mparams.use_extra_bufts = shard->fits_in_memory;
     }
 
     shard->model = llama_model_load_from_file(params->model_path, mparams);
@@ -383,7 +385,8 @@ bk_status bk_shard_open(const bk_shard_params *params, bk_shard **out) {
     for (size_t i = 0; i < n; ++i) shard->seq_ptr[i] = &shard->seq[i];
     shard->output.resize(n);
 
-    if (shard->weights_on_host) {
+    // a window that stays in memory needs no prefetching; one that does not is read again on every pass
+    if (shard->weights_on_host && !shard->fits_in_memory) {
         shard->prefetchers = window_prefetchers(params->model_path, params->layer_begin, params->layer_end, n_layer);
     }
 

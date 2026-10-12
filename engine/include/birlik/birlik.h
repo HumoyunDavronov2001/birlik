@@ -137,7 +137,8 @@ bk_status bk_shard_truncate(bk_shard *shard, uint64_t request_id, uint32_t posit
 
 /* Starts reading the shard's weights from disk in the background and returns at once (prima.cpp's prefetching):
  * a shard whose weights do not stay in memory is read while the other shards of the ring compute, so it is ready
- * when its turn comes. Weights held by a GPU need no prefetching. */
+ * when its turn comes. It does nothing when the weights need no prefetching: a GPU holds them, or they fit in free
+ * memory when the shard opens, so the operating system keeps them after the first pass. */
 bk_status bk_shard_prefetch(bk_shard *shard);
 
 /* Threads for computing on the CPU; 0 = one per physical core (the default). */

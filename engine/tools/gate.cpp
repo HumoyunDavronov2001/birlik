@@ -8,6 +8,10 @@
 //
 // Reports perplexity of both runs, the KL divergence of the split run's next-token distribution from the whole
 // run's, and how often both pick the same token. Exit code 0 means the gate passed.
+//
+// On a small machine a large model is slow, so the whole model's logits can be computed once and kept in a file
+// (--reference-out, with --split none to skip the comparison) and every split compared with them later
+// (--reference), as llama.cpp's perplexity tool does for its KL divergence.
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -43,13 +47,15 @@ struct options {
     bool exact = false;
     double max_kl = 0.01;
     double max_ppl_diff = 0.5;  // percent
+    std::string reference;      // read the whole model's logits from this file
+    std::string reference_out;  // write them to this file
 };
 
 [[noreturn]] void usage(int code) {
     std::fprintf(code == 0 ? stdout : stderr,
                  "usage: birlik-gate --model M.gguf [--split A:B,B:C[@backend],...|even:K]\n"
                  "                   [--text FILE | --random-tokens N] [--ctx N] [--chunks N] [--wire f32|f16|bf16]\n"
-                 "                   [--backend NAME] [--exact]\n"
+                 "                   [--backend NAME] [--exact] [--reference FILE | --reference-out FILE]\n"
                  "                   [--max-kl X] [--max-ppl-diff PERCENT]\n"
                  "backends: auto cpu cuda hip vulkan metal opencl sycl\n");
     std::exit(code);
@@ -90,10 +96,17 @@ options parse_args(int argc, char **argv) {
         } else if (arg == "--exact") o.exact = true;
         else if (arg == "--max-kl") o.max_kl = std::stod(value());
         else if (arg == "--max-ppl-diff") o.max_ppl_diff = std::stod(value());
+        else if (arg == "--reference") o.reference = value();
+        else if (arg == "--reference-out") o.reference_out = value();
         else if (arg == "-h" || arg == "--help") usage(0);
         else usage(2);
     }
-    if (o.model.empty() || (o.text_file.empty() == (o.random_tokens == 0)) || o.ctx < 2) usage(2);
+    const bool has_input = !o.text_file.empty() || o.random_tokens > 0;
+    if (o.model.empty() || o.ctx < 2 || (o.text_file.empty() == (o.random_tokens == 0) && o.reference.empty()) ||
+        (!o.reference.empty() && (has_input || !o.reference_out.empty())) ||
+        (o.split == "none" && o.reference_out.empty())) {
+        usage(2);
+    }
     if (o.wire != "f32" && o.wire != "f16" && o.wire != "bf16") usage(2);
     return o;
 }
@@ -102,6 +115,7 @@ options parse_args(int argc, char **argv) {
 // ring keeps the head on the device with the first layers; empty = two halves. Layer n_layer is the output head.
 std::vector<window> parse_split(const std::string &spec, uint32_t n_layer, bk_backend backend) {
     std::vector<window> windows;
+    if (spec == "none") return windows;  // only the reference is computed
     if (spec.empty()) {
         windows.push_back({0, n_layer / 2, backend});
         windows.push_back({n_layer / 2, n_layer + 1, backend});
@@ -203,7 +217,7 @@ int main(int argc, char **argv) {
     const std::vector<window> windows = parse_split(opt.split, info.layer_count, opt.backend);
     // layer layer_count is the output head, so the split covers [0, layer_count + 1)
     const uint32_t end = info.layer_count + 1;
-    if (windows.size() < 2 || windows.front().begin != 0 || windows.back().end != end) {
+    if (!windows.empty() && (windows.size() < 2 || windows.front().begin != 0 || windows.back().end != end)) {
         std::fprintf(stderr, "birlik-gate: the split must cover layers [0, %u) with at least two windows\n", end);
         return 2;
     }
@@ -216,19 +230,44 @@ int main(int argc, char **argv) {
 
     std::printf("model   %s: %s, %u layers, hidden %u, vocab %u\n", opt.model.c_str(), info.architecture,
                 info.layer_count, info.hidden_dim, info.vocab_size);
-    std::printf("split  ");
-    for (const auto &w : windows) std::printf(" [%u, %u)", w.begin, w.end);
-    std::printf(", hidden state on the wire as %s\n", opt.wire.c_str());
+    if (!windows.empty()) {
+        std::printf("split  ");
+        for (const auto &w : windows) std::printf(" [%u, %u)", w.begin, w.end);
+        std::printf(", hidden state on the wire as %s\n", opt.wire.c_str());
+    }
 
-    bk_shard *whole = open_shard(opt.model, 0, end, opt.backend, opt.ctx);
+    // the reference: the whole model on one device, run now or read from a file that --reference-out wrote
+    const size_t vocab = info.vocab_size;
+    std::vector<int32_t> tokens;
+    uint32_t file_ctx = 0;
+    uint32_t file_chunks = 0;
+    std::ifstream ref_in;
+    if (!opt.reference.empty()) {
+        ref_in.open(opt.reference, std::ios::binary);
+        char magic[4] = {};
+        uint32_t head[4] = {};  // vocab, ctx, chunks, tokens
+        ref_in.read(magic, 4);
+        ref_in.read(reinterpret_cast<char *>(head), sizeof(head));
+        if (!ref_in || std::memcmp(magic, "BKR1", 4) != 0 || head[0] != vocab) {
+            std::fprintf(stderr, "birlik-gate: %s is not a reference for this model\n", opt.reference.c_str());
+            return 1;
+        }
+        file_ctx = head[1];
+        file_chunks = head[2];
+        tokens.resize(head[3]);
+        ref_in.read(reinterpret_cast<char *>(tokens.data()), static_cast<std::streamsize>(tokens.size() * 4));
+    }
+
+    bk_shard *whole = opt.reference.empty() ? open_shard(opt.model, 0, end, opt.backend, opt.ctx) : nullptr;
     std::vector<bk_shard *> shards;
     for (const auto &w : windows) shards.push_back(open_shard(opt.model, w.begin, w.end, w.backend, opt.ctx));
-    std::printf("backend whole: %s, windows:", backend_name(shard_backend(whole)));
+    std::printf("backend whole: %s, windows:", whole != nullptr ? backend_name(shard_backend(whole)) : "from file");
     for (const bk_shard *shard : shards) std::printf(" %s", backend_name(shard_backend(shard)));
     std::printf("\n");
 
-    std::vector<int32_t> tokens;
-    if (!opt.text_file.empty()) {
+    if (!opt.reference.empty()) {
+        // the tokens came with the reference
+    } else if (!opt.text_file.empty()) {
         std::ifstream file(opt.text_file, std::ios::binary);
         if (!file) {
             std::fprintf(stderr, "birlik-gate: cannot read %s\n", opt.text_file.c_str());
@@ -247,15 +286,24 @@ int main(int argc, char **argv) {
         for (auto &t : tokens) t = dist(rng);
     }
 
-    const uint32_t ctx = std::min<uint32_t>(opt.ctx, static_cast<uint32_t>(tokens.size()));
-    uint32_t n_chunks = static_cast<uint32_t>(tokens.size()) / ctx;
+    const uint32_t ctx =
+        file_ctx > 0 ? file_ctx : std::min<uint32_t>(opt.ctx, static_cast<uint32_t>(tokens.size()));
+    uint32_t n_chunks = file_ctx > 0 ? file_chunks : static_cast<uint32_t>(tokens.size()) / ctx;
     if (opt.chunks > 0) n_chunks = std::min(n_chunks, opt.chunks);
-    if (n_chunks == 0) {
-        std::fprintf(stderr, "birlik-gate: not enough tokens\n");
+    if (n_chunks == 0 || ctx > opt.ctx) {
+        std::fprintf(stderr, "birlik-gate: not enough tokens, or --ctx is smaller than the reference's %u\n", ctx);
         return 1;
     }
 
-    const size_t vocab = info.vocab_size;
+    std::ofstream ref_out;
+    if (!opt.reference_out.empty()) {
+        ref_out.open(opt.reference_out, std::ios::binary);
+        const uint32_t head[4] = {static_cast<uint32_t>(vocab), ctx, n_chunks, static_cast<uint32_t>(tokens.size())};
+        ref_out.write("BKR1", 4);
+        ref_out.write(reinterpret_cast<const char *>(head), sizeof(head));
+        ref_out.write(reinterpret_cast<const char *>(tokens.data()), static_cast<std::streamsize>(tokens.size() * 4));
+    }
+
     const size_t hidden = info.hidden_dim;
     std::vector<float> ref_logits(ctx * vocab);
     std::vector<float> split_logits(ctx * vocab);
@@ -270,8 +318,23 @@ int main(int argc, char **argv) {
         const int32_t *chunk = tokens.data() + static_cast<size_t>(c) * ctx;
         const uint64_t request = c + 1;
 
-        const bk_batch whole_batch = {request, 0, ctx, chunk, nullptr, 1};
-        check(bk_shard_run(whole, &whole_batch, ref_logits.data(), ref_logits.size()), "running the whole model");
+        const auto logits_bytes = static_cast<std::streamsize>(ref_logits.size() * sizeof(float));
+        if (whole != nullptr) {
+            const bk_batch whole_batch = {request, 0, ctx, chunk, nullptr, 1};
+            check(bk_shard_run(whole, &whole_batch, ref_logits.data(), ref_logits.size()), "running the whole model");
+            check(bk_shard_drop(whole, request), "dropping a request");
+        } else if (!ref_in.read(reinterpret_cast<char *>(ref_logits.data()), logits_bytes)) {
+            std::fprintf(stderr, "birlik-gate: %s ends early\n", opt.reference.c_str());
+            return 1;
+        }
+        if (ref_out.is_open() && !ref_out.write(reinterpret_cast<const char *>(ref_logits.data()), logits_bytes)) {
+            std::fprintf(stderr, "birlik-gate: cannot write %s\n", opt.reference_out.c_str());
+            return 1;
+        }
+        if (shards.empty()) {
+            std::fprintf(stderr, "\rchunk %u/%u", c + 1, n_chunks);
+            continue;
+        }
 
         for (size_t s = 0; s < shards.size(); ++s) {
             const bool first = s == 0;
@@ -313,11 +376,15 @@ int main(int argc, char **argv) {
             evaluated++;
         }
 
-        check(bk_shard_drop(whole, request), "dropping a request");
         for (bk_shard *shard : shards) check(bk_shard_drop(shard, request), "dropping a request");
         std::fprintf(stderr, "\rchunk %u/%u", c + 1, n_chunks);
     }
     std::fprintf(stderr, "\n");
+    if (shards.empty()) {
+        std::printf("reference %s: %u chunks of %u tokens\n", opt.reference_out.c_str(), n_chunks, ctx);
+        bk_shard_close(whole);
+        return 0;
+    }
 
     const double ppl_ref = std::exp(nll_ref / static_cast<double>(evaluated));
     const double ppl_split = std::exp(nll_split / static_cast<double>(evaluated));

@@ -1,0 +1,4 @@
+# The models of the stage B1 gate (PLAN.md §11), Q4_K_M from Hugging Face: repository, file, size
+bartowski/Meta-Llama-3.1-8B-Instruct-GGUF        Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf        4.92 GB
+Qwen/Qwen3-32B-GGUF                              Qwen3-32B-Q4_K_M.gguf                         19.76 GB
+bartowski/DeepSeek-R1-Distill-Llama-70B-GGUF     DeepSeek-R1-Distill-Llama-70B-Q4_K_M.gguf     42.52 GB
