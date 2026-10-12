@@ -1,13 +1,14 @@
 cmake_minimum_required(VERSION 3.25)
 project(birlik VERSION 0.1.0 LANGUAGES C CXX)
 
+# llama.cpp with engine/patches. Backends are llama.cpp's own options, e.g. -DGGML_CUDA=ON or -DGGML_VULKAN=ON;
+# Metal is on by default on Apple. It is added before the C++ standard is set: llama.cpp is C++17 and must stay so
+# (MSVC would compile its u8 literals as C++20 char8_t).
+include(cmake/llama.cmake)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 11)
-
-# llama.cpp with engine/patches. Backends are llama.cpp's own options, e.g. -DGGML_CUDA=ON or -DGGML_VULKAN=ON;
-# Metal is on by default on Apple.
-include(cmake/llama.cmake)
 
 if(MSVC)
   set(birlik_warnings /W4 /WX)

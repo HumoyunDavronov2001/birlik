@@ -1,0 +1,240 @@
+//! Networking of BIRLIK nodes on iroh: QUIC connections dialed by public key, and tensor streams.
+//!
+//! Stage B1 covers what a ring of devices given by hand needs: a node identity, an endpoint on a known address
+//! without relays or address lookup, and links — unidirectional streams of tensor frames
+//! (`protocol/FRAME.md`) that feed one window of layers on the next device. Discovery, pairing, relays and gossip
+//! come in stage B2.
+
+use std::fmt;
+use std::net::SocketAddr;
+use std::path::Path;
+use std::str::FromStr;
+
+use birlik_protocol::frame::{FrameError, FrameHeader, HEADER_LEN};
+pub use iroh::endpoint::{Connection, RecvStream, SendStream};
+pub use iroh::{Endpoint, EndpointId, SecretKey};
+use iroh::{EndpointAddr, RelayMode, TransportAddr, endpoint::presets};
+
+/// ALPN of the tensor streams between neighbors on a ring.
+pub const TENSOR_ALPN: &[u8] = b"birlik/tensor/1";
+
+/// Magic bytes at the start of a link: a stream of tensor frames for one window of layers.
+pub const LINK_MAGIC: [u8; 4] = *b"BKL1";
+
+/// An error of the network layer.
+#[derive(Debug)]
+pub struct Error(String);
+
+impl Error {
+    fn new(context: &str, error: impl fmt::Display) -> Self {
+        Self(format!("{context}: {error}"))
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for Error {}
+
+pub type Result<T> = std::result::Result<T, Error>;
+
+/// Loads this node's secret key from `path`, or creates one there. The public half is the node's id.
+///
+/// # Errors
+/// The file cannot be read or written, or it does not hold a key.
+pub fn load_or_create_key(path: &Path) -> Result<SecretKey> {
+    match std::fs::read(path) {
+        Ok(bytes) => {
+            let bytes: [u8; 32] = bytes.try_into().map_err(|_| Error(format!("{} is not a key", path.display())))?;
+            Ok(SecretKey::from_bytes(&bytes))
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            let key = SecretKey::generate();
+            if let Some(dir) = path.parent() {
+                std::fs::create_dir_all(dir).map_err(|e| Error::new("creating the key directory", e))?;
+            }
+            write_private(path, &key.to_bytes()).map_err(|e| Error::new("writing the key", e))?;
+            Ok(key)
+        }
+        Err(e) => Err(Error::new("reading the key", e)),
+    }
+}
+
+#[cfg(unix)]
+fn write_private(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    use std::io::Write;
+    use std::os::unix::fs::OpenOptionsExt;
+    let mut file = std::fs::OpenOptions::new().write(true).create_new(true).mode(0o600).open(path)?;
+    file.write_all(bytes)
+}
+
+#[cfg(not(unix))]
+fn write_private(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    std::fs::write(path, bytes)
+}
+
+/// A peer given by hand: `<node id>@<ip:port>`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Peer {
+    pub id: EndpointId,
+    pub addr: SocketAddr,
+}
+
+impl FromStr for Peer {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        let (id, addr) = s.split_once('@').ok_or_else(|| Error(format!("expected <node id>@<ip:port>, got {s}")))?;
+        Ok(Self {
+            id: id.parse().map_err(|e| Error::new("node id", e))?,
+            addr: addr.parse().map_err(|e| Error::new("address", e))?,
+        })
+    }
+}
+
+impl fmt::Display for Peer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}@{}", self.id, self.addr)
+    }
+}
+
+/// Binds an endpoint on `listen` that speaks the tensor protocol, with no relays and no address lookup.
+///
+/// # Errors
+/// The address cannot be bound.
+pub async fn bind(key: SecretKey, listen: SocketAddr) -> Result<Endpoint> {
+    Endpoint::builder(presets::Minimal)
+        .secret_key(key)
+        .alpns(vec![TENSOR_ALPN.to_vec()])
+        .relay_mode(RelayMode::Disabled)
+        .clear_ip_transports()
+        .bind_addr(listen)
+        .map_err(|e| Error::new("listen address", e))?
+        .bind()
+        .await
+        .map_err(|e| Error::new("binding the endpoint", e))
+}
+
+/// Dials a peer by its id at a known address.
+///
+/// # Errors
+/// The peer cannot be reached, or it is not the node with this id.
+pub async fn connect(endpoint: &Endpoint, peer: &Peer) -> Result<Connection> {
+    let addr = EndpointAddr::from_parts(peer.id, [TransportAddr::Ip(peer.addr)]);
+    endpoint.connect(addr, TENSOR_ALPN).await.map_err(|e| Error::new(&format!("connecting to {peer}"), e))
+}
+
+/// Opens a link to the window that starts at layer `window_begin` on the peer.
+///
+/// # Errors
+/// The connection is gone.
+pub async fn open_link(connection: &Connection, window_begin: u32) -> Result<SendStream> {
+    let mut stream = connection.open_uni().await.map_err(|e| Error::new("opening a link", e))?;
+    let mut header = [0u8; 8];
+    header[..4].copy_from_slice(&LINK_MAGIC);
+    header[4..].copy_from_slice(&window_begin.to_le_bytes());
+    stream.write_all(&header).await.map_err(|e| Error::new("writing a link header", e))?;
+    Ok(stream)
+}
+
+/// Accepts the next link on a connection: the stream and the first layer of the window it feeds. `None` when the
+/// connection closes.
+///
+/// # Errors
+/// The stream does not start with a link header.
+pub async fn accept_link(connection: &Connection) -> Result<Option<(u32, RecvStream)>> {
+    let Ok(mut stream) = connection.accept_uni().await else {
+        return Ok(None);
+    };
+    let mut header = [0u8; 8];
+    stream.read_exact(&mut header).await.map_err(|e| Error::new("reading a link header", e))?;
+    if header[..4] != LINK_MAGIC {
+        return Err(Error("a link starts with an unknown magic".into()));
+    }
+    Ok(Some((u32::from_le_bytes([header[4], header[5], header[6], header[7]]), stream)))
+}
+
+/// Writes one tensor frame.
+///
+/// # Errors
+/// The payload does not match the header, or the stream is gone.
+pub async fn write_frame(stream: &mut SendStream, header: &FrameHeader, payload: &[u8]) -> Result<()> {
+    if payload.len() != header.payload_len as usize {
+        return Err(Error("the payload does not match the frame header".into()));
+    }
+    stream.write_all(&header.encode()).await.map_err(|e| Error::new("writing a frame", e))?;
+    stream.write_all(payload).await.map_err(|e| Error::new("writing a frame", e))
+}
+
+/// Reads one tensor frame into `payload`; `None` when the stream ends cleanly between frames.
+///
+/// # Errors
+/// The stream breaks inside a frame, or the header is invalid.
+pub async fn read_frame(stream: &mut RecvStream, payload: &mut Vec<u8>) -> Result<Option<FrameHeader>> {
+    let mut head = [0u8; HEADER_LEN];
+    let mut filled = 0;
+    while filled < HEADER_LEN {
+        match stream.read(&mut head[filled..]).await.map_err(|e| Error::new("reading a frame", e))? {
+            Some(0) => {}
+            Some(n) => filled += n,
+            None if filled == 0 => return Ok(None),
+            None => return Err(Error("the stream ended inside a frame header".into())),
+        }
+    }
+    let header = FrameHeader::decode(&head).map_err(|e: FrameError| Error::new("frame header", e))?;
+    payload.resize(header.payload_len as usize, 0);
+    stream.read_exact(payload).await.map_err(|e| Error::new("reading a frame payload", e))?;
+    Ok(Some(header))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use birlik_protocol::frame::{DType, Flags};
+
+    #[test]
+    fn peer_round_trips() {
+        let id = SecretKey::generate().public();
+        let peer: Peer = format!("{id}@127.0.0.1:7700").parse().unwrap();
+        assert_eq!(peer.addr, "127.0.0.1:7700".parse().unwrap());
+        assert_eq!(peer.to_string().parse::<Peer>().unwrap(), peer);
+        assert!("no-at-sign".parse::<Peer>().is_err());
+    }
+
+    #[tokio::test]
+    async fn frames_travel_over_a_link() {
+        let a = bind(SecretKey::generate(), "127.0.0.1:0".parse().unwrap()).await.unwrap();
+        let b = bind(SecretKey::generate(), "127.0.0.1:0".parse().unwrap()).await.unwrap();
+        let peer = Peer { id: b.id(), addr: b.bound_sockets()[0] };
+
+        let receiver = tokio::spawn(async move {
+            let incoming = b.accept().await.unwrap().await.unwrap();
+            let (window, mut stream) = accept_link(&incoming).await.unwrap().unwrap();
+            let mut payload = Vec::new();
+            let mut frames = Vec::new();
+            while let Some(header) = read_frame(&mut stream, &mut payload).await.unwrap() {
+                frames.push((header, payload.clone()));
+            }
+            (window, frames)
+        });
+
+        let connection = connect(&a, &peer).await.unwrap();
+        let mut link = open_link(&connection, 20).await.unwrap();
+        for step in 0..3u32 {
+            let payload: Vec<u8> = (0..16u8).map(|i| i + u8::try_from(step).unwrap()).collect();
+            let header = FrameHeader::new(DType::F16, Flags::empty(), 9, step, step, 2, 4).unwrap();
+            write_frame(&mut link, &header, &payload).await.unwrap();
+        }
+        link.finish().unwrap();
+
+        let (window, frames) = receiver.await.unwrap();
+        assert_eq!(window, 20);
+        assert_eq!(frames.len(), 3);
+        assert_eq!(frames[2].0.step, 2);
+        assert_eq!(frames[2].1[0], 2);
+        connection.close(0u32.into(), b"done");
+    }
+}
