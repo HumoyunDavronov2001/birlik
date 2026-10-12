@@ -206,8 +206,8 @@ cross the network, so phones and internet links work as well as a LAN.
   shows the current load. Tokens travel around the ring at their real measured speed; draft tokens are visible too.
 - U2 — One design system: tokens are built from a single JSON file (W3C DTCG) into CSS, Swift and Kotlin.
   Two themes (dark by default, light). A single accent color — turquoise.
-- U3 — Fonts: Inter + IBM Plex Mono, with full Uzbek Latin (U+02BB) and Cyrillic coverage for the translations.
-  A 9-step type scale; any other size is forbidden.
+- U3 — Fonts: Inter + IBM Plex Mono for Latin and Cyrillic; Noto Sans SC, Noto Sans Arabic and Noto Sans Devanagari
+  for Chinese, Arabic and Hindi, loaded only for those languages. A 9-step type scale; any other size is forbidden.
 - U4 — WCAG 2.2 AA: all text ≥ 4.5:1; status colors always come with an icon and a label; chart colors pass
   color-vision-deficiency checks; every chart has a table view; the whole app works from the keyboard.
 - U5 — Motion uses only `transform`/`opacity`; reduced-motion mode turns particles off.
@@ -215,8 +215,8 @@ cross the network, so phones and internet links work as well as a LAN.
 - U7 — A ⌘K command palette and a keyboard shortcut for every action.
 - U8 — Platform experience: the ring in the desktop tray; iOS Live Activity, Dynamic Island, widget, Siri;
   Android Quick Settings tile, Glance widget; iOS Night mode.
-- U9 — Languages: English is the source language; translations into Uzbek (Latin and Cyrillic) and Russian.
-  Uzbek dates and numbers use our own formatter, because Chrome's ICU data lacks Uzbek names.
+- U9 — Languages: English is the source language; translations into Chinese (Simplified), Spanish, Hindi, Arabic,
+  French, Portuguese and Russian. Arabic is laid out right to left; dates and numbers use each language's own formats.
 - U10 — Budgets:
   - initial panel JS ≤ 180 KB, browser-node page ≤ 60 KB;
   - 60 fps with 1,000 devices;

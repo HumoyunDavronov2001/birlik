@@ -6,7 +6,7 @@
 > `tirik-halqa.js` → `living-ring.js`, `ranglar.py` → `colors.py`, `tokenlar.*` → `tokens.*`, `manba/` → `upstream/`;
 > tokenlar: `--fon` → `--bg`, `--yuza-N` → `--surface-N`, `--matn-N` → `--text-N`, `--firuza` → `--turquoise`,
 > `--oltin` → `--gold`, `--oltin-belgi` → `--gold-mark`, `--lojuvard` → `--lapis`, `--yuklama-N` → `--load-N`.
-> Interfeysning asosiy tili — ingliz tili; oʻzbekcha (lotin, kirill) va ruscha — tarjima.
+> Interfeysning asosiy tili — ingliz tili; tarjimalar: xitoy, ispan, hind, arab, fransuz, portugal va rus tillari.
 
 > *Omnarc* = *omni* (hammasi) + *arc* (yoy): har bir qurilma — bitta halqaning yoyi. Ochiq loyiha, Apache-2.0. Versiya 3.1 (13.10.2026): uchta asosiy qo'llanish, aniqlik rejimi (Y10) va «hech qachon sekinlashtirmaydi»
 > qoidasi (R6) qo'shildi.
@@ -217,8 +217,9 @@ Tarmoqdan faqat qisqa xabarlar o'tadi, shuning uchun telefonlar va internet ham 
   bildiradi. Token halqa bo'ylab o'lchangan haqiqiy tezlikda yuradi, taxminiy tokenlar ham ko'rinadi.
 - U2 — Bitta dizayn tizimi: tokenlar bitta JSON'dan (W3C DTCG) CSS, Swift va Kotlin'ga yig'iladi.
   Ikki mavzu bor (tun — standart, kun). Urg'u rangi bitta — firuza.
-- U3 — Shriftlar: Inter + IBM Plex Mono, o'zbek lotin (U+02BB) va kirill belgilari to'liq. Shrift shkalasi
-  9 pog'onali, boshqa o'lcham taqiqlangan.
+- U3 — Shriftlar: lotin va kirill uchun Inter + IBM Plex Mono; xitoy, arab va hind tillari uchun Noto Sans SC,
+  Noto Sans Arabic va Noto Sans Devanagari — faqat o'sha tillarda yuklanadi. Shrift shkalasi 9 pog'onali, boshqa
+  o'lcham taqiqlangan.
 - U4 — WCAG 2.2 AA: barcha matn ≥ 4,5:1; holat rangi doim belgi va yozuv bilan; grafik ranglari rang ko'rligi
   tekshiruvidan o'tgan; har grafikning jadval ko'rinishi bor; butun ilova klaviatura bilan boshqariladi.
 - U5 — Harakat faqat `transform`/`opacity` bilan; kam harakat rejimida zarrachalar o'chadi.
@@ -226,8 +227,8 @@ Tarmoqdan faqat qisqa xabarlar o'tadi, shuning uchun telefonlar va internet ham 
 - U7 — ⌘K buyruqlar paneli va har amal uchun klaviatura yorlig'i.
 - U8 — Platforma tajribasi: tray'dagi halqa; iOS Live Activity, Dynamic Island, vidjet, Siri; Android
   Quick Settings plitkasi, Glance vidjet; iOS Tun rejimi.
-- U9 — Tillar: o'zbekcha (lotin, kirill), ruscha, inglizcha. Sana va raqamlar o'z formatlovchimiz bilan
-  formatlanadi, chunki Chrome ICU'da o'zbekcha nomlar yo'q.
+- U9 — Tillar: asosiy til — ingliz tili; tarjimalar: xitoy (soddalashtirilgan), ispan, hind, arab, fransuz,
+  portugal va rus tillari. Arab tilida sahifa o'ngdan chapga; sana va raqamlar har tilning o'z formatida.
 - U11 — Tirik belgi (WebGL2 zarrachali halqa) tizim mexanizmini jonli ko'rsatadi: yoy — qurilma, oltin kometa — token,
   oraliq — tarmoq. Kirish sahnasi, 3D og'ish va qurilma qo'shish ta'siri bor. Kam harakat rejimida statik, WebGL2
   bo'lmasa SVG chiqadi. Batafsil — [REJA.md §9.3](REJA.md).

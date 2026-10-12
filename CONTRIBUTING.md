@@ -1,7 +1,7 @@
 # Contributing to Omnarc
 
 Thank you for helping. Omnarc is developed in the open; everything — code, comments, docs and commit messages —
-is written in English. The product itself is translated (Uzbek, Russian and more).
+is written in English. The product itself is translated (Chinese, Spanish, Hindi, Arabic, French, Portuguese and Russian).
 
 ## Where things are
 

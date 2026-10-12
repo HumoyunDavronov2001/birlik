@@ -190,8 +190,8 @@ Telemetry: by default **nothing** is sent anywhere.
 3. **Join in 30 seconds.**
 4. **The owner stays in control.** The owner decides what a device gives and when; the limits are always visible.
 5. **Quiet by default.** Contributing in the background never gets in the way.
-6. **For everyone.** English first, with Uzbek (Latin and Cyrillic) and Russian translations; WCAG 2.2 AA;
-   reduced-motion mode; safe for color-vision deficiency.
+6. **For everyone.** English first, with Chinese, Spanish, Hindi, Arabic (right to left), French, Portuguese and
+   Russian translations; WCAG 2.2 AA; reduced-motion mode; safe for color-vision deficiency.
 7. **Fast.** 60 fps and strict budgets (9.8).
 
 ### 9.2 Visual language — the Ring
@@ -201,11 +201,11 @@ logo and the home screen are a ring too. Arcs of different lengths (different de
 that is the Omnarc idea itself.
 
 - **Logo:** five uneven arcs and one dot (the token).
-- **Colors** (OKLCH, taken from Samarkand tilework):
+- **Colors** (OKLCH, mineral pigments — lapis, turquoise and gold on a warm plaster white):
 
   | Token | Dark (default) | Light | Role |
   |---|---|---|---|
-  | `--bg` | `#060a13` | `#fbf9f6` (ganch) | page background |
+  | `--bg` | `#060a13` | `#fbf9f6` (plaster) | page background |
   | `--surface-1/2/3` | `#0d131d` / `#151c28` / `#1e2533` | `#ffffff` / `#f4f2ee` / `#ece9e4` | cards, panels |
   | `--text-1/2/3` | `#f1f3f8` / `#bcc3cf` / `#949ca9` | `#0f1726` / `#3f4858` / `#5d6574` | text (the faintest: 5.25:1) |
   | `--turquoise` | `#3dd7cf` | `#007573` | the single accent: primary button, focus, tokens |
@@ -219,9 +219,9 @@ that is the Omnarc idea itself.
 - **Chart colors:** compute (aqua), network (blue), draft (orange) — three colors. They pass color-vision-deficiency
   checks for every pair in both themes (CVD ΔE ≥ 9.2). Load uses a 7-step turquoise scale. Status uses four colors,
   always with an icon and a label.
-- **Fonts:** **Inter** (variable, optical sizes) + **IBM Plex Mono** (numbers, IDs). Both fully cover Uzbek Latin
-  oʻ/gʻ (U+02BB) and Cyrillic Ў Қ Ғ Ҳ — verified, which the Uzbek translation needs. Geist, Manrope, JetBrains Mono
-  and Space Grotesk lack these glyphs, so they were rejected. Fonts are served by us (woff2) — no outside requests.
+- **Fonts:** **Inter** (variable, optical sizes) + **IBM Plex Mono** (numbers, IDs) for Latin, Cyrillic and Greek;
+  **Noto Sans SC**, **Noto Sans Arabic** and **Noto Sans Devanagari** for Chinese, Arabic and Hindi. A script's font
+  loads only when its language is on (`unicode-range`). Fonts are served by us (woff2) — no outside requests.
 - **Type scale** (9 steps): 11 · 12 · 13 · 14 · 16 · 20 · 28 · 40 · 56. Any other size is forbidden.
 - **Layout:** a 4px spacing grid (4…64), radii 6/10/16, 1px hairlines.
 - **Motion:** durations 120/200/320/480 ms, easing `cubic-bezier(.2,.8,.2,1)`.
@@ -324,8 +324,9 @@ live data over a Connect stream.
 
 ### 9.9 Language
 
-English is the source language. Translations (Uzbek Latin and Cyrillic, Russian) are compiled in with Paraglide.
-Chrome's ICU data lacks Uzbek names, so Uzbek numbers, dates and month names use our own formatter.
+English is the source language. Translations — Chinese (Simplified), Spanish, Hindi, Arabic, French, Portuguese and
+Russian — are compiled in with Paraglide. Arabic turns the layout right to left: the CSS uses logical properties, and
+icons that point a direction are mirrored. Numbers and dates use `Intl` with each language's own formats.
 
 ## 10. Repository layout
 
@@ -343,7 +344,7 @@ omnarc/
   relay/           relay, signaling, directory
   bench/           benchmark scripts and results
   design/          tokens.json, tokens.css, colors.py, living-ring.js, concept.html
-  docs/            Astro Starlight (en, uz-Latn, uz-Cyrl, ru)
+  docs/            Astro Starlight (en, zh-Hans, es, hi, ar, fr, pt, ru)
   NOTICE · LICENSE (Apache-2.0) · UPSTREAM.md
 ```
 
@@ -362,7 +363,7 @@ The UI is built together with every stage — it is never left for the end.
 | **B6 Scale** | control (OIDC/LDAP, RBAC, quotas, schedules, audit), public network (directory, TOPLOC, credit log); panel: Organization, Network, Credits | W7; cheating nodes are caught 100% of the time |
 | **B7 Modalities and training** | speech-to-text, text-to-speech, images (stable-diffusion.cpp), embeddings; LoRA (DiLoCo), RL rollouts; panel: Training | LoRA training for a low-resource language succeeds on 4+ nodes over the internet; audio and image APIs work; the family ring: a spoken question from a weak phone (≤ 4 GB) gets a spoken answer, the first sound ≤ 3 s after the question ends, also with the internet switched off |
 | **B8 Islands and API** | MLX island (RDMA TB5), GPU island (vLLM/SGLang), full API compatibility, agent backend (A4); panel: model catalog | W9; W13; compatibility tests with the official SDKs (openai, anthropic, ollama) |
-| **B9 World benchmark and release** | omnarc-bench (on the same hardware as exo, prima, Parallax, distributed-llama, llama.cpp RPC, Mesh LLM, colibri), results site, docs in 4 languages, signed releases, app stores | W10; v1.0 |
+| **B9 World benchmark and release** | omnarc-bench (on the same hardware as exo, prima, Parallax, distributed-llama, llama.cpp RPC, Mesh LLM, colibri), results site, docs in 8 languages, signed releases, app stores | W10; v1.0 |
 
 ## 12. Distribution
 

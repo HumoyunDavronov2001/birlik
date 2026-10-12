@@ -6,7 +6,7 @@
 > `tirik-halqa.js` → `living-ring.js`, `ranglar.py` → `colors.py`, `tokenlar.*` → `tokens.*`, `manba/` → `upstream/`;
 > tokenlar: `--fon` → `--bg`, `--yuza-N` → `--surface-N`, `--matn-N` → `--text-N`, `--firuza` → `--turquoise`,
 > `--oltin` → `--gold`, `--oltin-belgi` → `--gold-mark`, `--lojuvard` → `--lapis`, `--yuklama-N` → `--load-N`.
-> Interfeysning asosiy tili — ingliz tili; oʻzbekcha (lotin, kirill) va ruscha — tarjima.
+> Interfeysning asosiy tili — ingliz tili; tarjimalar: xitoy, ispan, hind, arab, fransuz, portugal va rus tillari.
 
 > **Nima qilinadi** — [TALABLAR.md](TALABLAR.md). **Qanday qilinadi** — shu fayl: arxitektura, texnologiyalar,
 > protokollar, dizayn tizimi, ekranlar va bosqichlar.
@@ -199,8 +199,8 @@ Telemetriya: sukut bo'yicha tashqariga **hech narsa** yuborilmaydi.
 3. **30 soniyada qo'shilish.**
 4. **Nazorat egasida.** Qurilma nimani va qachon berishini egasi belgilaydi; chegaralar doim ko'rinib turadi.
 5. **Jim ishlaydi.** Fondagi hissa foydalanuvchini bezovta qilmaydi.
-6. **Hamma uchun.** O'zbekcha (lotin va kirill), ruscha, inglizcha; WCAG 2.2 AA; kam harakat rejimi; rang
-   ko'rligiga chidamli.
+6. **Hamma uchun.** Asosiy til inglizcha; xitoy, ispan, hind, arab (o'ngdan chapga), fransuz, portugal va rus
+   tillariga tarjima; WCAG 2.2 AA; kam harakat rejimi; rang ko'rligiga chidamli.
 7. **Tez.** 60 fps va qat'iy byudjetlar (9.8).
 
 ### 9.2 Vizual til — «Halqa»
@@ -210,11 +210,11 @@ logotip ham, bosh ekran ham halqa. Har xil uzunlikdagi yoylar (har xil qurilmala
 hosil qiladi — bu Omnarc g'oyasining o'zi.
 
 - **Logotip:** 5 ta notekis yoy va bitta nuqta (token).
-- **Ranglar** (OKLCH, Samarqand koshinlaridan olingan):
+- **Ranglar** (OKLCH, mineral bo'yoqlar — iliq oq suvoq ustida lojuvard, firuza va oltin):
 
   | Token | Tun (standart) | Kun | Vazifa |
   |---|---|---|---|
-  | `--fon` | `#060a13` | `#fbf9f6` (ganch) | sahifa foni |
+  | `--fon` | `#060a13` | `#fbf9f6` (suvoq) | sahifa foni |
   | `--yuza-1/2/3` | `#0d131d` / `#151c28` / `#1e2533` | `#ffffff` / `#f4f2ee` / `#ece9e4` | kartalar, panellar |
   | `--matn-1/2/3` | `#f1f3f8` / `#bcc3cf` / `#949ca9` | `#0f1726` / `#3f4858` / `#5d6574` | matn (eng xira — 5,25:1) |
   | `--firuza` | `#3dd7cf` | `#007573` | yagona faol urg'u: asosiy tugma, fokus, token |
@@ -227,10 +227,10 @@ hosil qiladi — bu Omnarc g'oyasining o'zi.
 - **Grafik ranglari:** hisob (aqua), tarmoq (ko'k), taxmin (to'q sariq) — 3 ta rang. Ular ikkala mavzuda barcha
   juftlarda rang ko'rligi tekshiruvidan o'tgan (CVD ΔE ≥ 9,2). Yuklama uchun firuza rangining 7 pog'onali
   shkalasi ishlatiladi. Holat uchun 4 ta rang bor va ular doim belgi hamda yozuv bilan birga chiqadi.
-- **Shriftlar:** **Inter** (o'zgaruvchan, opsz) + **IBM Plex Mono** (raqamlar, ID). Ikkalasi ham oʻ/gʻ (U+02BB)
-  va kirill Ў Қ Ғ Ҳ harflarini to'liq qamrab oladi — tekshirilgan. Geist, Manrope, JetBrains Mono,
-  Space Grotesk'da bu belgilar yo'q, shuning uchun ular rad etildi. Shriftlar o'z serverimizdan beriladi
-  (woff2), tashqi so'rov yo'q.
+- **Shriftlar:** **Inter** (o'zgaruvchan, opsz) + **IBM Plex Mono** (raqamlar, ID) — lotin, kirill va yunon
+  yozuvlari uchun; **Noto Sans SC**, **Noto Sans Arabic** va **Noto Sans Devanagari** — xitoy, arab va hind tillari
+  uchun. Har yozuvning shrifti faqat o'sha til yoqilganda yuklanadi (`unicode-range`). Shriftlar o'z serverimizdan
+  beriladi (woff2), tashqi so'rov yo'q.
 - **Shrift shkalasi** (9 pog'ona): 11 · 12 · 13 · 14 · 16 · 20 · 28 · 40 · 56. Boshqa o'lcham ishlatish taqiqlangan.
 - **Joylashuv:** oraliq 4px panjarasida (4…64), burchaklar 6/10/16, chiziqlar 1px.
 - **Harakat:** davomiylik 120/200/320/480 ms, egri chiziq `cubic-bezier(.2,.8,.2,1)`.
@@ -334,8 +334,10 @@ yorliqlari bor. Panel jonli ma'lumotni Connect oqimi orqali oladi.
 
 ### 9.9 Til
 
-Tarjimalar Paraglide (kompilyatsiya vaqtida) orqali beriladi. Chrome ICU'da o'zbekcha nomlar kesilgan, shuning
-uchun raqam, sana va oy nomlari o'z funksiyamiz bilan formatlanadi.
+Asosiy til — ingliz tili. Tarjimalar — xitoy (soddalashtirilgan), ispan, hind, arab, fransuz, portugal va rus —
+Paraglide orqali kompilyatsiya vaqtida qo'shiladi. Arab tilida sahifa o'ngdan chapga joylashadi: CSS mantiqiy
+xossalardan foydalanadi, yo'nalish ko'rsatadigan belgilar ko'zgudagidek aylantiriladi. Raqam va sanalar har tilning
+o'z formatida (`Intl`).
 
 ## 10. Repo tuzilishi
 
@@ -353,7 +355,7 @@ omnarc/
   rele/            rele, signal, katalog
   olchov/          o'lchov skriptlari va natijalar
   dizayn/          tokenlar.json, tokenlar.css, ranglar.py, konsepsiya.html
-  hujjat/          Astro Starlight (uz-Latn, uz-Cyrl, ru, en)
+  hujjat/          Astro Starlight (en, zh-Hans, es, hi, ar, fr, pt, ru)
   NOTICE · LICENSE (Apache-2.0) · MANBA.md
 ```
 
@@ -372,7 +374,7 @@ UI har bosqich bilan birga quriladi — oxiriga qoldirilmaydi.
 | **B6 Miqyos** | markaz (OIDC/LDAP, RBAC, kvota, jadval, audit), ommaviy tarmoq (katalog, TOPLOC, kredit jurnali); panel: Tashkilot, Tarmoq, Kredit | W7; aldovchi tugunlar 100 % aniqlanadi |
 | **B7 Modallik va o'qitish** | STT, TTS, rasm (stable-diffusion.cpp), embedding; LoRA (DiLoCo), RL rollout; panel: O'qitish | internet orqali 4+ tugunda kam resursli til uchun LoRA o'qitiladi; audio va rasm API'lari ishlaydi; oila halqasi: kuchsiz telefondan (≤ 4 GB) ovozli savolga ovozli javob, birinchi tovush savol tugagach ≤ 3 s, internet o'chiq bo'lsa ham |
 | **B8 Orollar va API** | MLX oroli (RDMA TB5), GPU oroli (vLLM/SGLang), to'liq API moslik, agentlar uchun backend (A4); panel: Modellar katalogi | W9; W13; rasmiy SDK'lar (openai, anthropic, ollama) bilan moslik sinovlari |
-| **B9 Jahon o'lchovi va reliz** | omnarc-olchov (exo, prima, Parallax, distributed-llama, llama.cpp RPC, Mesh LLM, colibri bilan bir xil apparatda), natijalar sayti, hujjatlar 4 tilda, imzoli relizlar, do'konlar | W10; v1.0 |
+| **B9 Jahon o'lchovi va reliz** | omnarc-olchov (exo, prima, Parallax, distributed-llama, llama.cpp RPC, Mesh LLM, colibri bilan bir xil apparatda), natijalar sayti, hujjatlar 8 tilda, imzoli relizlar, do'konlar | W10; v1.0 |
 
 ## 12. Tarqatish
 

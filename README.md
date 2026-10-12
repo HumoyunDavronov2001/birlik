@@ -88,7 +88,7 @@ flowchart LR
 The interface shows the mechanism itself: an arc's length is the device's share of layers, its color is the load,
 and tokens move at the measured speed — so a slow device or a slow link stands out at a glance.
 
-- Colors come from Samarkand's tilework — lapis, turquoise, gold and ganch plaster — with a single accent.
+- Colors come from mineral pigments — lapis, turquoise and gold on a warm plaster white — with a single accent.
 - One token source ([`design/colors.py`](design/colors.py)) generates CSS, Swift, Kotlin and TypeScript; every text
   color passes WCAG AA and every chart color passes color-vision checks.
 - The living ring ([`design/living-ring.js`](design/living-ring.js), WebGL2, no dependencies) is the brand mark:

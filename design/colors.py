@@ -61,7 +61,7 @@ def blend(fg, bg, alpha):
     return "#%02x%02x%02x" % tuple(round(alpha * x + (1 - alpha) * y) for x, y in zip(f, g))
 
 
-# Palette taken from Samarkand tilework: lapis, turquoise, gold and ganch (white plaster).
+# A mineral palette: lapis, turquoise and gold on a warm plaster white.
 THEMES = {
     "dark": {  # default theme
         "bg":               (0.145, 0.022, 262),
@@ -77,7 +77,7 @@ THEMES = {
         "gold-mark":        (0.835, 0.135, 84),    # graphic gold: tokens, logo dot
         "lapis":            (0.650, 0.160, 266),
     },
-    "light": {  # "ganch" paper
+    "light": {  # warm plaster paper
         "bg":               (0.983, 0.005, 85),
         "surface-1":        (1.000, 0.000, 0),
         "surface-2":        (0.962, 0.006, 85),
