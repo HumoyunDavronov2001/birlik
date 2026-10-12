@@ -12,6 +12,7 @@ set -euo pipefail
 
 dir=${1:?usage: gate.sh MODEL_DIR [BACKEND]}
 backend=${2:-auto}
+chunks=${BIRLIK_GATE_CHUNKS:-10}   # chunks of 512 wikitext-2 tokens; a 70B model on a laptop CPU takes minutes per chunk
 root=$(cd "$(dirname "$0")/../.." && pwd)
 gate="$root/build/engine/birlik-gate"
 out="$root/bench/b1/results"
@@ -28,7 +29,7 @@ report="$out/gate-$(hostname).txt"
 log="$root/build/data/gate-$(hostname).log"   # the engine's own messages, for when something fails
 : > "$log"
 {
-  echo "# B1 accuracy gate on $(hostname), backend $backend, $(date -u +%Y-%m-%dT%H:%MZ)"
+  echo "# B1 accuracy gate on $(hostname), backend $backend, $chunks chunks of 512 tokens, $(date -u +%Y-%m-%dT%H:%MZ)"
   echo "# engine $(git -C "$root" rev-parse --short HEAD), llama.cpp $(git -C "$root/engine/third_party/llama.cpp" rev-parse --short HEAD)"
 } > "$report"
 
@@ -43,10 +44,10 @@ while read -r repo file bytes sha256; do
   fi
   # the whole model runs once; its logits are kept and every split is compared with them
   name=$(basename "$file" .gguf)
-  ref="$root/build/data/reference-$name-$backend.bin"
+  ref="$root/build/data/reference-$name-$backend-$chunks.bin"
   if [ ! -f "$ref" ]; then
     echo "== $file, the whole model on one device" | tee -a "$report"
-    if ! "$gate" --model "$model" --split none --text "$text" --ctx 512 --chunks 20 --backend "$backend" \
+    if ! "$gate" --model "$model" --split none --text "$text" --ctx 512 --chunks "$chunks" --backend "$backend" \
         --reference-out "$ref.part" 2>>"$log" | tee -a "$report"; then
       echo "failed; see $log" | tee -a "$report"
       status=1
