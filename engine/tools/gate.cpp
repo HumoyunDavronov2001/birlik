@@ -244,6 +244,10 @@ int main(int argc, char **argv) {
     std::ifstream ref_in;
     if (!opt.reference.empty()) {
         ref_in.open(opt.reference, std::ios::binary);
+        if (!ref_in) {
+            std::fprintf(stderr, "birlik-gate: cannot read %s\n", opt.reference.c_str());
+            return 1;
+        }
         char magic[4] = {};
         uint32_t head[4] = {};  // vocab, ctx, chunks, tokens
         ref_in.read(magic, 4);
@@ -298,6 +302,10 @@ int main(int argc, char **argv) {
     std::ofstream ref_out;
     if (!opt.reference_out.empty()) {
         ref_out.open(opt.reference_out, std::ios::binary);
+        if (!ref_out) {
+            std::fprintf(stderr, "birlik-gate: cannot write %s\n", opt.reference_out.c_str());
+            return 1;
+        }
         const uint32_t head[4] = {static_cast<uint32_t>(vocab), ctx, n_chunks, static_cast<uint32_t>(tokens.size())};
         ref_out.write("BKR1", 4);
         ref_out.write(reinterpret_cast<const char *>(head), sizeof(head));

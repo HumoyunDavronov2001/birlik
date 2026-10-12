@@ -6,9 +6,9 @@ name: Engine backends
 on:
   push:
     branches: [main]
-    paths: ["engine/**", ".github/workflows/engine-backends.yml"]
+    paths: ["engine/**", "bench/b1/**", ".github/workflows/engine-backends.yml"]
   pull_request:
-    paths: ["engine/**", ".github/workflows/engine-backends.yml"]
+    paths: ["engine/**", "bench/b1/**", ".github/workflows/engine-backends.yml"]
   schedule:
     - cron: "0 3 * * 1"
   workflow_dispatch:
@@ -132,3 +132,14 @@ jobs:
         run: |
           grep -E ": error:|fatal error|error:" build/engine-build.log | sort -u | head -40 |
             while IFS= read -r line; do echo "::error::${line}"; done
+
+  prima-linux:
+    name: prima.cpp for the TPOT comparison (Linux, build)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - run: sudo apt-get update && sudo apt-get install -y libzmq3-dev
+      - name: bench/b1/prima.sh
+        run: bench/b1/prima.sh
+      - name: It runs
+        run: build/prima.cpp/llama-cli --version

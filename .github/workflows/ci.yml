@@ -149,6 +149,17 @@ jobs:
           BIRLIK_ENGINE: ${{ github.workspace }}/build/engine/${{ runner.os == 'Windows' && 'Release/birlik-engine.exe' || 'birlik-engine' }}
           BIRLIK_TEST_MODEL: ${{ github.workspace }}/build/models/stories15M-q8_0.gguf
         run: cargo test -p birlik-node --features engine-tests
+      - name: The Windows download script of the B1 gate, on a small model
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $list = Join-Path $env:RUNNER_TEMP "models.txt"
+          "ggml-org/models-moved tinyllamas/stories15M-q8_0.gguf 26671328 2eda49203f2f044f3dddf29a7dd7cc861ef5a0340f518a19613d73ba6d9c06b6" | Set-Content $list
+          $dir = Join-Path $env:RUNNER_TEMP "models"
+          foreach ($run in 1, 2) {
+            powershell -ExecutionPolicy Bypass -File bench\b1\download.ps1 -Dir $dir -List $list -Model all
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+          }
       - name: Programs to try on real devices (birlik-node next to birlik-engine)
         if: github.event_name == 'push'
         shell: bash

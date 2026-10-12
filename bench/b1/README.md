@@ -7,8 +7,20 @@ PLAN.md §11 closes stage B1 when three things hold:
 2. **A 70B model runs on Linux and Windows computers** as one ring.
 3. **Time per output token (TPOT) is no worse than prima.cpp's** on the same hardware.
 
-The models, all Q4_K_M from Hugging Face, are listed in [`models.txt`](models.txt) (67 GB together). Results go to
-[`results/`](results/) with the host, the backend and the commits they were measured on.
+The models, all Q4_K_M from Hugging Face, are listed in [`models.txt`](models.txt) with their sizes and SHA-256
+(67 GB together). [`download.sh`](download.sh) (Linux, macOS) and [`download.ps1`](download.ps1) (Windows) fetch
+them; a broken download resumes, and every file is checked before use. Results go to [`results/`](results/) with the
+host, the backend and the commits they were measured on.
+
+```bash
+bench/b1/download.sh ~/models            # all three; or 8b, 32b, 70b
+```
+```powershell
+powershell -ExecutionPolicy Bypass -File bench\b1\download.ps1 -Dir D:\models -Model 70b
+```
+
+Ready-made programs for each system (`birlik-node`, `birlik-engine`, `birlik-gate`) are the artifacts of every CI run
+on `main` (Actions → CI → a run → Artifacts); unpack them into one folder.
 
 ## 1. Accuracy gate
 
@@ -52,7 +64,8 @@ is repeated three times, and the median TPOT counts.
 | one round: 40 + 40 layers | `--world 2 -lw "40,40" --prefetch` | head `0:40,80:81`, worker `40:80` |
 | two rounds: 20 + 20 layers each | `--world 2 -lw "20,20" --prefetch` | head `0:20,40:60,80:81`, worker `20:40,60:80` |
 
-prima.cpp, rank 0 and rank 1 (build it as its README says, `make USE_HIGHS=1` on rank 0):
+prima.cpp, rank 0 and rank 1 — [`prima.sh`](prima.sh) builds it at the commit BIRLIK studied (it needs ZeroMQ:
+`sudo apt install libzmq3-dev`; HiGHS is built by the script):
 
 ```bash
 ./llama-cli -m R1-Distill-70B.gguf -c 1024 -n 128 --temp 0 -p "<prompt>" \

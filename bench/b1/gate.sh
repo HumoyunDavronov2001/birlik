@@ -5,7 +5,8 @@
 #
 #   bench/b1/gate.sh MODEL_DIR [BACKEND]      # BACKEND: auto (default), cpu, cuda, vulkan, metal
 #
-# MODEL_DIR holds the files listed in bench/b1/models.txt. Results go to bench/b1/results/gate-<host>.txt. The whole
+# MODEL_DIR holds the files listed in bench/b1/models.txt (bench/b1/download.sh fetches them; BIRLIK_GATE_MODELS
+# names another list). Results go to bench/b1/results/gate-<host>.txt. The whole
 # model runs once per model and backend; its logits are kept in build/data (about 5 GB per model) for the splits.
 set -euo pipefail
 
@@ -24,25 +25,34 @@ if [ ! -f "$text" ]; then
 fi
 
 report="$out/gate-$(hostname).txt"
+log="$root/build/data/gate-$(hostname).log"   # the engine's own messages, for when something fails
+: > "$log"
 {
   echo "# B1 accuracy gate on $(hostname), backend $backend, $(date -u +%Y-%m-%dT%H:%MZ)"
   echo "# engine $(git -C "$root" rev-parse --short HEAD), llama.cpp $(git -C "$root/engine/third_party/llama.cpp" rev-parse --short HEAD)"
 } > "$report"
 
 status=0
-while read -r repo file size unit; do
+while read -r repo file bytes sha256; do
   [[ -z "$repo" || "$repo" == \#* ]] && continue
   model="$dir/$file"
   if [ ! -f "$model" ]; then
-    echo "missing $model (from huggingface.co/$repo, $size $unit)" | tee -a "$report"
+    echo "missing $model: bench/b1/download.sh $dir" | tee -a "$report"
     status=1
     continue
   fi
   # the whole model runs once; its logits are kept and every split is compared with them
-  ref="$root/build/data/reference-${file%.gguf}-$backend.bin"
+  name=$(basename "$file" .gguf)
+  ref="$root/build/data/reference-$name-$backend.bin"
   if [ ! -f "$ref" ]; then
-    "$gate" --model "$model" --split none --text "$text" --ctx 512 --chunks 20 --backend "$backend" \
-      --reference-out "$ref.part" 2>/dev/null && mv "$ref.part" "$ref"
+    echo "== $file, the whole model on one device" | tee -a "$report"
+    if ! "$gate" --model "$model" --split none --text "$text" --ctx 512 --chunks 20 --backend "$backend" \
+        --reference-out "$ref.part" 2>>"$log" | tee -a "$report"; then
+      echo "failed; see $log" | tee -a "$report"
+      status=1
+      continue
+    fi
+    mv "$ref.part" "$ref"
   fi
   # two halves (the second with the output head); two and four windows with the output head alone, as on a ring
   for split in halves even:2 even:4; do
@@ -50,9 +60,10 @@ while read -r repo file size unit; do
     [ "$split" != halves ] && args=(--split "$split")
     echo "== $file, split $split" | tee -a "$report"
     if ! "$gate" --model "$model" "${args[@]}" --reference "$ref" --ctx 512 --wire f16 \
-        --backend "$backend" 2>/dev/null | tee -a "$report"; then
+        --backend "$backend" 2>>"$log" | tee -a "$report"; then
+      echo "failed; see $log" | tee -a "$report"
       status=1
     fi
   done
-done < "$root/bench/b1/models.txt"
+done < "${BIRLIK_GATE_MODELS:-$root/bench/b1/models.txt}"
 exit $status
