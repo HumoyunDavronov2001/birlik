@@ -10,10 +10,10 @@ use std::net::SocketAddr;
 use std::path::Path;
 use std::str::FromStr;
 
-use omnarc_protocol::frame::{FrameError, FrameHeader, HEADER_LEN};
 pub use iroh::endpoint::{Connection, RecvStream, SendStream};
 pub use iroh::{Endpoint, EndpointId, SecretKey};
 use iroh::{EndpointAddr, RelayMode, TransportAddr, endpoint::presets};
+use omnarc_protocol::frame::{FrameError, FrameHeader, HEADER_LEN};
 
 /// ALPN of the tensor streams between neighbors on a ring.
 pub const TENSOR_ALPN: &[u8] = b"omnarc/tensor/1";
