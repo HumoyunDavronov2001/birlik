@@ -1,3 +1,9 @@
+# Parallel compile jobs: one per 2 GB of memory and at most one per core. A C++ or Rust compiler can take up to ~2 GB,
+# and an unlimited `make -j` (what a bare `cmake --build --parallel` runs) freezes a machine with little memory.
+# OMNARC_JOBS overrides it.
+jobs := env_var_or_default("OMNARC_JOBS", `m=$(awk '/MemTotal/ { print int($2 / 2097152) }' /proc/meminfo 2>/dev/null || echo $(( $(sysctl -n hw.memsize) / 2147483648 ))); c=$(getconf _NPROCESSORS_ONLN); j=$(( m < c ? m : c )); echo $(( j < 1 ? 1 : j ))`)
+export CARGO_BUILD_JOBS := jobs
+
 # Run every check that CI runs (Linux subset).
 default: check
 
@@ -20,7 +26,7 @@ rust:
 engine:
     git submodule update --init
     cmake -S engine -B build/engine -DCMAKE_BUILD_TYPE=Release
-    cmake --build build/engine --parallel
+    cmake --build build/engine --parallel {{jobs}}
     ctest --test-dir build/engine --output-on-failure
 
 # The accuracy gate on real weights: stories15M (27 MB) from Hugging Face.
@@ -28,7 +34,7 @@ engine-real:
     mkdir -p build/models
     test -f build/models/stories15M-q8_0.gguf || curl -sSfL -o build/models/stories15M-q8_0.gguf https://huggingface.co/ggml-org/models-moved/resolve/main/tinyllamas/stories15M-q8_0.gguf
     cmake -S engine -B build/engine -DOMNARC_TEST_MODEL="$PWD/build/models/stories15M-q8_0.gguf"
-    cmake --build build/engine --parallel
+    cmake --build build/engine --parallel {{jobs}}
     ctest --test-dir build/engine --output-on-failure
     OMNARC_ENGINE="$PWD/build/engine/omnarc-engine" OMNARC_TEST_MODEL="$PWD/build/models/stories15M-q8_0.gguf" cargo test -p omnarc-engine-host --features engine-tests
     OMNARC_ENGINE="$PWD/build/engine/omnarc-engine" OMNARC_TEST_MODEL="$PWD/build/models/stories15M-q8_0.gguf" cargo test -p omnarc-node --features engine-tests

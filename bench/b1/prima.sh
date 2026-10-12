@@ -14,7 +14,11 @@ commit=288df6a2cc2120387e12d6f40798f30cc525c9ea
 highs_version=v1.15.1
 src="$root/build/prima.cpp"
 highs="$root/build/highs"
-jobs=$(getconf _NPROCESSORS_ONLN)
+# one compile job per 2 GB of memory and at most one per core: a job per core freezes a machine with little memory
+cores=$(getconf _NPROCESSORS_ONLN)
+memory_jobs=$(awk '/MemTotal/ { print int($2 / 2097152) }' /proc/meminfo 2>/dev/null || echo $(( $(sysctl -n hw.memsize) / 2147483648 )))
+jobs=${OMNARC_JOBS:-$(( memory_jobs < cores ? memory_jobs : cores ))}
+[ "$jobs" -ge 1 ] || jobs=1
 
 if ! printf '#include <zmq.h>\nint main(void) { return 0; }\n' | cc -x c - -lzmq -o /dev/null 2>/dev/null; then
   echo "prima.cpp needs ZeroMQ: sudo apt install libzmq3-dev (Ubuntu), brew install zeromq (macOS)" >&2

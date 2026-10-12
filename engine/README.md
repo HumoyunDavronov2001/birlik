@@ -50,7 +50,7 @@ On phones the engine runs inside the app, because iOS does not allow child proce
 ```bash
 git submodule update --init                       # llama.cpp
 cmake -S engine -B build/engine -DCMAKE_BUILD_TYPE=Release
-cmake --build build/engine --parallel
+cmake --build build/engine --parallel 4             # one job per 2 GB of memory; a bare --parallel runs make -j without a limit
 ctest --test-dir build/engine --output-on-failure
 ```
 
