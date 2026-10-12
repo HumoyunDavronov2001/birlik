@@ -4,7 +4,7 @@
 //! The service keeps the set of members a node lets in, admits devices through the invitations its owner opens, and
 //! talks on the cluster's gossip topic: its `DeviceInfo` when it starts, telemetry once per interval, and every
 //! member an admin admits. What it hears it keeps in memory and passes on as [`Event`]s, which the control API and
-//! the panel stream.
+//! the panel stream. It also serves the models on this device to the other members (`protocol/CLUSTER.md` §4).
 
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -22,6 +22,7 @@ use omnarc_network::protocol::{AcceptError, ProtocolHandler};
 use omnarc_network::ticket::Ticket;
 use omnarc_network::{Connection, Endpoint, EndpointAddr, EndpointId, MemoryLookup, Router, SecretKey, TransportAddr};
 use omnarc_protocol::v1;
+use omnarc_store::{BLOBS_ALPN, Hash, Model, ModelStore, Window};
 use tokio::sync::{broadcast, oneshot};
 
 use crate::pairing::now_unix_ms;
@@ -72,6 +73,7 @@ struct Shared {
     cluster: Cluster,
     cluster_key: Option<ClusterKey>,
     store: Store,
+    models: ModelStore,
     members: Members,
     lookup: MemoryLookup,
     endpoint: Endpoint,
@@ -109,12 +111,14 @@ impl Service {
             lookup.add_endpoint_info(addr_of(member.id, &member.addrs));
         }
 
+        let models = crate::models::open(&config.data).await?;
         let endpoint = omnarc_network::bind_cluster(key.clone(), config.listen, lookup.clone()).await?;
         let gossip = Gossip::builder().spawn(endpoint.clone());
         let joins = JoinHandler(Arc::new(OnceLock::new()));
         let router = Router::builder(endpoint.clone())
             .accept(GOSSIP_ALPN, MembersOnly::new(gossip.clone(), members.clone()))
             .accept(JOIN_ALPN, joins.clone())
+            .accept(BLOBS_ALPN, MembersOnly::new(models.protocol(), members.clone()))
             .spawn();
 
         let others: Vec<EndpointId> = members.list().into_iter().filter(|id| *id != key.public()).collect();
@@ -125,6 +129,7 @@ impl Service {
             cluster,
             cluster_key,
             store,
+            models,
             members,
             lookup,
             endpoint,
@@ -193,6 +198,29 @@ impl Service {
     #[must_use]
     pub fn devices(&self) -> HashMap<EndpointId, v1::DeviceInfo> {
         self.shared.devices.lock().expect("devices").clone()
+    }
+
+    /// The models on this device, which the other members can fetch from it.
+    #[must_use]
+    pub fn models(&self) -> &ModelStore {
+        &self.shared.models
+    }
+
+    /// Fetches `window` of the model `hash` from the member `from`: only the bytes still missing travel. The model
+    /// is kept under `name`, or under the name its header gives.
+    ///
+    /// # Errors
+    /// The member cannot be reached or does not have those bytes.
+    pub async fn fetch_model(
+        &self,
+        from: EndpointId,
+        name: Option<&str>,
+        hash: Hash,
+        window: Window,
+        progress: impl FnMut(u64),
+    ) -> Result<Model, BoxError> {
+        let connection = self.shared.endpoint.connect(from, BLOBS_ALPN).await?;
+        Ok(self.shared.models.fetch(&connection, name, hash, window, progress).await?)
     }
 
     /// Events from now on.
@@ -345,7 +373,7 @@ fn node_id(id: EndpointId) -> v1::NodeId {
     v1::NodeId { ed25519_public_key: id.as_bytes().to_vec() }
 }
 
-fn addr_of(id: EndpointId, addrs: &[SocketAddr]) -> EndpointAddr {
+pub(crate) fn addr_of(id: EndpointId, addrs: &[SocketAddr]) -> EndpointAddr {
     EndpointAddr::from_parts(id, addrs.iter().copied().map(TransportAddr::Ip))
 }
 

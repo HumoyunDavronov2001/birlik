@@ -1,6 +1,8 @@
 [workspace]
 resolver = "3"
 members = ["node/crates/*"]
+# built with nightly by cargo-fuzz, in a workspace of its own
+exclude = ["node/fuzz"]
 
 [workspace.package]
 version = "0.1.0"
@@ -36,6 +38,8 @@ http-body-util = "0.1"
 omnarc-api = { path = "node/crates/omnarc-api" }
 iroh-gossip = { version = "0.101", default-features = false, features = ["net"] }
 qrcode = { version = "0.14", default-features = false, features = ["svg"] }
+iroh-blobs = { version = "0.103", default-features = false, features = ["fs-store"] }
+omnarc-store = { path = "node/crates/omnarc-store" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

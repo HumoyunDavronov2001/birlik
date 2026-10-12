@@ -16,7 +16,7 @@ maketi dizayn konsepsiyasida bo'lsa — uning bo'lim raqami, bo'lmasa «—».
 | Qism | Ekranlar | Funksiyalar | ✓ tayyor | ◐ qisman | ○ boshlanmagan | Tayyorlik |
 |---|---|---|---|---|---|---|
 | Dvigatel | 0 | 30 | 8 | 2 | 20 | 30 % |
-| Tugun agenti va API | 0 | 40 | 5 | 7 | 28 | 21 % |
+| Tugun agenti va API | 0 | 40 | 6 | 8 | 26 | 25 % |
 | Panel | 24 | 7 | 1 | 7 | 23 | 15 % |
 | Ish stoli ilovasi | 4 | 5 | 0 | 0 | 9 | 0 % |
 | Android ilovasi | 7 | 8 | 0 | 2 | 13 | 7 % |
@@ -26,9 +26,9 @@ maketi dizayn konsepsiyasida bo'lsa — uning bo'lim raqami, bo'lmasa «—».
 | Ommaviy tarmoq va rele | 0 | 7 | 0 | 0 | 7 | 0 % |
 | O'qitish | 0 | 4 | 0 | 0 | 4 | 0 % |
 | Orollar | 0 | 3 | 0 | 0 | 3 | 0 % |
-| O'lchovlar, saytlar va relizlar | 3 | 9 | 2 | 0 | 10 | 17 % |
+| O'lchovlar, saytlar va relizlar | 3 | 9 | 2 | 1 | 9 | 21 % |
 | Dizayn tizimi va barcha ilovalardagi sifat | 1 | 13 | 6 | 2 | 6 | 50 % |
-| **Jami** | **50** | **141** | **22** | **22** | **147** | **17 %** |
+| **Jami** | **50** | **141** | **23** | **24** | **144** | **18 %** |
 
 «Tayyorlik» ustunida qisman bajarilgan band yarim hisoblanadi. Bosqichlar bo'yicha — har bosqich nimani topshirishi
 kerak:
@@ -37,7 +37,7 @@ kerak:
 |---|---|---|---|---|
 | B0 | 10 | 9 | 1 | 0 |
 | B1 | 16 | 12 | 1 | 3 |
-| B2 | 28 | 1 | 14 | 13 |
+| B2 | 28 | 2 | 16 | 10 |
 | B3 | 14 | 0 | 0 | 14 |
 | B4 | 18 | 0 | 0 | 18 |
 | B5 | 53 | 0 | 5 | 48 |
@@ -134,8 +134,8 @@ kerak:
 
 | ID | Nima | Turi | Talab | Bosqich | Dizayn | Holat |
 |---|---|---|---|---|---|---|
-| NO-30 | Model Hugging Face'dan bir marta yuklanadi, BLAKE3 bilan xeshlanadi va P2P tarqatiladi (iroh-blobs) | funksiya | T5 | B2 | — | ○ |
-| NO-31 | Har qurilma faqat o'z tenzorlarini bayt oraliqlari bo'yicha oladi va uzilishdan keyin davom ettiradi | funksiya | T5 | B2 | — | ○ |
+| NO-30 | Model Hugging Face'dan bir marta yuklanadi, BLAKE3 bilan xeshlanadi va P2P tarqatiladi (iroh-blobs) | funksiya | T5 | B2 | — | ◐ |
+| NO-31 | Har qurilma faqat o'z tenzorlarini bayt oraliqlari bo'yicha oladi va uzilishdan keyin davom ettiradi | funksiya | T5 | B2 | — | ✓ |
 | NO-32 | Klaster ishlata oladigan modellar: hajmi, kvantlash turlari va litsenziyalari ko'rsatilgan katalog | funksiya | — | B8 | — | ○ |
 
 ### 4.4 Rejalashtiruvchi
@@ -477,7 +477,7 @@ Ekranlar panelda (PA-18 dan PA-22 gacha); bu yerda — ularning ortidagi xizmat.
 | BE-04 | B1 darvozasi: 70B model Linux va Windows kompyuterlarida birgalikda ishlaydi | funksiya | P§11 | B1 | — | ○ |
 | BE-05 | B1 darvozasi: bitta chiqish tokeniga ketadigan vaqt prima.cpp'nikidan yomon emas | funksiya | P§11 | B1 | — | ○ |
 | BE-06 | `omnarc-bench`: W1–W13 bo'yicha exo, prima.cpp, Parallax, distributed-llama, llama.cpp RPC, Mesh LLM, colibri bilan solishtirish | funksiya | W1–W13 | B9 | — | ○ |
-| BE-07 | Freym tahlilchisi, protobuf va GGUF o'quvchisi uchun 24 soatlik fuzzing | funksiya | P§8 | B2 | — | ○ |
+| BE-07 | Freym tahlilchisi, protobuf va GGUF o'quvchisi uchun 24 soatlik fuzzing | funksiya | P§8 | B2 | — | ◐ |
 | BE-08 | Natijalar sayti | ekran | W10 | B9 | — | ○ |
 | BE-09 | Hujjatlar sayti (Astro Starlight, 8 til, oflayn qidiruv) | ekran | U9 | B9 | — | ○ |
 | BE-10 | O'z HTTPS domenidagi loyiha sayti, brauzer tuguni sahifasi bilan | ekran | Q4 | B5 | — | ○ |

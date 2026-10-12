@@ -1,0 +1,27 @@
+[package]
+name = "omnarc-store"
+description = "The model store of an Omnarc node: GGUF headers, the byte ranges of a window of layers, and models shared peer to peer over iroh-blobs."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+# the file store only: no RPC between processes
+iroh-blobs = { workspace = true }
+n0-future.workspace = true
+omnarc-network.workspace = true
+tokio = { workspace = true }
+
+[features]
+# small model files for the tests of other crates
+testing = []
+
+[dev-dependencies]
+omnarc-store = { path = ".", features = ["testing"] }
+proptest.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
+[lints]
+workspace = true

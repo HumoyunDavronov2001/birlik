@@ -6,6 +6,8 @@
 //! - `omnarc-node ring` runs windows of a model as one node of a ring of devices given by hand (stage B1).
 //! - `omnarc-node create`, `invite`, `join` and `members` form a cluster (stage B2, `protocol/CLUSTER.md`).
 //! - `omnarc-node serve` runs the device's service: gossip with the cluster, and devices invited while it runs.
+//! - `omnarc-node model` adds, lists, fetches and exports models: a window of layers travels from another member,
+//!   not from the internet (`protocol/CLUSTER.md` §4).
 
 use std::io::Write as _;
 use std::net::SocketAddr;
@@ -20,6 +22,7 @@ use omnarc_node::pairing::{self, InviteOptions};
 use omnarc_node::ring;
 use omnarc_node::state::Store;
 use omnarc_protocol::v1::{DeviceInfo, Platform};
+use omnarc_store::Window;
 use sysinfo::System;
 
 #[derive(Debug, Parser)]
@@ -92,6 +95,47 @@ enum Command {
         /// The panel's built files (web/apps/panel/build), served at the API's address.
         #[arg(long)]
         panel: Option<PathBuf>,
+    },
+    /// Models on this device: add a file, list them, fetch a window of layers from another member, export it.
+    #[command(subcommand)]
+    Model(ModelCommand),
+}
+
+#[derive(Debug, Subcommand)]
+enum ModelCommand {
+    /// Add a GGUF file. It stays where it is — do not change it afterwards — and the other members can fetch it
+    /// while `serve` runs.
+    Add {
+        /// The GGUF file.
+        path: PathBuf,
+    },
+    /// List the models on this device, whole or in part.
+    List,
+    /// Fetch a window of layers of a model another member has; only those bytes travel, and an interrupted fetch
+    /// resumes. Stop `serve` on this device first.
+    Fetch {
+        /// The model's hash, as `model list` shows it on the device that has it.
+        hash: omnarc_store::Hash,
+        /// The window of layers, e.g. 0:40; layer N of an N-layer model is the output head.
+        #[arg(long)]
+        layers: Window,
+        /// The member to fetch from, by name or the start of its id (default: each member in turn).
+        #[arg(long)]
+        from: Option<String>,
+        /// The name to keep the model under (default: the name in its header).
+        #[arg(long)]
+        name: Option<String>,
+    },
+    /// Write a window of a model to a file the engine loads: the model's full length, holes outside the window.
+    Export {
+        /// The model's name or hash.
+        model: String,
+        /// The window of layers, e.g. 0:40.
+        #[arg(long)]
+        layers: Window,
+        /// The file to write.
+        #[arg(long)]
+        out: PathBuf,
     },
 }
 
@@ -399,7 +443,129 @@ fn cluster_command(data: &Path, command: Command) -> Result<(), ring::BoxError> 
             let runtime = tokio::runtime::Runtime::new()?;
             runtime.block_on(serve(data, listen, invite, api, panel))?;
         }
+        Command::Model(command) => {
+            let runtime = tokio::runtime::Runtime::new()?;
+            runtime.block_on(model_command(data, command))?;
+        }
         Command::Info { .. } | Command::Id { .. } | Command::Ring(_) => unreachable!("not a cluster command"),
+    }
+    Ok(())
+}
+
+/// A size to show: `42.52 GB`, `12.4 MB`, `3 KB`.
+fn size(bytes: u64) -> String {
+    #[allow(clippy::cast_precision_loss)] // a size to show
+    let b = bytes as f64;
+    if b >= 1e9 {
+        format!("{:.2} GB", b / 1e9)
+    } else if b >= 1e6 {
+        format!("{:.1} MB", b / 1e6)
+    } else {
+        format!("{:.0} KB", b / 1e3)
+    }
+}
+
+/// Prints `what` and how far it got, on one line, at most every half second.
+fn progress_line(what: &str) -> impl FnMut(u64, Option<u64>) {
+    let mut shown: Option<std::time::Instant> = None;
+    let what = what.to_owned();
+    move |done, total| {
+        if shown.is_none_or(|at| at.elapsed() >= Duration::from_millis(500)) || total == Some(done) {
+            shown = Some(std::time::Instant::now());
+            match total {
+                Some(total) => print!("\r{what} {} of {}   ", size(done), size(total)),
+                None => print!("\r{what} {}   ", size(done)),
+            }
+            let _ = std::io::stdout().flush();
+        }
+    }
+}
+
+async fn model_command(data: &Path, command: ModelCommand) -> Result<(), ring::BoxError> {
+    use omnarc_node::models;
+    match command {
+        ModelCommand::Add { path } => {
+            let total = std::fs::metadata(&path).map_err(|e| format!("{}: {e}", path.display()))?.len();
+            let store = models::open(data).await?;
+            let mut line = progress_line("Hashing");
+            let model = store.add(&path, |done| line(done, Some(total))).await;
+            store.shutdown().await;
+            let model = model?;
+            println!();
+            println!("Added {} — {} layers, {}.", model.name, model.layout.layers, size(model.layout.file_len));
+            println!("Hash {}", model.hash);
+            println!("The other members fetch its layers from this device while omnarc-node serve runs.");
+        }
+        ModelCommand::List => {
+            let store = models::open(data).await?;
+            let list = store.list().await;
+            for (name, _) in list.as_deref().unwrap_or_default() {
+                match store.model(name).await {
+                    Ok(model) => {
+                        let missing = store.missing(&model, model.layout.all()).await.unwrap_or(model.layout.file_len);
+                        let have = if missing == 0 {
+                            "whole".to_owned()
+                        } else {
+                            format!("{} here", size(model.layout.file_len.saturating_sub(missing)))
+                        };
+                        println!(
+                            "{name:<40} {:>3} layers {:>10}  {have:<16} {}",
+                            model.layout.layers,
+                            size(model.layout.file_len),
+                            model.hash
+                        );
+                    }
+                    Err(e) => println!("{name:<40} {e}"),
+                }
+            }
+            if list.as_ref().is_ok_and(Vec::is_empty) {
+                println!("No models on this device yet: omnarc-node model add <file.gguf>");
+            }
+            store.shutdown().await;
+            list?;
+        }
+        ModelCommand::Fetch { hash, layers, from, name } => {
+            let mut sender = None;
+            let mut line = progress_line("Fetched");
+            let (model, from) = models::fetch(data, hash, layers, from.as_deref(), name.as_deref(), |id, done| {
+                if sender != Some(id) {
+                    sender = Some(id);
+                    println!("Fetching the layers {layers} from {}...", id.fmt_short());
+                }
+                line(done, None);
+            })
+            .await?;
+            println!();
+            println!(
+                "The layers {layers} of {} are on this device ({}), from {}.",
+                model.name,
+                size(model.layout.bytes(layers)?),
+                from.fmt_short()
+            );
+            println!(
+                "Write them for the engine: omnarc-node model export {} --layers {layers} --out <file>",
+                model.name
+            );
+        }
+        ModelCommand::Export { model, layers, out } => {
+            let store = models::open(data).await?;
+            let result = async {
+                let model = store.model(&model).await?;
+                store.export(&model, layers, &out).await?;
+                Ok::<_, ring::BoxError>(model)
+            }
+            .await;
+            store.shutdown().await;
+            let model = result?;
+            println!(
+                "Wrote the layers {layers} of {} to {} ({} of data in a {} file).",
+                model.name,
+                out.display(),
+                size(model.layout.bytes(layers)?),
+                size(model.layout.file_len)
+            );
+            println!("Run them: omnarc-node ring --model {} --layers {layers} ...", out.display());
+        }
     }
     Ok(())
 }
@@ -412,7 +578,8 @@ fn main() {
         | Command::Invite { .. }
         | Command::Join { .. }
         | Command::Members
-        | Command::Serve { .. }) => {
+        | Command::Serve { .. }
+        | Command::Model(_)) => {
             if let Err(e) = cluster_command(&data, command) {
                 eprintln!("omnarc-node: {e}");
                 std::process::exit(1);

@@ -105,14 +105,21 @@ short probe once a minute and whenever a link changes. The samples travel in `Te
 
 ## 4. Spreading a model
 
-1. One device downloads the GGUF file from Hugging Face, hashes it with BLAKE3 and adds it to its
-   [iroh-blobs](https://github.com/n0-computer/iroh-blobs) store. The internet is used once.
-2. Each device computes from the GGUF header the byte ranges of the tensors its layers need (the header and metadata,
-   its layers' tensors, and for the stage holding layer 0 or the output head also the embedding and output tensors).
-3. It fetches only those ranges from any member that has them; iroh-blobs verifies every chunk against the hash, and
-   a broken download resumes where it stopped.
-4. The ranges are written into a sparse file of the full size, so the engine maps the same GGUF file as everywhere
-   else and never touches the ranges it does not have.
+1. One device downloads the GGUF file from Hugging Face and adds it to its
+   [iroh-blobs](https://github.com/n0-computer/iroh-blobs) store, which hashes it with BLAKE3 and refers to the file
+   where it lies instead of copying it. The internet is used once.
+2. Another device fetches the header from it — 64 KiB first, doubling until the header is whole — and reads from it
+   the byte ranges its window of layers needs. Windows count layers as the engine does: the repeating layers are
+   `0 .. n_layer - 1` and the output layer is `n_layer`. A window needs the header, its layers' tensors (`blk.N.*`),
+   the token embeddings when it starts at layer 0, the output norm and head when it ends after the last layer (and
+   the token embeddings there too when the model has no head of its own), and every tensor that belongs to no layer,
+   such as `rope_freqs.weight`.
+3. It fetches only those ranges, on the iroh-blobs ALPN (`/iroh-bytes/4`), from any member that has them; a
+   connection from a device that is not a member is closed. iroh-blobs checks every chunk against the BLAKE3 tree
+   before it keeps it, and a fetch that breaks off resumes with the chunks still missing.
+4. For the engine the ranges are written into a file of the model's full size with holes elsewhere, so the engine maps
+   the same GGUF file as everywhere else and never reads the holes. The holes take no disk space on Linux and macOS;
+   on Windows the file takes its full size until the desktop app marks it sparse.
 
 ## 5. The control API
 

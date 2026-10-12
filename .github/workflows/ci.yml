@@ -74,6 +74,25 @@ jobs:
       - name: Describe the runner
         run: cargo run -q -p omnarc-node -- info
 
+  fuzz:
+    name: Fuzz (a minute per target)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-fuzz
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: node/fuzz
+      - name: What other devices send — frames, Protobuf, tickets, GGUF headers
+        working-directory: node/fuzz
+        run: |
+          for target in tensor_frame protobuf ticket gguf_header; do
+            cargo fuzz run "$target" -- -max_total_time=60 -rss_limit_mb=2048
+          done
+
   mobile:
     name: Rust (${{ matrix.target }})
     strategy:
@@ -157,6 +176,11 @@ jobs:
           OMNARC_ENGINE: ${{ github.workspace }}/build/engine/${{ runner.os == 'Windows' && 'Release/omnarc-engine.exe' || 'omnarc-engine' }}
           OMNARC_TEST_MODEL: ${{ github.workspace }}/build/models/stories15M-q8_0.gguf
         run: cargo test -p omnarc-node --features engine-tests
+      - name: The model store reads a real GGUF header
+        shell: bash
+        env:
+          OMNARC_TEST_MODEL: ${{ github.workspace }}/build/models/stories15M-q8_0.gguf
+        run: cargo test -p omnarc-store
       - name: The Windows download script of the B1 gate, on a small model
         if: runner.os == 'Windows'
         shell: pwsh

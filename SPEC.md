@@ -15,7 +15,7 @@ design concept (its section number), or "—".
 | Part | Screens | Functions | ✓ done | ◐ partly | ○ not started | Ready |
 |---|---|---|---|---|---|---|
 | Engine | 0 | 30 | 8 | 2 | 20 | 30 % |
-| Node agent and API | 0 | 40 | 5 | 7 | 28 | 21 % |
+| Node agent and API | 0 | 40 | 6 | 8 | 26 | 25 % |
 | Panel | 24 | 7 | 1 | 7 | 23 | 15 % |
 | Desktop app | 4 | 5 | 0 | 0 | 9 | 0 % |
 | Android app | 7 | 8 | 0 | 2 | 13 | 7 % |
@@ -25,9 +25,9 @@ design concept (its section number), or "—".
 | Public network and relay | 0 | 7 | 0 | 0 | 7 | 0 % |
 | Training | 0 | 4 | 0 | 0 | 4 | 0 % |
 | Islands | 0 | 3 | 0 | 0 | 3 | 0 % |
-| Benchmarks, sites and releases | 3 | 9 | 2 | 0 | 10 | 17 % |
+| Benchmarks, sites and releases | 3 | 9 | 2 | 1 | 9 | 21 % |
 | Design system and quality across all apps | 1 | 13 | 6 | 2 | 6 | 50 % |
-| **All** | **50** | **141** | **22** | **22** | **147** | **17 %** |
+| **All** | **50** | **141** | **23** | **24** | **144** | **18 %** |
 
 "Ready" counts a partly done item as half. By stage — what each stage has to deliver:
 
@@ -35,7 +35,7 @@ design concept (its section number), or "—".
 |---|---|---|---|---|
 | B0 | 10 | 9 | 1 | 0 |
 | B1 | 16 | 12 | 1 | 3 |
-| B2 | 28 | 1 | 14 | 13 |
+| B2 | 28 | 2 | 16 | 10 |
 | B3 | 14 | 0 | 0 | 14 |
 | B4 | 18 | 0 | 0 | 18 |
 | B5 | 53 | 0 | 5 | 48 |
@@ -133,8 +133,8 @@ design concept (its section number), or "—".
 
 | ID | What | Kind | Req | Stage | Design | State |
 |---|---|---|---|---|---|---|
-| NO-30 | A model is downloaded from Hugging Face once, hashed with BLAKE3 and shared peer to peer (iroh-blobs) | function | T5 | B2 | — | ○ |
-| NO-31 | Each device fetches only its own tensors as byte ranges and resumes after a drop | function | T5 | B2 | — | ○ |
+| NO-30 | A model is downloaded from Hugging Face once, hashed with BLAKE3 and shared peer to peer (iroh-blobs) | function | T5 | B2 | — | ◐ |
+| NO-31 | Each device fetches only its own tensors as byte ranges and resumes after a drop | function | T5 | B2 | — | ✓ |
 | NO-32 | The models a cluster can run: catalog with sizes, quantizations and licenses | function | — | B8 | — | ○ |
 
 ### 4.4 Scheduler
@@ -460,7 +460,7 @@ The screens are in the panel (PA-18 to PA-22); this is the service behind them.
 | BE-04 | B1 gate: a 70B model across Linux and Windows computers | function | P§11 | B1 | — | ○ |
 | BE-05 | B1 gate: time per output token no worse than prima.cpp's | function | P§11 | B1 | — | ○ |
 | BE-06 | `omnarc-bench`: W1–W13 against exo, prima.cpp, Parallax, distributed-llama, llama.cpp RPC, Mesh LLM, colibri | function | W1–W13 | B9 | — | ○ |
-| BE-07 | 24-hour fuzzing of the frame parser, protobuf and the GGUF reader | function | P§8 | B2 | — | ○ |
+| BE-07 | 24-hour fuzzing of the frame parser, protobuf and the GGUF reader | function | P§8 | B2 | — | ◐ |
 | BE-08 | Results site | screen | W10 | B9 | — | ○ |
 | BE-09 | Docs site (Astro Starlight, 8 languages, offline search) | screen | U9 | B9 | — | ○ |
 | BE-10 | Project site with the browser-node page on its own HTTPS domain | screen | Q4 | B5 | — | ○ |

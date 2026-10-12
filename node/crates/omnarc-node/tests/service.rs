@@ -8,6 +8,7 @@ use omnarc_network::EndpointId;
 use omnarc_node::pairing;
 use omnarc_node::service::{Config, Event, Service};
 use omnarc_protocol::v1;
+use omnarc_store::{BLOBS_ALPN, Window};
 
 fn data_dir(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("omnarc-service-{name}-{}", std::process::id()));
@@ -115,5 +116,48 @@ async fn only_an_admin_opens_invitations() {
     desktop.shutdown().await;
     for dir in [a, b] {
         std::fs::remove_dir_all(dir).unwrap();
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_member_fetches_layers_that_a_stranger_cannot() {
+    let (a, b) = (data_dir("models-a"), data_dir("models-b"));
+    pairing::create(&a, "Home cluster", device("Desktop")).unwrap();
+    let desktop = start(&a, "Desktop").await;
+    admit(&desktop, &b, "Laptop").await;
+    let laptop = start(&b, "Laptop").await;
+    // the laptop learns where the desktop listens from gossip
+    eventually("the laptop hears the desktop", || laptop.telemetry().contains_key(&desktop.id())).await;
+
+    let file = a.join("Tiny-6L.gguf");
+    omnarc_store::testing::model(&file, 6);
+    let model = desktop.models().add(&file, |_| {}).await.unwrap();
+    let window: Window = "0:3".parse().unwrap();
+    let fetched = laptop.fetch_model(desktop.id(), None, model.hash, window, |_| {}).await.unwrap();
+    assert_eq!(fetched.layout, model.layout);
+    assert_eq!(laptop.models().missing(&fetched, window).await.unwrap(), 0);
+    assert!(laptop.models().missing(&fetched, "3:7".parse().unwrap()).await.unwrap() > 0);
+
+    // a device outside the cluster is turned away before it can ask
+    let stranger =
+        omnarc_network::bind_with(omnarc_network::SecretKey::generate(), "127.0.0.1:0".parse().unwrap(), vec![])
+            .await
+            .unwrap();
+    let store = omnarc_store::ModelStore::open(&data_dir("models-stranger").join("models")).await.unwrap();
+    let addr = omnarc_network::EndpointAddr::from_parts(
+        desktop.id(),
+        desktop.addrs().into_iter().map(omnarc_network::TransportAddr::Ip),
+    );
+    let connection = stranger.connect(addr, BLOBS_ALPN).await.unwrap();
+    assert!(store.fetch(&connection, None, model.hash, window, |_| {}).await.is_err(), "a stranger fetched a model");
+    let reason = connection.close_reason().expect("the desktop closed the connection").to_string();
+    assert!(reason.contains("not a member"), "{reason}");
+
+    store.shutdown().await;
+    stranger.close().await;
+    laptop.shutdown().await;
+    desktop.shutdown().await;
+    for dir in [a, b, data_dir("models-stranger")] {
+        let _ = std::fs::remove_dir_all(dir);
     }
 }

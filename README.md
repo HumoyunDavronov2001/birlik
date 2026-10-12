@@ -181,6 +181,19 @@ built once with `cd web && pnpm install && pnpm build`, then served by the node:
 omnarc-node serve --panel web/apps/panel/build   # open http://127.0.0.1:7600
 ```
 
+Spread a model inside the cluster: the internet is used once, and each device fetches only the layers it runs.
+
+```bash
+# on the device that downloaded the model: it is added where it lies, not copied
+omnarc-node model add DeepSeek-R1-Distill-Llama-70B-Q4_K_M.gguf   # prints its hash
+omnarc-node serve                                                  # the members fetch from it while it runs
+
+# on another member (with its own serve stopped): layers 40–79 and the output head, nothing else
+omnarc-node model fetch <hash> --layers 40:81
+omnarc-node model export <hash> --layers 40:81 --out window.gguf  # the full length, holes outside the window
+omnarc-node model list
+```
+
 Run a ring of two devices (stage B1 wires it by hand; `omnarc-engine` must sit next to `omnarc-node`):
 
 ```bash
@@ -199,7 +212,8 @@ omnarc-node ring --model model.gguf --layers 0:40,80:81 --listen 0.0.0.0:7700 \
 
 ```
 protocol/   Protobuf messages (omnarc.v1) and the tensor frame spec
-node/       Rust workspace: omnarc-protocol, omnarc-engine-host, omnarc-network, omnarc-node
+node/       Rust workspace: omnarc-protocol, omnarc-engine-host, omnarc-network, omnarc-store, omnarc-api,
+            omnarc-node; fuzz targets in node/fuzz
 engine/     libomnarc — C++20 engine on llama.cpp with a C ABI
 design/     design tokens, the living ring, the design concept
 web/        Svelte 5 component library (Storybook)

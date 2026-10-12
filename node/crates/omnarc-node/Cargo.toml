@@ -35,7 +35,11 @@ redb.workspace = true
 qrcode.workspace = true
 n0-future.workspace = true
 omnarc-api.workspace = true
+omnarc-store.workspace = true
 axum.workspace = true
+
+[dev-dependencies]
+omnarc-store = { workspace = true, features = ["testing"] }
 
 [lints]
 workspace = true

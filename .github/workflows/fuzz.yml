@@ -1,0 +1,51 @@
+name: Fuzz
+
+# Long fuzzing of what Omnarc reads from other devices (PLAN.md §8, SPEC BE-07). Each run gives every target up to
+# six hours; the corpus is kept between runs, so the 24 hours of a stage gate add up over runs.
+on:
+  schedule:
+    - cron: "0 1 * * 0"
+  workflow_dispatch:
+    inputs:
+      hours:
+        description: Hours per target (at most 5.5)
+        default: "5.5"
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    name: Fuzz ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [tensor_frame, protobuf, ticket, gguf_header]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-fuzz
+      - name: The corpus of earlier runs
+        uses: actions/cache@v4
+        with:
+          path: node/fuzz/corpus/${{ matrix.target }}
+          key: fuzz-corpus-${{ matrix.target }}-${{ github.run_id }}
+          restore-keys: fuzz-corpus-${{ matrix.target }}-
+      - name: Fuzz
+        working-directory: node/fuzz
+        env:
+          HOURS: ${{ inputs.hours || '5.5' }}
+        run: |
+          seconds=$(python3 -c "print(int(float('$HOURS') * 3600))")
+          cargo fuzz run ${{ matrix.target }} -- -max_total_time="$seconds" -rss_limit_mb=2048
+      - name: The input that failed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-${{ matrix.target }}
+          path: node/fuzz/artifacts
+          retention-days: 30

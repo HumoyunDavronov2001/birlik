@@ -1,0 +1,48 @@
+[package]
+name = "omnarc-fuzz"
+description = "Fuzz targets for what Omnarc reads from other devices: tensor frames, Protobuf messages, tickets and GGUF headers."
+version = "0.0.0"
+edition = "2024"
+license = "Apache-2.0"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+# its own workspace: the targets build with nightly and libFuzzer (`cargo fuzz run <target>`)
+[workspace]
+
+[dependencies]
+libfuzzer-sys = "0.4"
+prost = "0.14"
+omnarc-protocol = { path = "../crates/omnarc-protocol" }
+omnarc-network = { path = "../crates/omnarc-network" }
+omnarc-store = { path = "../crates/omnarc-store" }
+
+[[bin]]
+name = "tensor_frame"
+path = "fuzz_targets/tensor_frame.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "protobuf"
+path = "fuzz_targets/protobuf.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "ticket"
+path = "fuzz_targets/ticket.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "gguf_header"
+path = "fuzz_targets/gguf_header.rs"
+test = false
+doc = false
+bench = false
