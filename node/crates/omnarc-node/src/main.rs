@@ -57,7 +57,14 @@ enum Command {
         /// The cluster's name.
         #[arg(long, default_value = "Home cluster")]
         name: String,
+        /// A relay for devices on other networks: `https://relay.example.com`, with `?token=SECRET` when it wants one;
+        /// may be given more than once.
+        #[arg(long)]
+        relay: Vec<String>,
     },
+    /// The relays this device meets the cluster's devices on other networks through.
+    #[command(subcommand)]
+    Relay(RelayCommand),
     /// Invite one device: show a ticket as a QR code, then confirm the four symbols when the device asks to join.
     /// While `serve` runs, use `serve --invite` instead.
     Invite {
@@ -99,6 +106,22 @@ enum Command {
     /// Models on this device: add a file, list them, fetch a window of layers from another member, export it.
     #[command(subcommand)]
     Model(ModelCommand),
+}
+
+#[derive(Debug, Subcommand)]
+enum RelayCommand {
+    /// List them.
+    List,
+    /// Add one: `https://relay.example.com`, with `?token=SECRET` when it wants one; `serve` uses it from its next start.
+    Add {
+        /// The relay's address.
+        url: String,
+    },
+    /// Remove one.
+    Remove {
+        /// The relay's address, with or without its token.
+        url: String,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -422,10 +445,48 @@ fn describe_link(link: &omnarc_protocol::v1::LinkSample) -> String {
     format!("{kind}{:.1} ms{bandwidth}", link.rtt_ms)
 }
 
+fn relay_command(data: &Path, command: RelayCommand) -> Result<(), ring::BoxError> {
+    use omnarc_network::relay::Relay;
+    let store = Store::open(data)?;
+    store.cluster()?.ok_or("this device belongs to no cluster")?;
+    let mut relays = store.relays()?;
+    // the same relay, whatever token is written with it
+    let same = |a: &str, b: &str| a.parse::<Relay>().ok().map(|r| r.url) == b.parse::<Relay>().ok().map(|r| r.url);
+    match command {
+        RelayCommand::List => {
+            if relays.is_empty() {
+                println!("No relays: devices meet only on one network. Add one with omnarc-node relay add <url>.");
+            }
+            for relay in &relays {
+                let parsed: Relay = relay.parse()?;
+                let token = if parsed.token.is_some() { " (with a token)" } else { "" };
+                println!("{}{token}", parsed.url);
+            }
+        }
+        RelayCommand::Add { url } => {
+            url.parse::<Relay>()?;
+            relays.retain(|r| !same(r, &url));
+            relays.push(url);
+            store.set_relays(&relays)?;
+            println!("Added. Restart omnarc-node serve to use it; new tickets name it.");
+        }
+        RelayCommand::Remove { url } => {
+            let before = relays.len();
+            relays.retain(|r| !same(r, &url));
+            if relays.len() == before {
+                return Err(format!("{url} is not a relay of this device").into());
+            }
+            store.set_relays(&relays)?;
+            println!("Removed. Restart omnarc-node serve to stop using it.");
+        }
+    }
+    Ok(())
+}
+
 fn cluster_command(data: &Path, command: Command) -> Result<(), ring::BoxError> {
     match command {
-        Command::Create { name } => {
-            let cluster = pairing::create(data, &name, describe())?;
+        Command::Create { name, relay } => {
+            let cluster = pairing::create(data, &name, describe(), &relay)?;
             println!("Created {} (cluster {}).", cluster.name, &cluster.id.to_hex()[..16]);
             println!("Add a device with: omnarc-node invite");
         }
@@ -472,6 +533,7 @@ fn cluster_command(data: &Path, command: Command) -> Result<(), ring::BoxError> 
             let runtime = tokio::runtime::Runtime::new()?;
             runtime.block_on(serve(data, listen, invite, api, panel))?;
         }
+        Command::Relay(command) => relay_command(data, command)?,
         Command::Model(command) => {
             let runtime = tokio::runtime::Runtime::new()?;
             runtime.block_on(model_command(data, command))?;
@@ -608,6 +670,7 @@ fn main() {
         | Command::Join { .. }
         | Command::Members
         | Command::Serve { .. }
+        | Command::Relay(_)
         | Command::Model(_)) => {
             if let Err(e) = cluster_command(&data, command) {
                 eprintln!("omnarc-node: {e}");

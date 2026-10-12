@@ -62,7 +62,7 @@ async fn admit(admin: &Service, data: &Path, name: &str) {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn devices_admitted_by_an_admin_hear_each_other() {
     let (a, b, c) = (data_dir("a"), data_dir("b"), data_dir("c"));
-    pairing::create(&a, "Home cluster", device("Desktop")).unwrap();
+    pairing::create(&a, "Home cluster", device("Desktop"), &[]).unwrap();
     let desktop = start(&a, "Desktop").await;
 
     admit(&desktop, &b, "Laptop").await;
@@ -120,7 +120,7 @@ async fn devices_admitted_by_an_admin_hear_each_other() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn only_an_admin_opens_invitations() {
     let (a, b) = (data_dir("admin"), data_dir("member"));
-    pairing::create(&a, "Home cluster", device("Desktop")).unwrap();
+    pairing::create(&a, "Home cluster", device("Desktop"), &[]).unwrap();
     let desktop = start(&a, "Desktop").await;
     admit(&desktop, &b, "Laptop").await;
     let laptop = start(&b, "Laptop").await;
@@ -135,7 +135,7 @@ async fn only_an_admin_opens_invitations() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_member_fetches_layers_that_a_stranger_cannot() {
     let (a, b) = (data_dir("models-a"), data_dir("models-b"));
-    pairing::create(&a, "Home cluster", device("Desktop")).unwrap();
+    pairing::create(&a, "Home cluster", device("Desktop"), &[]).unwrap();
     let desktop = start(&a, "Desktop").await;
     admit(&desktop, &b, "Laptop").await;
     let laptop = start(&b, "Laptop").await;
@@ -171,6 +171,43 @@ async fn a_member_fetches_layers_that_a_stranger_cannot() {
     laptop.shutdown().await;
     desktop.shutdown().await;
     for dir in [a, b, data_dir("models-stranger")] {
+        let _ = std::fs::remove_dir_all(dir);
+    }
+}
+
+// A relay on this machine over plain HTTP, as `iroh-relay --dev` runs one.
+async fn relay() -> (iroh_relay::server::Server, String) {
+    let mut config = iroh_relay::server::ServerConfig::default();
+    config.relay = Some(iroh_relay::server::RelayConfig::new((std::net::Ipv4Addr::LOCALHOST, 0)));
+    let server = iroh_relay::server::Server::spawn(config).await.unwrap();
+    let url = format!("http://{}", server.http_addr().unwrap());
+    (server, url)
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_member_that_knows_no_address_comes_through_the_relay() {
+    let (_relay, url) = relay().await;
+    let (a, b) = (data_dir("relay-a"), data_dir("relay-b"));
+    pairing::create(&a, "Home cluster", device("Desktop"), std::slice::from_ref(&url)).unwrap();
+    let desktop = start(&a, "Desktop").await;
+    admit(&desktop, &b, "Laptop").await;
+    // the laptop took the cluster's relay from the ticket; now it forgets where the desktop listens, as a device
+    // on another network never knew
+    {
+        let state = omnarc_node::state::Store::open(&b).unwrap();
+        assert_eq!(state.relays().unwrap(), vec![url.clone()]);
+        state.update_member(desktop.id(), None, Some(vec![])).unwrap();
+    }
+    let laptop = start(&b, "Laptop").await;
+    eventually("the laptop hears the desktop through the relay", || laptop.telemetry().contains_key(&desktop.id()))
+        .await;
+    eventually("the desktop announces its relay", || {
+        laptop.devices().get(&desktop.id()).is_some_and(|d| d.relay_url.trim_end_matches('/') == url)
+    })
+    .await;
+    laptop.shutdown().await;
+    desktop.shutdown().await;
+    for dir in [a, b] {
         let _ = std::fs::remove_dir_all(dir);
     }
 }

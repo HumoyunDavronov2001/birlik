@@ -265,6 +265,33 @@ impl Store {
         self.put_member(&member)
     }
 
+    /// The relays the cluster meets through across networks (`protocol/CLUSTER.md` §3.5), with their tokens.
+    ///
+    /// # Errors
+    /// The state cannot be read.
+    pub fn relays(&self) -> Result<Vec<String>> {
+        let tx = self.db.begin_read().map_err(|e| Error::new("state", e))?;
+        let meta = tx.open_table(META).map_err(|e| Error::new("state", e))?;
+        let Some(value) = meta.get("relays").map_err(|e| Error::new("state", e))? else {
+            return Ok(vec![]);
+        };
+        let text = String::from_utf8_lossy(value.value()).into_owned();
+        Ok(text.lines().filter(|line| !line.is_empty()).map(str::to_owned).collect())
+    }
+
+    /// Replaces the cluster's relays.
+    ///
+    /// # Errors
+    /// The state cannot be written.
+    pub fn set_relays(&self, relays: &[String]) -> Result<()> {
+        let tx = self.db.begin_write().map_err(|e| Error::new("state", e))?;
+        {
+            let mut meta = tx.open_table(META).map_err(|e| Error::new("state", e))?;
+            meta.insert("relays", relays.join("\n").as_bytes()).map_err(|e| Error::new("state", e))?;
+        }
+        tx.commit().map_err(|e| Error::new("state", e))
+    }
+
     fn save_cluster(&self, cluster: &Cluster) -> Result<()> {
         let tx = self.db.begin_write().map_err(|e| Error::new("state", e))?;
         {

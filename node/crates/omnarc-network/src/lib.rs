@@ -5,12 +5,13 @@
 //! (`protocol/FRAME.md`) that feed one window of layers on the next device. Stage B2 adds clusters
 //! (`protocol/CLUSTER.md`): the cluster key and membership tokens ([`cluster`]), the ticket and four-emoji check of
 //! joining ([`ticket`]), the join conversation itself ([`join`]), the signed gossip of a cluster ([`gossip`]) and the
-//! measurement of the links between members ([`links`]).
+//! measurement of the links between members ([`links`]); members on other networks meet through relays ([`relay`]).
 
 pub mod cluster;
 pub mod gossip;
 pub mod join;
 pub mod links;
+pub mod relay;
 pub mod ticket;
 
 use std::fmt;
@@ -19,10 +20,10 @@ use std::path::Path;
 use std::str::FromStr;
 
 pub use iroh::address_lookup::memory::MemoryLookup;
+use iroh::endpoint::presets;
 pub use iroh::endpoint::{Connection, RecvStream, SendStream};
 pub use iroh::protocol::{self, Router};
 pub use iroh::{Endpoint, EndpointAddr, EndpointId, SecretKey, TransportAddr};
-use iroh::{RelayMode, endpoint::presets};
 pub use iroh_mdns_address_lookup::{DiscoveryEvent, MdnsAddressLookup};
 use omnarc_protocol::frame::{FrameError, FrameHeader, HEADER_LEN};
 
@@ -135,10 +136,23 @@ pub async fn bind(key: SecretKey, listen: SocketAddr) -> Result<Endpoint> {
 /// # Errors
 /// The address cannot be bound.
 pub async fn bind_with(key: SecretKey, listen: SocketAddr, alpns: Vec<Vec<u8>>) -> Result<Endpoint> {
+    bind_with_relays(key, listen, alpns, &[]).await
+}
+
+/// [`bind_with`] that can also be reached through `relays`, for devices on other networks: inviting and joining.
+///
+/// # Errors
+/// The address cannot be bound.
+pub async fn bind_with_relays(
+    key: SecretKey,
+    listen: SocketAddr,
+    alpns: Vec<Vec<u8>>,
+    relays: &[relay::Relay],
+) -> Result<Endpoint> {
     Endpoint::builder(presets::Minimal)
         .secret_key(key)
         .alpns(alpns)
-        .relay_mode(RelayMode::Disabled)
+        .relay_mode(relay::relay_mode(relays))
         .clear_ip_transports()
         .bind_addr(listen)
         .map_err(|e| Error::new("listen address", e))?
@@ -148,8 +162,8 @@ pub async fn bind_with(key: SecretKey, listen: SocketAddr, alpns: Vec<Vec<u8>>) 
 }
 
 /// Binds the endpoint of a cluster node on `listen`: no public relays and no public address lookup; members are
-/// found through `lookup`, which the node fills with the addresses it learns from tickets and gossip, and on the
-/// local network through `lan` ([`lan_lookup`]).
+/// found through `lookup`, which the node fills with the addresses it learns from tickets and gossip, on the local
+/// network through `lan` ([`lan_lookup`]), and on other networks through the cluster's own `relays`.
 ///
 /// # Errors
 /// The address cannot be bound.
@@ -158,19 +172,27 @@ pub async fn bind_cluster(
     listen: SocketAddr,
     lookup: MemoryLookup,
     lan: Option<MdnsAddressLookup>,
+    relays: &[relay::Relay],
 ) -> Result<Endpoint> {
-    let mut builder = Endpoint::builder(presets::Minimal).secret_key(key).address_lookup(lookup);
-    if let Some(lan) = lan {
-        builder = builder.address_lookup(lan);
-    }
-    builder
-        .relay_mode(RelayMode::Disabled)
-        .clear_ip_transports()
+    cluster_builder(key, lookup, lan, relays)
         .bind_addr(listen)
         .map_err(|e| Error::new("listen address", e))?
         .bind()
         .await
         .map_err(|e| Error::new("binding the endpoint", e))
+}
+
+fn cluster_builder(
+    key: SecretKey,
+    lookup: MemoryLookup,
+    lan: Option<MdnsAddressLookup>,
+    relays: &[relay::Relay],
+) -> iroh::endpoint::Builder {
+    let mut builder = Endpoint::builder(presets::Minimal).secret_key(key).address_lookup(lookup);
+    if let Some(lan) = lan {
+        builder = builder.address_lookup(lan);
+    }
+    builder.relay_mode(relay::relay_mode(relays)).clear_ip_transports()
 }
 
 /// The service name Omnarc nodes announce themselves under on the local network: `<id>._omnarc._udp.local`.
@@ -265,15 +287,49 @@ mod tests {
     use super::*;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn members_on_other_networks_meet_through_a_relay() {
+        let (_map, url, _relay_server) = iroh::test_utils::run_relay_server().await.unwrap();
+        let relays = [relay::Relay { url: url.clone(), token: None }];
+        let any: SocketAddr = "127.0.0.1:0".parse().unwrap();
+        // the relay of the tests has a certificate of its own
+        let trust = || iroh::tls::CaTlsConfig::insecure_skip_verify();
+        let server = cluster_builder(SecretKey::generate(), MemoryLookup::new(), None, &relays)
+            .ca_tls_config(trust())
+            .alpns(vec![links::PROBE_ALPN.to_vec()])
+            .bind_addr(any)
+            .unwrap()
+            .bind()
+            .await
+            .unwrap();
+        let router = Router::builder(server.clone()).accept(links::PROBE_ALPN, links::ProbeHandler).spawn();
+        tokio::time::timeout(std::time::Duration::from_secs(10), server.online()).await.expect("homed on the relay");
+        assert_eq!(server.addr().relay_urls().next(), Some(&url));
+
+        let client = cluster_builder(SecretKey::generate(), MemoryLookup::new(), None, &relays)
+            .ca_tls_config(trust())
+            .bind_addr(any)
+            .unwrap()
+            .bind()
+            .await
+            .unwrap();
+        // the client knows the server only by its id and its relay, as across two networks
+        let addr = EndpointAddr::from_parts(server.id(), [relays[0].transport_addr()]);
+        let connection = client.connect(addr, links::PROBE_ALPN).await.unwrap();
+        links::ping(&connection).await.unwrap();
+        client.close().await;
+        router.shutdown().await.unwrap();
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     #[cfg_attr(not(target_os = "linux"), ignore = "multicast on the CI runners of this system is untested")]
     async fn nodes_on_one_network_find_each_other_by_id_alone() {
         let (a, b) = (SecretKey::generate(), SecretKey::generate());
         let any: SocketAddr = "0.0.0.0:0".parse().unwrap();
         let lan_a = lan_lookup(a.public()).unwrap();
-        let server = bind_cluster(a, any, MemoryLookup::new(), Some(lan_a)).await.unwrap();
+        let server = bind_cluster(a, any, MemoryLookup::new(), Some(lan_a), &[]).await.unwrap();
         let router = Router::builder(server.clone()).accept(links::PROBE_ALPN, links::ProbeHandler).spawn();
         let lan_b = lan_lookup(b.public()).unwrap();
-        let client = bind_cluster(b, any, MemoryLookup::new(), Some(lan_b)).await.unwrap();
+        let client = bind_cluster(b, any, MemoryLookup::new(), Some(lan_b), &[]).await.unwrap();
         // no address is given: mDNS finds it
         let connection =
             tokio::time::timeout(std::time::Duration::from_secs(30), client.connect(server.id(), links::PROBE_ALPN))

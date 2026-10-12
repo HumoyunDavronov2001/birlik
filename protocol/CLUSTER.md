@@ -124,6 +124,21 @@ Omnarc node runs there and its public id; whether a device may connect is still 
 (§1). Across networks members are found through the addresses gossip spreads; DNS and pkarr records follow with the
 relay.
 
+### 3.5 Relays
+
+A cluster may name relays — [iroh-relay](https://github.com/n0-computer/iroh) servers its owner runs
+(`relay/README.md`) — through which members on different networks meet. Without one, members meet only on the networks
+they share. A relay that admits only its owner's clusters wants a token; the cluster stores the relay's address with
+its token as `https://relay.example.com/?token=SECRET`, and the token travels to the relay only in the `Authorization`
+header of a relay connection.
+
+- Every node connects to the nearest relay of the cluster, its home relay, and announces it in `DeviceInfo.relay_url`.
+- A member is dialed at its direct addresses and its home relay; before it has announced one, at every relay of the
+  cluster. Through the relay both sides learn each other's public addresses and punch a direct path; when punching
+  fails, the relay carries the traffic, still encrypted end to end.
+- A ticket names the cluster's relays with their tokens, so a device on another network reaches the inviter; once it
+  joined, the cluster's relays are its own.
+
 ## 4. Spreading a model
 
 1. One device downloads the GGUF file from Hugging Face and adds it to its

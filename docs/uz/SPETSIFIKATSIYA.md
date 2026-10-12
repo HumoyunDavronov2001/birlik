@@ -16,7 +16,7 @@ maketi dizayn konsepsiyasida bo'lsa — uning bo'lim raqami, bo'lmasa «—».
 | Qism | Ekranlar | Funksiyalar | ✓ tayyor | ◐ qisman | ○ boshlanmagan | Tayyorlik |
 |---|---|---|---|---|---|---|
 | Dvigatel | 0 | 30 | 8 | 2 | 20 | 30 % |
-| Tugun agenti va API | 0 | 40 | 7 | 9 | 24 | 29 % |
+| Tugun agenti va API | 0 | 40 | 7 | 10 | 23 | 30 % |
 | Panel | 24 | 7 | 1 | 7 | 23 | 15 % |
 | Ish stoli ilovasi | 4 | 5 | 0 | 0 | 9 | 0 % |
 | Android ilovasi | 7 | 8 | 0 | 2 | 13 | 7 % |
@@ -28,7 +28,7 @@ maketi dizayn konsepsiyasida bo'lsa — uning bo'lim raqami, bo'lmasa «—».
 | Orollar | 0 | 3 | 0 | 0 | 3 | 0 % |
 | O'lchovlar, saytlar va relizlar | 3 | 9 | 2 | 1 | 9 | 21 % |
 | Dizayn tizimi va barcha ilovalardagi sifat | 1 | 13 | 6 | 2 | 6 | 50 % |
-| **Jami** | **50** | **141** | **24** | **25** | **142** | **19 %** |
+| **Jami** | **50** | **141** | **24** | **26** | **141** | **19 %** |
 
 «Tayyorlik» ustunida qisman bajarilgan band yarim hisoblanadi. Bosqichlar bo'yicha — har bosqich nimani topshirishi
 kerak:
@@ -37,7 +37,7 @@ kerak:
 |---|---|---|---|---|
 | B0 | 10 | 9 | 1 | 0 |
 | B1 | 16 | 12 | 1 | 3 |
-| B2 | 28 | 3 | 17 | 8 |
+| B2 | 28 | 3 | 18 | 7 |
 | B3 | 14 | 0 | 0 | 14 |
 | B4 | 18 | 0 | 0 | 18 |
 | B5 | 53 | 0 | 5 | 48 |
@@ -119,7 +119,7 @@ kerak:
 | ID | Nima | Turi | Talab | Bosqich | Dizayn | Holat |
 |---|---|---|---|---|---|---|
 | NO-10 | QUIC havolalari tugun kaliti orqali ulanadi (iroh); tenzor freymlari oqimlar orqali boradi; faqat kutilgan qo'shni qabul qilinadi | funksiya | T2 | B1 | — | ✓ |
-| NO-11 | NAT teshish; teshib bo'lmasa — o'z rele serverimiz | funksiya | T2 | B2 | — | ○ |
+| NO-11 | NAT teshish; teshib bo'lmasa — o'z rele serverimiz | funksiya | T2 | B2 | — | ◐ |
 | NO-12 | Topish: LAN'da mDNS, internetda DNS/pkarr | funksiya | T2 | B2 | — | ◐ |
 | NO-13 | Juftlash: ichida 10 daqiqalik sir bo'lgan QR chipta; ikkala ekranda to'rtta emoji bilan tasdiqlash | funksiya | P§3 | B2 | 02 | ◐ |
 | NO-14 | Klaster kaliti va a'zolik tokenlari (Biscuit): tugun, foydalanuvchi va admin huquqlari | funksiya | P§3 | B2 | — | ◐ |

@@ -40,6 +40,8 @@ axum.workspace = true
 
 [dev-dependencies]
 omnarc-store = { workspace = true, features = ["testing"] }
+# a relay server inside the tests
+iroh-relay = { version = "1.3", default-features = false, features = ["server"] }
 
 [lints]
 workspace = true

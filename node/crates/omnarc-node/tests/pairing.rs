@@ -26,7 +26,7 @@ fn options(ttl: Duration) -> InviteOptions {
 #[tokio::test]
 async fn a_device_joins_a_cluster_created_on_another() {
     let (desktop, laptop) = (data_dir("desktop"), data_dir("laptop"));
-    let cluster = pairing::create(&desktop, "Home cluster", device("Desktop")).unwrap();
+    let cluster = pairing::create(&desktop, "Home cluster", device("Desktop"), &[]).unwrap();
 
     let (tx, rx) = tokio::sync::oneshot::channel();
     let inviting = pairing::invite(
@@ -72,7 +72,7 @@ async fn a_device_joins_a_cluster_created_on_another() {
 #[tokio::test]
 async fn an_invitation_ends_when_its_ticket_expires() {
     let desktop = data_dir("expiry");
-    pairing::create(&desktop, "Home cluster", device("Desktop")).unwrap();
+    pairing::create(&desktop, "Home cluster", device("Desktop"), &[]).unwrap();
     let result = pairing::invite(&desktop, options(Duration::from_millis(300)), |_| {}, |_| async { true }).await;
     assert!(result.unwrap_err().to_string().contains("expired"));
     std::fs::remove_dir_all(&desktop).unwrap();

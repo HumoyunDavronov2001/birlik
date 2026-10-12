@@ -7,8 +7,9 @@ use std::path::Path;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use omnarc_network::join::{self, Admitted, ClusterContext, Invitation, JOIN_ALPN, JoinAttempt};
+use omnarc_network::relay::{self, Relay};
 use omnarc_network::ticket::{Emoji, Ticket};
-use omnarc_network::{EndpointId, load_or_create_key};
+use omnarc_network::{Endpoint, EndpointId, load_or_create_key};
 use omnarc_protocol::v1;
 
 use crate::ring::BoxError;
@@ -25,14 +26,32 @@ fn with_id(mut device: v1::DeviceInfo, id: EndpointId) -> v1::DeviceInfo {
     device
 }
 
-/// Creates a cluster named `name` in the node's data directory `data`, with this device as its admin.
+/// Creates a cluster named `name` in the node's data directory `data`, with this device as its admin; its members
+/// meet through `relays` across networks (none: only on one network).
 ///
 /// # Errors
-/// The device already belongs to a cluster, or the state cannot be written.
-pub fn create(data: &Path, name: &str, device: v1::DeviceInfo) -> Result<Cluster, BoxError> {
+/// The device already belongs to a cluster, a relay address is not one, or the state cannot be written.
+pub fn create(data: &Path, name: &str, device: v1::DeviceInfo, relays: &[String]) -> Result<Cluster, BoxError> {
+    relay::parse_all(relays)?;
     let store = Store::open(data)?;
     let me = load_or_create_key(&data.join("node.key"))?.public();
-    Ok(store.create_cluster(name, me, with_id(device, me), now_unix_ms())?)
+    let cluster = store.create_cluster(name, me, with_id(device, me), now_unix_ms())?;
+    store.set_relays(relays)?;
+    Ok(cluster)
+}
+
+/// How long a node waits for its relay before it shows a ticket that names it.
+const RELAY_PATIENCE: Duration = Duration::from_secs(10);
+
+/// Waits until `endpoint` is reachable through one of `relays`, for at most [`RELAY_PATIENCE`].
+pub(crate) async fn reach_relay(endpoint: &Endpoint, relays: &[Relay]) -> Result<(), BoxError> {
+    if relays.is_empty() {
+        return Ok(());
+    }
+    tokio::time::timeout(RELAY_PATIENCE, endpoint.online())
+        .await
+        .map_err(|_| "no relay of the cluster answers: devices on other networks cannot reach this one")?;
+    Ok(())
 }
 
 /// How an invitation listens and how long it lasts.
@@ -42,7 +61,7 @@ pub struct InviteOptions {
     pub listen: SocketAddr,
     /// How long the ticket is valid (at most 10 minutes).
     pub ttl: Duration,
-    /// Relays for devices on other networks.
+    /// Relays for devices on other networks, besides the cluster's own.
     pub relays: Vec<String>,
 }
 
@@ -69,10 +88,18 @@ where
         .cluster_key()?
         .ok_or("this device holds no cluster key: invite from the device that created the cluster")?;
     let secret = load_or_create_key(&data.join("node.key"))?;
-    let endpoint = omnarc_network::bind_with(secret, options.listen, vec![JOIN_ALPN.to_vec()]).await?;
+    let mut relays = store.relays()?;
+    for extra in options.relays {
+        if !relays.contains(&extra) {
+            relays.push(extra);
+        }
+    }
+    let parsed = relay::parse_all(&relays)?;
+    let endpoint = omnarc_network::bind_with_relays(secret, options.listen, vec![JOIN_ALPN.to_vec()], &parsed).await?;
+    reach_relay(&endpoint, &parsed).await?;
     let addrs: Vec<SocketAddr> =
         endpoint.addr().ip_addrs().copied().filter(|addr| !addr.ip().is_unspecified()).collect();
-    let ticket = Ticket::new(cluster.id, endpoint.id(), addrs, options.relays, options.ttl, now_unix_ms())?;
+    let ticket = Ticket::new(cluster.id, endpoint.id(), addrs, relays, options.ttl, now_unix_ms())?;
     let deadline = tokio::time::Instant::now()
         + Duration::from_millis(u64::try_from(ticket.expires_unix_ms - now_unix_ms()).unwrap_or(0));
     ready(&ticket);
@@ -122,12 +149,17 @@ pub async fn join(
         return Err("this ticket has expired: ask for a new one".into());
     }
     let secret = load_or_create_key(&data.join("node.key"))?;
-    let endpoint = omnarc_network::bind_with(secret, "0.0.0.0:0".parse()?, vec![]).await?;
+    // the inviter may be on another network: it is reached through the relays the ticket names
+    let relays = relay::parse_all(&ticket.relay_urls)?;
+    let endpoint = omnarc_network::bind_with_relays(secret, "0.0.0.0:0".parse()?, vec![], &relays).await?;
+    reach_relay(&endpoint, &relays).await?;
     let me = endpoint.id();
     let device = with_id(device, me);
     let joined = join::join(&endpoint, ticket, device.clone(), show_emoji).await;
     endpoint.close().await;
     let cluster = store.save_joined(&joined?, me, device, now_unix_ms())?;
+    // the cluster's relays become this device's too
+    store.set_relays(&ticket.relay_urls)?;
     // the inviter is the one member this device can dial until gossip tells it more
     store.update_member(ticket.inviter, None, Some(ticket.direct_addrs.clone()))?;
     Ok(cluster)

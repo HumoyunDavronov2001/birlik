@@ -203,8 +203,8 @@ pub async fn join(
     show_emoji: impl FnOnce([Emoji; 4]),
 ) -> Result<Joined> {
     let mut addrs: Vec<TransportAddr> = ticket.direct_addrs.iter().copied().map(TransportAddr::Ip).collect();
-    for url in &ticket.relay_urls {
-        addrs.push(TransportAddr::Relay(url.parse().map_err(|e| Error::new("relay URL", e))?));
+    for relay in crate::relay::parse_all(&ticket.relay_urls)? {
+        addrs.push(relay.transport_addr());
     }
     let addr = EndpointAddr::from_parts(ticket.inviter, addrs);
     let connection = endpoint.connect(addr, JOIN_ALPN).await.map_err(|e| Error::new("connecting to the inviter", e))?;

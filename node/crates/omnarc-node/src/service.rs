@@ -21,6 +21,7 @@ use omnarc_network::gossip::{
 use omnarc_network::join::{self, ClusterContext, Invitation, JOIN_ALPN, JoinAttempt};
 use omnarc_network::links::{self, PROBE_ALPN, ProbeHandler};
 use omnarc_network::protocol::{AcceptError, ProtocolHandler};
+use omnarc_network::relay::{self, Relay};
 use omnarc_network::ticket::Ticket;
 use omnarc_network::{Connection, Endpoint, EndpointAddr, EndpointId, MemoryLookup, Router, SecretKey, TransportAddr};
 use omnarc_protocol::v1;
@@ -78,6 +79,8 @@ struct Shared {
     cluster_key: Option<ClusterKey>,
     store: Store,
     models: ModelStore,
+    // the cluster's relays, for members on other networks
+    relays: Vec<Relay>,
     members: Members,
     lookup: MemoryLookup,
     endpoint: Endpoint,
@@ -115,15 +118,17 @@ impl Service {
         let key = omnarc_network::load_or_create_key(&config.data.join("node.key"))?;
         let known = store.members()?;
         let members = Members::new(known.iter().map(|member| member.id));
+        let relays = relay::parse_all(&store.relays()?)?;
         let lookup = MemoryLookup::new();
-        for member in known.iter().filter(|member| member.id != key.public() && !member.addrs.is_empty()) {
-            lookup.add_endpoint_info(addr_of(member.id, &member.addrs));
+        for member in known.iter().filter(|member| member.id != key.public()) {
+            lookup.add_endpoint_info(reach(member.id, &member.addrs, &member.device.relay_url, &relays));
         }
 
         let models = crate::models::open(&config.data).await?;
         // a network without multicast only loses the local discovery
         let lan = if config.lan { omnarc_network::lan_lookup(key.public()).ok() } else { None };
-        let endpoint = omnarc_network::bind_cluster(key.clone(), config.listen, lookup.clone(), lan.clone()).await?;
+        let endpoint =
+            omnarc_network::bind_cluster(key.clone(), config.listen, lookup.clone(), lan.clone(), &relays).await?;
         let gossip = Gossip::builder().spawn(endpoint.clone());
         let joins = JoinHandler(Arc::new(OnceLock::new()));
         let router = Router::builder(endpoint.clone())
@@ -142,6 +147,7 @@ impl Service {
             cluster_key,
             store,
             models,
+            relays,
             members,
             lookup,
             endpoint,
@@ -257,14 +263,15 @@ impl Service {
         if self.shared.cluster_key.is_none() {
             return Err("this device holds no cluster key: invite from the device that created the cluster".into());
         }
-        let ticket = Ticket::new(
-            self.shared.cluster.id,
-            self.id(),
-            own_addrs(&self.shared.endpoint),
-            relays,
-            ttl,
-            now_unix_ms(),
-        )?;
+        // the cluster's relays, with their tokens, and any others given
+        let mut all = self.shared.store.relays()?;
+        for extra in relays {
+            if !all.contains(&extra) {
+                all.push(extra);
+            }
+        }
+        let ticket =
+            Ticket::new(self.shared.cluster.id, self.id(), own_addrs(&self.shared.endpoint), all, ttl, now_unix_ms())?;
         *self.shared.invitation.lock().expect("invitation") = Some(Arc::new(Invitation::new(ticket.clone())));
         Ok(ticket)
     }
@@ -390,8 +397,15 @@ fn node_id(id: EndpointId) -> v1::NodeId {
     v1::NodeId { ed25519_public_key: id.as_bytes().to_vec() }
 }
 
-pub(crate) fn addr_of(id: EndpointId, addrs: &[SocketAddr]) -> EndpointAddr {
-    EndpointAddr::from_parts(id, addrs.iter().copied().map(TransportAddr::Ip))
+/// Where a member is dialed: its direct addresses, and the relay it announced — or, before it announced one, every
+/// relay of the cluster.
+pub(crate) fn reach(id: EndpointId, addrs: &[SocketAddr], relay_url: &str, relays: &[Relay]) -> EndpointAddr {
+    let mut transports: Vec<TransportAddr> = addrs.iter().copied().map(TransportAddr::Ip).collect();
+    match relay_url.parse::<Relay>() {
+        Ok(home) => transports.push(home.transport_addr()),
+        Err(_) => transports.extend(relays.iter().map(Relay::transport_addr)),
+    }
+    EndpointAddr::from_parts(id, transports)
 }
 
 fn own_addrs(endpoint: &Endpoint) -> Vec<SocketAddr> {
@@ -492,16 +506,20 @@ async fn speak(shared: Arc<Shared>, mut device: v1::DeviceInfo, every: Duration)
             _ = ticks.tick() => false,
             () = shared.announce.notified() => true,
         };
-        // the device goes out at the start, when its addresses change, when a neighbor comes up, and now and then
+        // the device goes out at the start, when its addresses or its relay change, when a neighbor comes up, and now
+        // and then
         let addrs: Vec<String> = own_addrs(&shared.endpoint).iter().map(ToString::to_string).collect();
+        let relay_url = shared.endpoint.addr().relay_urls().next().map(ToString::to_string).unwrap_or_default();
         since_announced += 1;
         if woken
             || since_announced >= ANNOUNCE_EVERY
             || addrs != device.direct_addresses
+            || relay_url != device.relay_url
             || !shared.devices.lock().expect("devices").contains_key(&shared.key.public())
         {
             since_announced = 0;
             device.direct_addresses = addrs;
+            device.relay_url = relay_url;
             shared.devices.lock().expect("devices").insert(shared.key.public(), device.clone());
             let _ = shared.events.send(Event::Device(shared.key.public(), device.clone()));
             let payload = v1::GossipPayload { kind: Some(v1::gossip_payload::Kind::Device(device.clone())) };
@@ -569,9 +587,7 @@ fn hear(shared: &Shared, heard: gossip::Heard) {
         }
         Some(Kind::Device(device)) => {
             let addrs: Vec<SocketAddr> = device.direct_addresses.iter().filter_map(|addr| addr.parse().ok()).collect();
-            if !addrs.is_empty() {
-                shared.lookup.add_endpoint_info(addr_of(heard.sender, &addrs));
-            }
+            shared.lookup.add_endpoint_info(reach(heard.sender, &addrs, &device.relay_url, &shared.relays));
             let _ = shared.store.update_member(heard.sender, Some(device.clone()), Some(addrs));
             shared.devices.lock().expect("devices").insert(heard.sender, device.clone());
             let _ = shared.events.send(Event::Device(heard.sender, device));
@@ -594,9 +610,8 @@ fn admit_announced(shared: &Shared, member: &v1::Member) {
         return;
     }
     let addrs: Vec<SocketAddr> = member.direct_addresses.iter().filter_map(|addr| addr.parse().ok()).collect();
-    if !addrs.is_empty() {
-        shared.lookup.add_endpoint_info(addr_of(id, &addrs));
-    }
+    let relay_url = member.device.as_ref().map_or("", |device| device.relay_url.as_str());
+    shared.lookup.add_endpoint_info(reach(id, &addrs, relay_url, &shared.relays));
     let _ = shared.store.put_member(&Member {
         id,
         device: member.device.clone().unwrap_or_default(),

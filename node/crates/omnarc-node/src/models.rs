@@ -8,7 +8,7 @@ use omnarc_network::{EndpointId, MemoryLookup};
 use omnarc_store::{BLOBS_ALPN, Hash, Model, ModelStore, Window};
 
 use crate::ring::BoxError;
-use crate::service::addr_of;
+use crate::service::reach;
 use crate::state::{Member, Store};
 
 /// The model store in the node's data directory. Only one process can hold it: the service, while it runs.
@@ -62,19 +62,21 @@ pub async fn fetch(
     let others: Vec<Member> = state.members()?.into_iter().filter(|m| m.id != me).collect();
     let candidates: Vec<&Member> = match from {
         Some(who) => vec![find(&others, who)?],
-        None => others.iter().filter(|m| !m.addrs.is_empty()).collect(),
+        None => others.iter().filter(|m| !m.addrs.is_empty() || !m.device.relay_url.is_empty()).collect(),
     };
     if candidates.is_empty() {
         return Err("no other member has been reached yet: run omnarc-node serve once".into());
     }
+    let relays = omnarc_network::relay::parse_all(&state.relays()?)?;
     let lookup = MemoryLookup::new();
-    for member in others.iter().filter(|m| !m.addrs.is_empty()) {
-        lookup.add_endpoint_info(addr_of(member.id, &member.addrs));
+    for member in &others {
+        lookup.add_endpoint_info(reach(member.id, &member.addrs, &member.device.relay_url, &relays));
     }
     let any: SocketAddr = "0.0.0.0:0".parse()?;
-    // a member whose address changed is found on the local network
+    // a member whose address changed is found on the local network, one on another network through a relay
     let lan = omnarc_network::lan_lookup(me).ok();
-    let endpoint = omnarc_network::bind_cluster(key, any, lookup, lan).await?;
+    let endpoint = omnarc_network::bind_cluster(key, any, lookup, lan, &relays).await?;
+    crate::pairing::reach_relay(&endpoint, &relays).await?;
 
     let mut failures = Vec::new();
     let mut fetched = None;

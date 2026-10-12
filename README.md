@@ -174,6 +174,10 @@ omnarc-node serve                          # on every device: it hears the other
 omnarc-node serve --invite                 # the admin's service can invite while it runs
 ```
 
+Devices on different networks meet through a relay you run (`relay/README.md`): create the cluster with
+`--relay "https://relay.example.com?token=..."`, or add one later with `omnarc-node relay add`. Devices on one
+network find each other by mDNS without one.
+
 The panel — the ring of your devices, the device list and adding a device with its QR code and four symbols — is
 built once with `cd web && pnpm install && pnpm build`, then served by the node:
 
@@ -215,6 +219,7 @@ protocol/   Protobuf messages (omnarc.v1) and the tensor frame spec
 node/       Rust workspace: omnarc-protocol, omnarc-engine-host, omnarc-network, omnarc-store, omnarc-api,
             omnarc-node; fuzz targets in node/fuzz
 engine/     libomnarc — C++20 engine on llama.cpp with a C ABI
+relay/      running the relay for devices on different networks
 design/     design tokens, the living ring, the design concept
 web/        Svelte 5 component library (Storybook)
 docs/uz/    Uzbek reading copy of the plan, the requirements and the specification

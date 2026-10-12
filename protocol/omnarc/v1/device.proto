@@ -74,4 +74,6 @@ message DeviceInfo {
   string agent_version = 10;
   // Where the device listens on its networks ("192.168.1.20:7700"); announced over gossip so members can dial it.
   repeated string direct_addresses = 11;
+  // The relay the device can be reached through from other networks (protocol/CLUSTER.md §3.5); empty without one.
+  string relay_url = 12;
 }
