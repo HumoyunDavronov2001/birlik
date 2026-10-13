@@ -48,7 +48,7 @@ engine-real:
     OMNARC_ENGINE="$PWD/build/engine/omnarc-engine" OMNARC_TEST_MODEL="$PWD/build/models/stories15M-q8_0.gguf" cargo test -p omnarc-node --features engine-tests
 
 web:
-    cd web && pnpm install --frozen-lockfile && pnpm check && pnpm test && pnpm build && pnpm build-storybook && pnpm test:visual
+    cd web && pnpm install --frozen-lockfile && pnpm check && pnpm test && pnpm build && node ../.github/scripts/budget.mjs apps/panel/build 180 && pnpm build-storybook && pnpm test:visual
 
 # Describe this device the way the agent announces it to a cluster.
 info:

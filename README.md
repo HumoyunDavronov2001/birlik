@@ -180,7 +180,8 @@ Devices on different networks meet through a relay you run (`relay/README.md`): 
 `--relay "https://relay.example.com?token=..."`, or add one later with `omnarc-node relay add`. Devices on one
 network find each other by mDNS without one.
 
-The panel — the first run that creates or joins a cluster, the ring of your devices, the device list, adding a device
+The panel — the first run that creates or joins a cluster, the ring of your devices (also as a table, and from arc to
+arc by keyboard), the device list and each device's own page with its temperature, power and links, adding a device
 with its QR code and four symbols, removing one — is built once with `cd web && pnpm install && pnpm build`, then served
 by the node:
 

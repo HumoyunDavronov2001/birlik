@@ -86,8 +86,9 @@ Members exchange telemetry and membership news over [iroh-gossip](https://github
 topic `BLAKE3("omnarc/v1/gossip" ‖ ClusterId)`. A gossip connection is accepted only from a node whose token is valid
 (§1). Every message is a `SignedGossip`: the payload (a `Telemetry`, a `DeviceInfo` update, a new `Member` or a leave
 notice), the sender's `NodeId`, a timestamp and an Ed25519 signature by the sender's node key, so a member relaying a
-message cannot change it. Telemetry goes out about once per second; a device announces its `DeviceInfo` when it starts
-and when it changes. The admin that admits a device announces it as a `Member` with its token, and every member checks
+message cannot change it. Telemetry goes out about once per second — processor load, memory in use, a thermal state
+from the device's hottest sensor, its power source and battery, and its link samples (§3.3); a device announces its
+`DeviceInfo` when it starts and when it changes. The admin that admits a device announces it as a `Member` with its token, and every member checks
 the token against the `ClusterId` before it lets the device connect. Gossip also spreads the addresses of the members,
 so a new device that only knows its inviter finds the others.
 

@@ -2,7 +2,7 @@
 
 import type { ClusterSnapshot, JoinAttempt, WatchClusterResponse } from './gen/omnarc/v1/cluster_service_pb';
 import { Platform, type DeviceInfo, type NodeId } from './gen/omnarc/v1/device_pb';
-import { LinkKind, type LinkSample, type Telemetry } from './gen/omnarc/v1/telemetry_pb';
+import { LinkKind, ThermalState, type LinkSample, type PowerState, type Telemetry } from './gen/omnarc/v1/telemetry_pb';
 
 /** A device is online while its telemetry keeps arriving; it is sent every second. */
 export const ONLINE_MS = 5_000;
@@ -173,4 +173,35 @@ export function formatLink(link: LinkSample): string {
     parts.push(link.bandwidthMbps >= 1000 ? `${(link.bandwidthMbps / 1000).toFixed(1)} Gbit/s` : `${Math.round(link.bandwidthMbps)} Mbit/s`);
   }
   return parts.filter(Boolean).join(' · ');
+}
+
+/** How warm a device runs, in words, with the status it is shown with; nothing when the device does not say. */
+export function thermal(state: ThermalState | undefined): { label: string; kind: 'good' | 'warning' | 'serious' | 'critical' } | null {
+  switch (state) {
+    case ThermalState.NOMINAL:
+      return { label: 'Normal', kind: 'good' };
+    case ThermalState.FAIR:
+      return { label: 'Warm', kind: 'warning' };
+    case ThermalState.SERIOUS:
+      return { label: 'Hot', kind: 'serious' };
+    case ThermalState.CRITICAL:
+      return { label: 'Too hot', kind: 'critical' };
+    default:
+      return null;
+  }
+}
+
+/** Where a device's power comes from, in words; nothing when the device does not say. */
+export function power(state: PowerState | undefined): string | null {
+  if (!state) return null;
+  const percent = `${Math.round(state.batteryFraction * 100)}%`;
+  if (state.charging) return `Charging · ${percent}`;
+  if (state.onBattery) return `On battery · ${percent}`;
+  return 'Plugged in';
+}
+
+/** Seconds since the panel last heard from a device; nothing if never. */
+export function heardAgo(view: ClusterView, id: string, now: number): number | null {
+  const at = view.heard[id];
+  return at === undefined ? null : Math.max(0, Math.round((now - at) / 1000));
 }

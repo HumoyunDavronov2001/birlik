@@ -264,13 +264,16 @@ void main() {
   /* ---------------- labels (HTML) ---------------- */
   const labels = [];
   if (O.labelsEl) {
-    O.labelsEl.innerHTML = '';
+    O.labelsEl.replaceChildren();
     all.forEach(() => { const e = document.createElement('span'); O.labelsEl.appendChild(e); labels.push({ e, o: 0.45 }); });
   }
   const labelText = O.labelText || ((d, count) => `${d.backend} · ${count} layers`);
   const writeLabels = () => labels.forEach((l, k) => {
     if (k >= n) { l.e.style.opacity = 0; return; }
-    l.e.innerHTML = `<b>${all[k].name}</b>${labelText(all[k], layers[k])}`;
+    // text, never markup: a device names itself, and the panel shows those names
+    const name = document.createElement('b');
+    name.textContent = all[k].name;
+    l.e.replaceChildren(name, labelText(all[k], layers[k]));
   });
   writeLabels();
   const writeStatus = () => { if (O.statusEl) O.statusEl.textContent = O.statusText(n, LAYERS); };

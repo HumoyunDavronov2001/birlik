@@ -17,7 +17,7 @@ maketi dizayn konsepsiyasida bo'lsa — uning bo'lim raqami, bo'lmasa «—».
 |---|---|---|---|---|---|---|
 | Dvigatel | 0 | 30 | 8 | 2 | 20 | 30 % |
 | Tugun agenti va API | 0 | 40 | 9 | 10 | 21 | 35 % |
-| Panel | 24 | 7 | 1 | 8 | 22 | 16 % |
+| Panel | 24 | 7 | 3 | 7 | 21 | 21 % |
 | Ish stoli ilovasi | 4 | 5 | 0 | 0 | 9 | 0 % |
 | Android ilovasi | 7 | 8 | 0 | 2 | 13 | 7 % |
 | iOS ilovasi | 8 | 6 | 0 | 2 | 12 | 7 % |
@@ -27,8 +27,8 @@ maketi dizayn konsepsiyasida bo'lsa — uning bo'lim raqami, bo'lmasa «—».
 | O'qitish | 0 | 4 | 0 | 0 | 4 | 0 % |
 | Orollar | 0 | 3 | 0 | 0 | 3 | 0 % |
 | O'lchovlar, saytlar va relizlar | 3 | 9 | 2 | 1 | 9 | 21 % |
-| Dizayn tizimi va barcha ilovalardagi sifat | 1 | 13 | 6 | 2 | 6 | 50 % |
-| **Jami** | **50** | **141** | **26** | **27** | **138** | **21 %** |
+| Dizayn tizimi va barcha ilovalardagi sifat | 1 | 13 | 6 | 4 | 4 | 57 % |
+| **Jami** | **50** | **141** | **28** | **28** | **135** | **22 %** |
 
 «Tayyorlik» ustunida qisman bajarilgan band yarim hisoblanadi. Bosqichlar bo'yicha — har bosqich nimani topshirishi
 kerak:
@@ -37,7 +37,7 @@ kerak:
 |---|---|---|---|---|
 | B0 | 10 | 9 | 1 | 0 |
 | B1 | 16 | 12 | 1 | 3 |
-| B2 | 28 | 5 | 19 | 4 |
+| B2 | 28 | 7 | 20 | 1 |
 | B3 | 14 | 0 | 0 | 14 |
 | B4 | 18 | 0 | 0 | 18 |
 | B5 | 53 | 0 | 5 | 48 |
@@ -180,7 +180,7 @@ Sozlamalar.
 | PA-03 | Halqa (bosh ekran) | ekran | U1 | B2 | 01 | ◐ |
 | PA-04 | Qurilma qo'shish | ekran | U6 | B2 | 02 | ◐ |
 | PA-05 | Qurilmalar | ekran | — | B2 | 01 | ◐ |
-| PA-06 | Bitta qurilma | ekran | Q1, Q5 | B2 | — | ○ |
+| PA-06 | Bitta qurilma | ekran | Q1, Q5 | B2 | — | ◐ |
 | PA-07 | Odamlar (oila halqasi) | ekran | K1, Q6 | B6 | — | ○ |
 | PA-08 | Modellar: katalog | ekran | — | B8 | — | ○ |
 | PA-09 | «Sig'adimi?» va joylashuv rejasi | ekran | — | B3 | 04 | ○ |
@@ -201,9 +201,9 @@ Sozlamalar.
 | PA-24 | Buyruqlar paneli (⌘K) | ekran | U7 | B8 | 01 | ○ |
 | PA-30 | Bildirishnomalar: qurilma chiqdi va ishni uning zaxirasi oldi, qurilma qo'shildi, model tayyor, xatolar | funksiya | P§9 | B3 | — | ○ |
 | PA-31 | «Qo'llash» va «Rad etish» tugmalari bilan reja taklifi kartasi | funksiya | R1 | B3 | 01 | ○ |
-| PA-32 | Hamma uchun halqa: jadval ko'rinishi, yoydan yoyga klaviatura fokusi, ovoz bilan o'qiladigan xulosa | funksiya | U4 | B2 | — | ◐ |
+| PA-32 | Hamma uchun halqa: jadval ko'rinishi, yoydan yoyga klaviatura fokusi, ovoz bilan o'qiladigan xulosa | funksiya | U4 | B2 | — | ✓ |
 | PA-33 | Bir nechta model — ichma-ich halqalar; 128 tadan ortiq qurilmada yoylar guruhlanadi | funksiya | U1 | B4 | — | ○ |
-| PA-34 | Paneldagi tirik belgi: kirish sahnasi, og'ish, qurilma qo'shilganda yangi yoy | funksiya | U11 | B2 | 01 | ◐ |
+| PA-34 | Paneldagi tirik belgi: kirish sahnasi, og'ish, qurilma qo'shilganda yangi yoy | funksiya | U11 | B2 | 01 | ✓ |
 | PA-35 | Connect oqimi orqali jonli ma'lumot | funksiya | P§9 | B2 | — | ✓ |
 | PA-36 | Har amal uchun klaviatura yorlig'i | funksiya | U7 | B8 | — | ○ |
 
@@ -492,14 +492,14 @@ Ekranlar panelda (PA-18 dan PA-22 gacha); bu yerda — ularning ortidagi xizmat.
 | DS-02 | O'z serverimizdan beriladigan shriftlar: Inter va IBM Plex Mono | funksiya | U3 | B0 | 07 | ✓ |
 | DS-03 | Noto Sans SC, Arabic va Devanagari — tilga qarab yuklanadi | funksiya | U3 | B5 | — | ○ |
 | DS-04 | Qurilgan va sinalgan komponentlar (unit, vizual, axe): Button, Card, Chip, Field, Icon, Kbd, Logo, Meter, Ring, Status, Switch, LivingRing | funksiya | U2, U4 | B0 | 07 | ✓ |
-| DS-05 | Ekranlarga hali kerak bo'lgan komponentlar: Tabs, Table, Dialog, Toast, Menu, Select, Slider, Tooltip, Progress, Empty state, Skeleton, QR code, Emoji check, Code block, Message, Voice button, Agreement badge | funksiya | U2 | B2–B8 | — | ○ |
+| DS-05 | Ekranlarga hali kerak bo'lgan komponentlar: Tabs, Table, Dialog, Toast, Menu, Select, Slider, Tooltip, Progress, Empty state, Skeleton, QR code, Emoji check, Code block, Message, Voice button, Agreement badge | funksiya | U2 | B2–B8 | — | ◐ |
 | DS-06 | Grafiklar: uPlot ma'lumot qatorlari, token yo'li vaqt chizig'i, havolalar matritsasi | funksiya | U4 | B4 | 05 | ○ |
 | DS-07 | Globus: MapLibre GL, deck.gl va oflayn Protomaps xarita plitkalari | funksiya | A2 | B6 | 06 | ○ |
 | DS-08 | Tirik belgi (WebGL2) va WebGL2 bo'lmasa chiqadigan SVG varianti | funksiya | U11 | B0 | 01 | ✓ |
 | DS-09 | Dizayn konsepsiyasi sahifasi va README rasmlari | ekran | — | B0 | — | ✓ |
 | XC-01 | Xitoy, ispan, hind, arab (o'ngdan chapga), fransuz, portugal va rus tillariga tarjimalar | funksiya | U9 | B5 | — | ○ |
 | XC-02 | WCAG 2.2 AA, faqat klaviatura bilan boshqarish, kam harakat rejimi, rang ko'rligiga chidamli grafiklar | funksiya | U4, U5 | B0 → | 07 | ◐ |
-| XC-03 | Byudjetlar: panel JS ≤ 180 KB, brauzer sahifasi ≤ 60 KB, 1000 qurilmada 60 fps, LCP ≤ 1,5 s, sovuq start ≤ 1 s | funksiya | U10 | B2 → | — | ○ |
+| XC-03 | Byudjetlar: panel JS ≤ 180 KB, brauzer sahifasi ≤ 60 KB, 1000 qurilmada 60 fps, LCP ≤ 1,5 s, sovuq start ≤ 1 s | funksiya | U10 | B2 → | — | ◐ |
 | XC-04 | Har havolada shifrlash; modellar BLAKE3 bilan tekshiriladi | funksiya | P§7 | B2 | — | ◐ |
 | XC-05 | Sukut bo'yicha hech qayerga hech narsa yuborilmaydi | funksiya | P§2 | B0 → | — | ✓ |
 

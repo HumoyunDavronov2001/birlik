@@ -1,9 +1,34 @@
 <script lang="ts">
-  import { Card, Icon, Meter, Ring, loadLevel } from '@omnarc/ui';
+  import { goto } from '$app/navigation';
+  import { Card, Icon, Meter, Ring, Table, Tooltip, loadLevel, type Column } from '@omnarc/ui';
   import { cluster } from '$lib/cluster.svelte';
   import { deviceName, formatGib, gib, isOnline, platformIcon, platformName } from '$lib/model';
 
   const view = $derived(cluster.view);
+
+  // the same data as a table, for those who would rather read it (PLAN.md §9.4); remembered in this browser
+  let asTable = $state(readTable());
+  function readTable(): boolean {
+    try {
+      return localStorage.getItem('omnarc.ring.table') === '1';
+    } catch {
+      return false;
+    }
+  }
+  function toggleTable() {
+    asTable = !asTable;
+    try {
+      localStorage.setItem('omnarc.ring.table', asTable ? '1' : '0');
+    } catch {
+      // a private window keeps no setting: the toggle still works for this visit
+    }
+  }
+  const tableColumns: Column[] = [
+    { key: 'name', label: 'Device', wrap: true },
+    { key: 'share', label: 'Share', align: 'end', mono: true },
+    { key: 'load', label: 'Load', align: 'end', mono: true },
+    { key: 'state', label: 'State' },
+  ];
 
   // a phone gets the small ring without labels
   let narrow = $state(matchMedia('(max-width: 640px)').matches);
@@ -32,7 +57,8 @@
   );
   const summary = $derived(
     `${ids.length} ${ids.length === 1 ? 'device' : 'devices'} with ${formatGib(totalBytes)} of memory together; ` +
-      arcs.map((arc, i) => `${arc.name} ${isOnline(view, ids[i], cluster.now) ? 'online' : 'offline'}`).join(', '),
+      arcs.map((arc, i) => `${arc.name} ${isOnline(view, ids[i], cluster.now) ? 'online' : 'offline'}`).join(', ') +
+      '.',
   );
 </script>
 
@@ -41,14 +67,47 @@
 <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
   <Card padding="lg">
     {#if ids.length}
-      <Ring
-        variant={narrow ? 'compact' : 'full'}
-        devices={arcs}
-        label={summary}
-        center={{ value: String(ids.length), unit: ids.length === 1 ? 'device' : 'devices', caption: `${formatGib(totalBytes)} of memory` }}
-      />
+      <div class="mb-2 flex justify-end">
+        <Tooltip
+          text={asTable ? 'Show the ring' : 'Show the ring as a table'}
+          label="Table"
+          pressed={asTable}
+          onclick={toggleTable}
+        >
+          <Icon name="table" size={18} />
+        </Tooltip>
+      </div>
+      {#if asTable}
+        <Table caption={summary} columns={tableColumns} rows={ids} key={(id) => id}>
+          {#snippet cell(id, column)}
+            {@const online = isOnline(view, id, cluster.now)}
+            {@const load = view.telemetry[id]?.cpuLoad ?? 0}
+            {#if column.key === 'name'}
+              <a class="text-text-1 no-underline hover:underline" href="/devices/{id}">{deviceName(view, id)}</a>
+            {:else if column.key === 'share'}
+              {totalBytes ? `${Math.round((Number(view.devices[id].memoryTotalBytes) / totalBytes) * 100)}%` : '—'}
+            {:else if column.key === 'load'}
+              {online ? `${Math.round(load * 100)}%` : '—'}
+            {:else}
+              {online ? 'Online' : 'Offline'}
+            {/if}
+          {/snippet}
+        </Table>
+      {:else}
+        <Ring
+          variant={narrow ? 'compact' : 'full'}
+          devices={arcs}
+          label={`${summary} Use the arrow keys to move from device to device; Enter opens one.`}
+          center={{ value: String(ids.length), unit: ids.length === 1 ? 'device' : 'devices', caption: `${formatGib(totalBytes)} of memory` }}
+          onselect={(i) => goto(`/devices/${ids[i]}`)}
+        />
+      {/if}
       <p class="m-0 text-center text-13 text-text-3">
-        Every arc is a device, as long as its share of the cluster's memory; its color is its load. No model is running yet.
+        {#if asTable}
+          A device's share is its part of the cluster's memory. No model is running yet.
+        {:else}
+          Every arc is a device, as long as its share of the cluster's memory; its color is its load. No model is running yet.
+        {/if}
       </p>
     {:else}
       <p class="m-0 text-13 text-text-3">Waiting for this device's service…</p>

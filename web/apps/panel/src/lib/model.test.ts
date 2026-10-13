@@ -6,8 +6,22 @@ import {
   WatchClusterResponseSchema,
 } from './gen/omnarc/v1/cluster_service_pb';
 import { DeviceInfoSchema, NodeIdSchema, Platform } from './gen/omnarc/v1/device_pb';
-import { LinkKind, LinkSampleSchema, TelemetrySchema } from './gen/omnarc/v1/telemetry_pb';
-import { apply, deviceName, formatGib, formatLink, fromSnapshot, hex, isOnline, linkTo, ONLINE_MS, platformName } from './model';
+import { LinkKind, LinkSampleSchema, PowerStateSchema, TelemetrySchema, ThermalState } from './gen/omnarc/v1/telemetry_pb';
+import {
+  apply,
+  deviceName,
+  formatGib,
+  formatLink,
+  fromSnapshot,
+  heardAgo,
+  hex,
+  isOnline,
+  linkTo,
+  ONLINE_MS,
+  platformName,
+  power,
+  thermal,
+} from './model';
 
 const id = (byte: number) => create(NodeIdSchema, { ed25519PublicKey: new Uint8Array(32).fill(byte) });
 
@@ -76,5 +90,25 @@ describe('links', () => {
       'Ethernet · 41 ms · 2.4 Gbit/s',
     );
     expect(formatLink(create(LinkSampleSchema, { rttMs: 0.4 }))).toBe('0.4 ms');
+  });
+});
+
+describe("a device's state", () => {
+  it('says how warm a device is, where its power comes from and when it was heard', () => {
+    expect(thermal(ThermalState.NOMINAL)).toEqual({ label: 'Normal', kind: 'good' });
+    expect(thermal(ThermalState.SERIOUS)?.kind).toBe('serious');
+    expect(thermal(ThermalState.CRITICAL)).toEqual({ label: 'Too hot', kind: 'critical' });
+    // a device that cannot read its temperature says nothing about it
+    expect(thermal(ThermalState.UNSPECIFIED)).toBeNull();
+    expect(thermal(undefined)).toBeNull();
+
+    expect(power(create(PowerStateSchema, { charging: true, batteryFraction: 0.974 }))).toBe('Charging · 97%');
+    expect(power(create(PowerStateSchema, { onBattery: true, batteryFraction: 0.5 }))).toBe('On battery · 50%');
+    expect(power(create(PowerStateSchema, {}))).toBe('Plugged in');
+    expect(power(undefined)).toBeNull();
+
+    const view = fromSnapshot(create(ClusterSnapshotSchema, { telemetry: [create(TelemetrySchema, { node: id(1) })] }), 1_000);
+    expect(heardAgo(view, hex(id(1)), 4_400)).toBe(3);
+    expect(heardAgo(view, 'never', 4_400)).toBeNull();
   });
 });

@@ -2,7 +2,8 @@
   // The first run (PLAN.md §9.6, flow 1): this device belongs to no cluster yet. It creates one, with itself as the
   // admin, or joins one with the ticket another device shows. Once done, the service starts and the panel follows.
   import { ConnectError } from '@connectrpc/connect';
-  import { Button, Card, Status } from '@omnarc/ui';
+  import { Button, Card, EmojiCheck, LivingRing, Status } from '@omnarc/ui';
+  import { platformName } from './model';
   import { api, cluster } from './cluster.svelte';
   import type { SasSymbol } from './gen/omnarc/v1/cluster_service_pb';
 
@@ -15,6 +16,7 @@
   let joined = $state('');
 
   const thisDevice = $derived(cluster.view.devices[cluster.view.thisNode]?.name ?? '');
+  const platform = $derived(platformName(cluster.view.devices[cluster.view.thisNode]?.platform ?? 0));
 
   function message(e: unknown): string {
     return e instanceof ConnectError ? e.rawMessage : String(e);
@@ -48,7 +50,21 @@
   }
 </script>
 
+<!-- the page under it may have set its own title before the panel learned this device is in no cluster -->
+<svelte:head><title>Set up this device · Omnarc</title></svelte:head>
+
 <div class="mx-auto grid w-full max-w-[880px] gap-5 py-4 md:py-12">
+  <!-- the living ring's intro: this device alone, the first arc of the ring it starts (PLAN.md §9.3) -->
+  <div class="[--om-living-size:280px]">
+    {#key thisDevice}
+      <LivingRing
+        devices={[{ name: thisDevice || 'This device', backend: platform, power: 1 }]}
+        controls={false}
+        labelText={(device) => device.backend}
+        label="The living ring: this device, the first arc of its cluster"
+      />
+    {/key}
+  </div>
   <div class="grid gap-2">
     <h2 class="m-0 text-28 font-semibold">One cluster of your devices</h2>
     <p class="m-0 max-w-[620px] text-14 text-text-2">
@@ -68,14 +84,7 @@
       <p class="m-0 mb-4 text-14 text-text-2">
         The inviting device shows four symbols too. When its owner confirms they match, this device joins.
       </p>
-      <ul class="m-0 grid list-none grid-cols-4 gap-2 p-0" aria-label="The symbols on this screen">
-        {#each symbols as symbol, i (i)}
-          <li class="grid justify-items-center gap-1 rounded-xl border border-line bg-surface-2 px-2 py-3">
-            <span class="text-40 leading-none" aria-hidden="true">{symbol.emoji}</span>
-            <span class="text-12 text-text-2">{symbol.name}</span>
-          </li>
-        {/each}
-      </ul>
+      <EmojiCheck {symbols} />
     </Card>
   {:else}
     <div class="grid gap-5 md:grid-cols-2">

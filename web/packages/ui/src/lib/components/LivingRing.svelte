@@ -11,8 +11,12 @@
     controls?: boolean;
     label?: string;
     statusText?: (devices: number, layers: number) => string;
+    /** The line under a device's name; by default its backend and its layers. */
+    labelText?: (device: RingDevice, layers: number) => string;
     addLabel?: string;
     resetLabel?: string;
+    /** The ring formed at once, without the intro scene. */
+    instant?: boolean;
   }
 
   let {
@@ -21,8 +25,10 @@
     controls = true,
     label = 'The Omnarc living ring: every arc is a device, gold comets are tokens travelling around the ring',
     statusText = (n: number, layers: number) => `${n} devices · ${layers} layers · ${n} tokens in flight`,
+    labelText,
     addLabel = 'Add a device',
     resetLabel = 'Start over',
+    instant = false,
   }: Props = $props();
 
   let host: HTMLDivElement;
@@ -44,10 +50,12 @@
       devices,
       reserve,
       reducedMotion: reduced,
+      instant,
       host,
       labelsEl,
       statusEl,
       statusText,
+      labelText,
       isLight,
       cssVar: (name) => getComputedStyle(root).getPropertyValue(name).trim(),
       onContextLost: () => (fallback = true),
@@ -100,6 +108,14 @@
     };
   });
 
+  /** Grows the next reserve device's arc, as when a device joins; false when the ring holds no more. */
+  export function add(): boolean {
+    if (!ring) return false;
+    const added = ring.addDevice();
+    if (reducedMotion()) ring.frame(performance.now());
+    return added;
+  }
+
   function onAdd() {
     if (!ring) return;
     if (full) {
@@ -131,7 +147,7 @@
 <style>
   .om-living {
     position: relative;
-    width: min(560px, 100%);
+    width: min(var(--om-living-size, 560px), 100%);
     margin: 0 auto;
     touch-action: pan-y;
   }

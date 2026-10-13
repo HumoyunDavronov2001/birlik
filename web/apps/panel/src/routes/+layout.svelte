@@ -1,7 +1,7 @@
 <script lang="ts">
   import '../app.css';
   import { page } from '$app/state';
-  import { Button, Icon, Logo, Status, type IconName } from '@omnarc/ui';
+  import { Button, Icon, Logo, Status, Toaster, type IconName } from '@omnarc/ui';
   import AddDevice from '$lib/AddDevice.svelte';
   import FirstRun from '$lib/FirstRun.svelte';
   import { cluster } from '$lib/cluster.svelte';
@@ -78,3 +78,4 @@
 </div>
 
 <AddDevice bind:open={adding} />
+<Toaster />

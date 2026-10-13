@@ -249,6 +249,8 @@ jobs:
         run: pnpm test
       - name: Build the panel
         run: pnpm build
+      - name: The panel's JavaScript budget (XC-03)
+        run: node ../.github/scripts/budget.mjs apps/panel/build 180
       - name: Build Storybook
         run: pnpm build-storybook
       - name: Install Chromium

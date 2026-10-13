@@ -16,7 +16,7 @@ design concept (its section number), or "—".
 |---|---|---|---|---|---|---|
 | Engine | 0 | 30 | 8 | 2 | 20 | 30 % |
 | Node agent and API | 0 | 40 | 9 | 10 | 21 | 35 % |
-| Panel | 24 | 7 | 1 | 8 | 22 | 16 % |
+| Panel | 24 | 7 | 3 | 7 | 21 | 21 % |
 | Desktop app | 4 | 5 | 0 | 0 | 9 | 0 % |
 | Android app | 7 | 8 | 0 | 2 | 13 | 7 % |
 | iOS app | 8 | 6 | 0 | 2 | 12 | 7 % |
@@ -26,8 +26,8 @@ design concept (its section number), or "—".
 | Training | 0 | 4 | 0 | 0 | 4 | 0 % |
 | Islands | 0 | 3 | 0 | 0 | 3 | 0 % |
 | Benchmarks, sites and releases | 3 | 9 | 2 | 1 | 9 | 21 % |
-| Design system and quality across all apps | 1 | 13 | 6 | 2 | 6 | 50 % |
-| **All** | **50** | **141** | **26** | **27** | **138** | **21 %** |
+| Design system and quality across all apps | 1 | 13 | 6 | 4 | 4 | 57 % |
+| **All** | **50** | **141** | **28** | **28** | **135** | **22 %** |
 
 "Ready" counts a partly done item as half. By stage — what each stage has to deliver:
 
@@ -35,7 +35,7 @@ design concept (its section number), or "—".
 |---|---|---|---|---|
 | B0 | 10 | 9 | 1 | 0 |
 | B1 | 16 | 12 | 1 | 3 |
-| B2 | 28 | 5 | 19 | 4 |
+| B2 | 28 | 7 | 20 | 1 |
 | B3 | 14 | 0 | 0 | 14 |
 | B4 | 18 | 0 | 0 | 18 |
 | B5 | 53 | 0 | 5 | 48 |
@@ -178,7 +178,7 @@ nine sections in a rail: Ring, Devices, Models, Chat, Observe, Training, Network
 | PA-03 | Ring (home) | screen | U1 | B2 | 01 | ◐ |
 | PA-04 | Add a device | screen | U6 | B2 | 02 | ◐ |
 | PA-05 | Devices | screen | — | B2 | 01 | ◐ |
-| PA-06 | A device | screen | Q1, Q5 | B2 | — | ○ |
+| PA-06 | A device | screen | Q1, Q5 | B2 | — | ◐ |
 | PA-07 | People (the family ring) | screen | K1, Q6 | B6 | — | ○ |
 | PA-08 | Models: catalog | screen | — | B8 | — | ○ |
 | PA-09 | Will it fit? and the placement plan | screen | — | B3 | 04 | ○ |
@@ -199,9 +199,9 @@ nine sections in a rail: Ring, Devices, Models, Chat, Observe, Training, Network
 | PA-24 | Command palette (⌘K) | screen | U7 | B8 | 01 | ○ |
 | PA-30 | Notifications: a device left and its replica took over, a device joined, a model is ready, errors | function | P§9 | B3 | — | ○ |
 | PA-31 | Plan suggestion card with Apply and Dismiss | function | R1 | B3 | 01 | ○ |
-| PA-32 | The ring for everyone: a table view, keyboard focus from arc to arc, a spoken summary | function | U4 | B2 | — | ◐ |
+| PA-32 | The ring for everyone: a table view, keyboard focus from arc to arc, a spoken summary | function | U4 | B2 | — | ✓ |
 | PA-33 | Several models as nested rings; arcs grouped beyond 128 devices | function | U1 | B4 | — | ○ |
-| PA-34 | The living ring in the panel: intro, tilt, a new arc when a device joins | function | U11 | B2 | 01 | ◐ |
+| PA-34 | The living ring in the panel: intro, tilt, a new arc when a device joins | function | U11 | B2 | 01 | ✓ |
 | PA-35 | Live data over a Connect stream | function | P§9 | B2 | — | ✓ |
 | PA-36 | A shortcut for every action | function | U7 | B8 | — | ○ |
 
@@ -475,14 +475,14 @@ The screens are in the panel (PA-18 to PA-22); this is the service behind them.
 | DS-02 | Self-hosted fonts: Inter and IBM Plex Mono | function | U3 | B0 | 07 | ✓ |
 | DS-03 | Noto Sans SC, Arabic and Devanagari, loaded per language | function | U3 | B5 | — | ○ |
 | DS-04 | Components built and tested (unit, visual, axe): Button, Card, Chip, Field, Icon, Kbd, Logo, Meter, Ring, Status, Switch, LivingRing | function | U2, U4 | B0 | 07 | ✓ |
-| DS-05 | Components the screens still need: Tabs, Table, Dialog, Toast, Menu, Select, Slider, Tooltip, Progress, Empty state, Skeleton, QR code, Emoji check, Code block, Message, Voice button, Agreement badge | function | U2 | B2–B8 | — | ○ |
+| DS-05 | Components the screens still need: Tabs, Table, Dialog, Toast, Menu, Select, Slider, Tooltip, Progress, Empty state, Skeleton, QR code, Emoji check, Code block, Message, Voice button, Agreement badge | function | U2 | B2–B8 | — | ◐ |
 | DS-06 | Charts: uPlot series, the token-path timeline, the link matrix | function | U4 | B4 | 05 | ○ |
 | DS-07 | The globe: MapLibre GL, deck.gl and offline Protomaps tiles | function | A2 | B6 | 06 | ○ |
 | DS-08 | The living ring (WebGL2) and its SVG fallback | function | U11 | B0 | 01 | ✓ |
 | DS-09 | Design concept page and README pictures | screen | — | B0 | — | ✓ |
 | XC-01 | Translations into Chinese, Spanish, Hindi, Arabic (right to left), French, Portuguese and Russian | function | U9 | B5 | — | ○ |
 | XC-02 | WCAG 2.2 AA, keyboard only, reduced motion, charts safe for color-vision deficiency | function | U4, U5 | B0 → | 07 | ◐ |
-| XC-03 | Budgets: panel JS ≤ 180 KB, browser page ≤ 60 KB, 60 fps with 1,000 devices, LCP ≤ 1.5 s, cold start ≤ 1 s | function | U10 | B2 → | — | ○ |
+| XC-03 | Budgets: panel JS ≤ 180 KB, browser page ≤ 60 KB, 60 fps with 1,000 devices, LCP ≤ 1.5 s, cold start ≤ 1 s | function | U10 | B2 → | — | ◐ |
 | XC-04 | Encryption on every link; models checked with BLAKE3 | function | P§7 | B2 | — | ◐ |
 | XC-05 | Nothing sent anywhere by default | function | P§2 | B0 → | — | ✓ |
 

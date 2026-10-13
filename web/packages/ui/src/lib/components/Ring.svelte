@@ -28,9 +28,43 @@
     center?: { value: string; unit?: string; caption?: string };
     /** Number of tokens travelling around the ring (0 for a still ring). */
     tokens?: number;
+    /**
+     * Opens a device (Enter or a click on its arc). With it, the arcs take keyboard focus: the arrow keys move from arc
+     * to arc, Home and End go to the first and the last.
+     */
+    onselect?: (index: number) => void;
   }
 
-  let { devices, label, hops = [], variant = 'full', highlight = null, center, tokens = 0 }: Props = $props();
+  let { devices, label, hops = [], variant = 'full', highlight = null, center, tokens = 0, onselect }: Props = $props();
+
+  // the arc that holds the keyboard focus (one tab stop for the whole ring)
+  let active = $state(0);
+  let focused = $state(-1);
+  const arcEls: SVGPathElement[] = $state([]);
+
+  function onkeydown(event: KeyboardEvent, i: number) {
+    const n = devices.length;
+    const next: Record<string, number> = {
+      ArrowRight: (i + 1) % n,
+      ArrowDown: (i + 1) % n,
+      ArrowLeft: (i - 1 + n) % n,
+      ArrowUp: (i - 1 + n) % n,
+      Home: 0,
+      End: n - 1,
+    };
+    if (event.key in next) {
+      event.preventDefault();
+      active = next[event.key];
+      arcEls[active]?.focus();
+    } else if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onselect?.(i);
+    }
+  }
+
+  function arcLabel(i: number): string {
+    return `${devices[i].name}: ${devices[i].note ?? `${devices[i].layers} layers, ${stageMs[i]} ms`}`;
+  }
 
   const full = $derived(variant === 'full');
   const box = $derived(full ? { w: 640, h: 492, cx: 320, cy: 236, r: 132, width: 24 } : { w: 240, h: 240, cx: 120, cy: 120, r: 92, width: 18 });
@@ -87,12 +121,43 @@
   }
 </script>
 
-<svg class="om-ring" viewBox="0 0 {box.w} {box.h}" role="img" aria-label={label}>
+<svg class="om-ring" class:interactive={!!onselect} viewBox="0 0 {box.w} {box.h}" role={onselect ? 'group' : 'img'} aria-label={label}>
   <circle cx={box.cx} cy={box.cy} r={box.r} fill="none" stroke-width={box.width + 10} style:stroke="var(--surface-1)" />
+  {#if focused >= 0 && arcs[focused]}
+    <!-- the focused arc: a turquoise ring around it, as :focus-visible draws around a control -->
+    <path
+      d={arcPath(box.cx, box.cy, box.r, arcs[focused].a0, arcs[focused].a1)}
+      fill="none"
+      stroke-width={box.width + 8}
+      class="focus"
+    />
+  {/if}
   {#each arcs as arc, i (i)}
-    <path d={arcPath(box.cx, box.cy, box.r, arc.a0, arc.a1)} fill="none" stroke-width={box.width} style:stroke={stroke(i)}>
-      <title>{devices[i].name}: {devices[i].note ?? `${devices[i].layers} layers, ${stageMs[i]} ms`}</title>
-    </path>
+    {#if onselect}
+      <path
+        bind:this={arcEls[i]}
+        d={arcPath(box.cx, box.cy, box.r, arc.a0, arc.a1)}
+        fill="none"
+        stroke-width={box.width}
+        style:stroke={stroke(i)}
+        role="button"
+        tabindex={i === active ? 0 : -1}
+        aria-label={arcLabel(i)}
+        onkeydown={(event) => onkeydown(event, i)}
+        onclick={() => onselect?.(i)}
+        onfocus={() => {
+          active = i;
+          focused = i;
+        }}
+        onblur={() => (focused = -1)}
+      >
+        <title>{arcLabel(i)}</title>
+      </path>
+    {:else}
+      <path d={arcPath(box.cx, box.cy, box.r, arc.a0, arc.a1)} fill="none" stroke-width={box.width} style:stroke={stroke(i)}>
+        <title>{arcLabel(i)}</title>
+      </path>
+    {/if}
   {/each}
   {#if full}
     {#each arcs as arc, i (i)}
@@ -125,6 +190,13 @@
     display: block;
     width: 100%;
     height: auto;
+  }
+  .interactive path[role='button'] {
+    cursor: pointer;
+    outline: none;
+  }
+  .focus {
+    stroke: var(--turquoise);
   }
   .t-name {
     fill: var(--text-1);

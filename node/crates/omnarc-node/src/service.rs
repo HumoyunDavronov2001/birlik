@@ -772,6 +772,7 @@ async fn measure_link(shared: Arc<Shared>, member: EndpointId, every: Duration) 
 // Sends this node's device once and its telemetry every `every`.
 async fn speak(shared: Arc<Shared>, mut device: v1::DeviceInfo, every: Duration) {
     let mut system = sysinfo::System::new();
+    let mut sensors = crate::sensors::Sensors::new();
     let mut ticks = tokio::time::interval(every);
     let mut since_announced = 0u32;
     loop {
@@ -818,6 +819,8 @@ async fn speak(shared: Arc<Shared>, mut device: v1::DeviceInfo, every: Duration)
             unix_ms: now_unix_ms(),
             cpu_load: system.global_cpu_usage() / 100.0,
             memory_used_bytes: system.used_memory(),
+            thermal: sensors.thermal() as i32,
+            power: crate::sensors::power(),
             links,
             ..Default::default()
         };
