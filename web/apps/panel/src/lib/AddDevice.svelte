@@ -4,13 +4,21 @@
   import { ConnectError } from '@connectrpc/connect';
   import { Button, CodeBlock, Dialog, EmojiCheck, LivingRing, Progress, QrCode, Status, toasts } from '@omnarc/ui';
   import { api, cluster } from './cluster.svelte';
-  import { gib, hex, platformName } from './model';
+  import { backends, formatGib, gib, hex, platformName } from './model';
+  import type { DeviceInfo } from './gen/omnarc/v1/device_pb';
 
   let { open = $bindable(false) }: { open?: boolean } = $props();
 
   let ticket = $state<{ text: string; svg: string; expires: number } | null>(null);
   let failed = $state(false);
-  let answered = $state<{ id: string; name: string; joined: boolean; platform: number; memory: bigint } | null>(null);
+  let answered = $state<{
+    id: string;
+    name: string;
+    joined: boolean;
+    platform: number;
+    memory: bigint;
+    device?: DeviceInfo;
+  } | null>(null);
   // the moment a device joins: the ring as it was, then the new arc grows (PLAN.md §9.3)
   let living: { add(): boolean } | undefined = $state();
   const ringBefore = $derived(
@@ -32,6 +40,8 @@
   const attempt = $derived(cluster.view.joinAttempt);
   const command = $derived(ticket ? `omnarc-node join ${ticket.text}` : '');
   const left = $derived(ticket ? Math.max(0, Math.round((ticket.expires - cluster.now) / 1000)) : 0);
+  // a code works for ten minutes; then the owner makes a new one
+  const expired = $derived(ticket !== null && ticket.expires > 0 && left === 0);
   const countdown = $derived(`${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`);
 
   // a fresh ticket each time the dialog opens; nothing is kept once it closes
@@ -60,6 +70,7 @@
       name: asked.device?.name || 'The device',
       platform: asked.device?.platform ?? 0,
       memory: asked.device?.memoryTotalBytes ?? 0n,
+      device: asked.device,
     };
     if (matches) cluster.expected.add(joiner.id);
     try {
@@ -91,7 +102,7 @@
           devices={ringBefore}
           reserve={[{ name: answered.name, backend: platformName(answered.platform), power: Math.max(1, gib(answered.memory)) }]}
           controls={false}
-          labelText={(device) => device.backend}
+          labels={false}
           instant
           label="The ring of this cluster, with a new arc for {answered.name}"
         />
@@ -102,13 +113,22 @@
         ? `${answered.name} joined the cluster. It appears on the ring as soon as its service starts.`
         : `${answered.name} was refused, and its ticket no longer works.`}
     </p>
+    {#if answered.joined && answered.device}
+      <!-- what it brings: its layers follow once a model runs (PLAN.md §9.6) -->
+      <p class="m-0 font-mono text-12 text-text-3">
+        {platformName(answered.platform)}{answered.memory ? ` · ${formatGib(answered.memory)}` : ''} · {backends(answered.device)}
+      </p>
+    {/if}
+  {:else if expired}
+    <div><Status kind="warning" label="This code expired" /></div>
+    <p class="m-0 text-13 text-text-2">A code works for ten minutes. Make a new one and scan it on the new device.</p>
   {:else if ticket}
     <p class="m-0 text-14 text-text-2">The new device scans this code — or, on a computer, run this command on it:</p>
     <div class="mx-auto"><QrCode svg={ticket.svg} label="The ticket of this invitation" /></div>
     <CodeBlock code={command} copyLabel="Copy the command" />
     <span class="text-12 text-text-3" role="timer">Valid for {countdown}. Then both screens show four symbols to compare.</span>
   {:else if failed}
-    <Status kind="critical" label="This device could not open an invitation" />
+    <div><Status kind="critical" label="This device could not open an invitation" /></div>
     <p class="m-0 text-13 text-text-2">Only the device that created the cluster can add devices.</p>
   {:else}
     <Progress label="Opening an invitation" />
@@ -119,6 +139,8 @@
       <Button variant="primary" label="Yes, they match" onclick={() => answer(true)} />
     {:else if answered}
       <Button variant="primary" label="Done" onclick={() => (open = false)} />
+    {:else if expired}
+      <Button variant="primary" label="New code" onclick={() => (ticket = null)} />
     {/if}
   {/snippet}
 </Dialog>

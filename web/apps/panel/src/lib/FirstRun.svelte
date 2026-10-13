@@ -3,7 +3,7 @@
   // admin, or joins one with the ticket another device shows. Once done, the service starts and the panel follows.
   import { ConnectError } from '@connectrpc/connect';
   import { Button, Card, EmojiCheck, LivingRing, Status } from '@omnarc/ui';
-  import { platformName } from './model';
+  import { backends, formatGib, platformName } from './model';
   import { api, cluster } from './cluster.svelte';
   import type { SasSymbol } from './gen/omnarc/v1/cluster_service_pb';
 
@@ -15,8 +15,9 @@
   let symbols = $state<SasSymbol[]>([]);
   let joined = $state('');
 
-  const thisDevice = $derived(cluster.view.devices[cluster.view.thisNode]?.name ?? '');
-  const platform = $derived(platformName(cluster.view.devices[cluster.view.thisNode]?.platform ?? 0));
+  const device = $derived(cluster.view.devices[cluster.view.thisNode]);
+  const thisDevice = $derived(device?.name ?? '');
+  const platform = $derived(platformName(device?.platform ?? 0));
 
   function message(e: unknown): string {
     return e instanceof ConnectError ? e.rawMessage : String(e);
@@ -72,6 +73,35 @@
       cluster another device of yours already runs.
     </p>
   </div>
+
+  {#if device}
+    <!-- what this device brings, found by looking at it (PLAN.md §9.6, flow 1) -->
+    <Card title="This device">
+      <dl class="m-0 grid gap-3 text-13 sm:grid-cols-2">
+        <div class="grid gap-1">
+          <dt class="text-12 text-text-3">System</dt>
+          <dd class="m-0">{device.osVersion || platform}</dd>
+        </div>
+        <div class="grid gap-1">
+          <dt class="text-12 text-text-3">Processor</dt>
+          <dd class="m-0">{device.cpuModel || '—'}{device.cpuCores ? ` · ${device.cpuCores} cores` : ''}</dd>
+        </div>
+        <div class="grid gap-1">
+          <dt class="text-12 text-text-3">Memory</dt>
+          <dd class="m-0">{device.memoryTotalBytes ? formatGib(device.memoryTotalBytes) : '—'}</dd>
+        </div>
+        <div class="grid gap-1">
+          <dt class="text-12 text-text-3">Computes with</dt>
+          <dd class="m-0">{backends(device)}</dd>
+        </div>
+      </dl>
+      {#if !device.accelerators.length}
+        <p class="m-0 text-12 text-text-3">
+          No graphics processor Omnarc can use was found, so this device computes on its processor.
+        </p>
+      {/if}
+    </Card>
+  {/if}
 
   {#if failed}<div role="alert"><Status kind="critical" label={failed} /></div>{/if}
 

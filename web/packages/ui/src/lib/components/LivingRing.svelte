@@ -13,6 +13,8 @@
     statusText?: (devices: number, layers: number) => string;
     /** The line under a device's name; by default its backend and its layers. */
     labelText?: (device: RingDevice, layers: number) => string;
+    /** The names around the ring; a small ring in a dialog says them in its text instead. */
+    labels?: boolean;
     addLabel?: string;
     resetLabel?: string;
     /** The ring formed at once, without the intro scene. */
@@ -26,6 +28,7 @@
     label = 'The Omnarc living ring: every arc is a device, gold comets are tokens travelling around the ring',
     statusText = (n: number, layers: number) => `${n} devices · ${layers} layers · ${n} tokens in flight`,
     labelText,
+    labels = true,
     addLabel = 'Add a device',
     resetLabel = 'Start over',
     instant = false,
@@ -52,7 +55,7 @@
       reducedMotion: reduced,
       instant,
       host,
-      labelsEl,
+      labelsEl: labels ? labelsEl : null,
       statusEl,
       statusText,
       labelText,
@@ -135,7 +138,7 @@
   {#if fallback}
     <div class="fallback"><Logo size={320} title="Omnarc" /></div>
   {/if}
-  <div class="labels" bind:this={labelsEl} aria-hidden="true" hidden={fallback}></div>
+  <div class="labels" bind:this={labelsEl} aria-hidden="true" hidden={fallback || !labels}></div>
   {#if controls && !fallback}
     <div class="footer">
       <span class="status" bind:this={statusEl} aria-live="polite"></span>
@@ -185,6 +188,9 @@
   }
   .labels :global(span b) {
     display: block;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font: 500 12px/1.3 var(--sans);
     color: var(--text-2);
   }

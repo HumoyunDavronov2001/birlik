@@ -19,6 +19,12 @@
   const ids = $derived(Object.keys(cluster.view.devices));
   // the service answers, but this device belongs to no cluster yet
   const firstRun = $derived(cluster.connected && !cluster.view.id);
+  // once a cluster is created or joined, the ring opens at its top, not where the form was
+  let wasFirstRun = false;
+  $effect(() => {
+    if (wasFirstRun && !firstRun) window.scrollTo(0, 0);
+    wasFirstRun = firstRun;
+  });
   const online = $derived(ids.filter((id) => isOnline(cluster.view, id, cluster.now)).length);
   const health = $derived(
     online === ids.length
