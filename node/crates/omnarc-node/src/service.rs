@@ -100,6 +100,8 @@ struct Shared {
     links: Mutex<HashMap<EndpointId, (v1::LinkSample, Instant)>>,
     // this computer's part in the cluster's Raft; phones and browsers have none
     consensus: Option<Consensus>,
+    // members being removed: the steward does not bring them back into the log meanwhile
+    removing: Mutex<HashSet<EndpointId>>,
 }
 
 /// Telemetry ticks between two announcements of the device even when nothing changed.
@@ -194,6 +196,7 @@ impl Service {
             announce: tokio::sync::Notify::new(),
             links: Mutex::default(),
             consensus,
+            removing: Mutex::default(),
         });
         joins.0.set(Arc::clone(&shared)).expect("set once");
 
@@ -343,19 +346,7 @@ impl Service {
     /// # Errors
     /// This device is no admin or keeps no Raft, the member is unknown, or the cluster cannot agree now.
     pub async fn remove_member(&self, member: EndpointId) -> Result<(), BoxError> {
-        let me = cluster::verify(self.shared.cluster.id, self.id(), &self.shared.cluster.token, |_| false)?;
-        if !me.has(cluster::Right::Admin) {
-            return Err("only an admin removes members".into());
-        }
-        if member == self.id() {
-            return Err("a device cannot remove itself".into());
-        }
-        let consensus = self.shared.consensus.as_ref().ok_or("only a computer of the cluster removes members")?;
-        let known = self.shared.store.member(member)?.ok_or("no such member")?;
-        let revocation_ids = cluster::verify(self.shared.cluster.id, member, &known.token, |_| false)
-            .map(|m| m.revocation_ids.iter().map(|id| hex(id)).collect())
-            .unwrap_or_default();
-        consensus.propose(Command::RemoveMember { id: hex(member.as_bytes()), revocation_ids }).await
+        remove_member(&self.shared, member).await
     }
 
     /// Tells the cluster that this device leaves, then stops.
@@ -370,6 +361,31 @@ impl Service {
         }
         let _ = self.router.shutdown().await;
     }
+}
+
+// Removes `member` once the computers of the cluster agree; see [`Service::remove_member`].
+async fn remove_member(shared: &Arc<Shared>, member: EndpointId) -> Result<(), BoxError> {
+    let me = cluster::verify(shared.cluster.id, shared.key.public(), &shared.cluster.token, |_| false)?;
+    if !me.has(cluster::Right::Admin) {
+        return Err("only an admin removes members".into());
+    }
+    if member == shared.key.public() {
+        return Err("a device cannot remove itself".into());
+    }
+    let consensus = shared.consensus.as_ref().ok_or("only a computer of the cluster removes members")?;
+    let known = shared.store.member(member)?.ok_or("no such member")?;
+    let revocation_ids = cluster::verify(shared.cluster.id, member, &known.token, |_| false)
+        .map(|m| m.revocation_ids.iter().map(|id| hex(id)).collect())
+        .unwrap_or_default();
+    // out of the log's membership first, while it is still let in, so the log never waits for it
+    shared.removing.lock().expect("removing").insert(member);
+    let result = async {
+        consensus.remove_node(member).await?;
+        consensus.propose(Command::RemoveMember { id: member.to_string(), revocation_ids }).await
+    }
+    .await;
+    shared.removing.lock().expect("removing").remove(&member);
+    result
 }
 
 // What the control API sees of the service.
@@ -462,6 +478,28 @@ impl omnarc_api::Cluster for ApiView {
             .ok_or_else(|| omnarc_api::Error::new(omnarc_api::Code::InvalidArgument, "no device named"))?;
         let waiting = self.0.answers.lock().expect("answers").remove(&joiner);
         Ok(waiting.is_some_and(|answer| answer.send(request.matches).is_ok()))
+    }
+
+    fn remove_member(&self, member: v1::NodeId) -> n0_future::boxed::BoxFuture<Result<(), omnarc_api::Error>> {
+        use omnarc_api::{Code, Error};
+        let shared = Arc::clone(&self.0);
+        Box::pin(async move {
+            let id = <[u8; 32]>::try_from(member.ed25519_public_key.as_slice())
+                .ok()
+                .and_then(|bytes| EndpointId::from_bytes(&bytes).ok())
+                .ok_or_else(|| Error::new(Code::InvalidArgument, "not a member id"))?;
+            remove_member(&shared, id).await.map_err(|e| {
+                let message = e.to_string();
+                let code = if message.contains("only an admin") {
+                    Code::PermissionDenied
+                } else if message.contains("no such member") {
+                    Code::NotFound
+                } else {
+                    Code::FailedPrecondition
+                };
+                Error::new(code, message)
+            })
+        })
     }
 }
 
@@ -558,7 +596,8 @@ async fn steward(shared: Arc<Shared>) {
             metrics.membership_config.membership().nodes().map(|(id, _)| *id).collect()
         };
         let devices = shared.devices.lock().expect("devices").clone();
-        for id in shared.members.list() {
+        let removing = shared.removing.lock().expect("removing").clone();
+        for id in shared.members.list().into_iter().filter(|id| !removing.contains(id)) {
             let computer = devices.get(&id).is_some_and(|device| keeps_raft(device.platform));
             if computer && !in_raft.contains(&crate::consensus::raft_id(id)) {
                 let _ = consensus.add_learner(id).await;

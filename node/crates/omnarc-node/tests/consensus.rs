@@ -104,6 +104,17 @@ async fn three_computers_keep_one_log() {
     })
     .await;
 
+    // the lost leader leaves the log's membership; an odd number keeps voting
+    let lost = leader.router.endpoint().id();
+    nodes[0].consensus.remove_node(lost).await.unwrap();
+    let membership = |node: &Node| node.consensus.raft().metrics().borrow().membership_config.membership().clone();
+    eventually("the lost node is out", || {
+        nodes.iter().all(|n| membership(n).nodes().all(|(id, _)| *id != omnarc_node::consensus::raft_id(lost)))
+    })
+    .await;
+    assert_eq!(membership(&nodes[0]).voter_ids().count() % 2, 1, "an odd number votes");
+    nodes[0].consensus.propose(add("tablet")).await.unwrap();
+
     // the log and the state survive a restart
     let survivor = nodes.remove(0);
     let key = keys[1].clone();
@@ -112,7 +123,8 @@ async fn three_computers_keep_one_log() {
     let again = start(&dirs[1], key, MemoryLookup::new()).await;
     let state = agreed(&again);
     assert_eq!(state.name, "Home cluster");
-    assert!(state.members.contains_key("laptop") && !state.members.contains_key("phone"));
+    assert!(state.members.contains_key("laptop") && state.members.contains_key("tablet"));
+    assert!(!state.members.contains_key("phone"));
     assert!(state.revoked.contains("ab"));
 
     again.consensus.shutdown().await;

@@ -88,6 +88,15 @@ enum Command {
     },
     /// List the members of this device's cluster.
     Members,
+    /// Remove a member from the cluster: the computers of the cluster agree, then let it in no more. Admins only;
+    /// this device's service must run.
+    Remove {
+        /// The member: its device name, or the start of its id.
+        member: String,
+        /// The control API of this device's service.
+        #[arg(long, default_value = "127.0.0.1:7600")]
+        api: SocketAddr,
+    },
     /// Run this device's service: talk to the cluster and show what its devices do; Ctrl-C stops it.
     Serve {
         /// Where the service listens.
@@ -446,6 +455,31 @@ fn describe_link(link: &omnarc_protocol::v1::LinkSample) -> String {
     format!("{kind}{:.1} ms{bandwidth}", link.rtt_ms)
 }
 
+/// Removes a member through the running service, which keeps the cluster's Raft.
+async fn remove(member: &str, api: SocketAddr) -> Result<(), ring::BoxError> {
+    use omnarc_api::client::call;
+    use omnarc_protocol::v1;
+    let got: v1::GetClusterResponse = call(api, "GetCluster", &v1::GetClusterRequest {}).await?;
+    let devices = got.cluster.unwrap_or_default().devices;
+    let hex = |id: &v1::NodeId| id.ed25519_public_key.iter().fold(String::new(), |out, b| out + &format!("{b:02x}"));
+    let matches: Vec<&DeviceInfo> = devices
+        .iter()
+        .filter(|d| {
+            d.name.eq_ignore_ascii_case(member)
+                || (member.len() >= 4 && d.id.as_ref().is_some_and(|id| hex(id).starts_with(member)))
+        })
+        .collect();
+    let device = match matches[..] {
+        [one] => one,
+        [] => return Err(format!("no member is called {member}").into()),
+        _ => return Err(format!("{} members answer to {member}: give the start of its id", matches.len()).into()),
+    };
+    let request = v1::RemoveMemberRequest { member: device.id.clone() };
+    let _: v1::RemoveMemberResponse = call(api, "RemoveMember", &request).await?;
+    println!("Removed {}. The computers of the cluster let it in no more.", device.name);
+    Ok(())
+}
+
 fn relay_command(data: &Path, command: RelayCommand) -> Result<(), ring::BoxError> {
     use omnarc_network::relay::Relay;
     let store = Store::open(data)?;
@@ -535,6 +569,10 @@ fn cluster_command(data: &Path, command: Command) -> Result<(), ring::BoxError> 
             runtime.block_on(serve(data, listen, invite, api, panel))?;
         }
         Command::Relay(command) => relay_command(data, command)?,
+        Command::Remove { member, api } => {
+            let runtime = tokio::runtime::Runtime::new()?;
+            runtime.block_on(remove(&member, api))?;
+        }
         Command::Model(command) => {
             let runtime = tokio::runtime::Runtime::new()?;
             runtime.block_on(model_command(data, command))?;
@@ -672,6 +710,7 @@ fn main() {
         | Command::Members
         | Command::Serve { .. }
         | Command::Relay(_)
+        | Command::Remove { .. }
         | Command::Model(_)) => {
             if let Err(e) = cluster_command(&data, command) {
                 eprintln!("omnarc-node: {e}");

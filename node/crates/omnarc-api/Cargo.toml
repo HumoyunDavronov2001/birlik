@@ -10,7 +10,7 @@ rust-version.workspace = true
 [dependencies]
 omnarc-protocol.workspace = true
 prost.workspace = true
-tokio.workspace = true
+tokio = { workspace = true, features = ["net"] }
 axum.workspace = true
 bytes.workspace = true
 futures-util.workspace = true

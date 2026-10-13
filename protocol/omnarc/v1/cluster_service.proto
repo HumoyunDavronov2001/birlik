@@ -17,6 +17,8 @@ service ClusterService {
   rpc CreateTicket(CreateTicketRequest) returns (CreateTicketResponse);
   // The owner's answer for a device that asked to join: whether the four symbols match on both screens.
   rpc AnswerJoin(AnswerJoinRequest) returns (AnswerJoinResponse);
+  // Removes a member from the cluster: the computers of the cluster agree on it and let it in no more. Admins only.
+  rpc RemoveMember(RemoveMemberRequest) returns (RemoveMemberResponse);
 }
 
 message ClusterSnapshot {
@@ -89,3 +91,9 @@ message AnswerJoinResponse {
   // Whether the device was still waiting for the answer.
   bool waited = 1;
 }
+
+message RemoveMemberRequest {
+  NodeId member = 1;
+}
+
+message RemoveMemberResponse {}

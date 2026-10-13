@@ -2,7 +2,7 @@
 //! answer as length-prefixed JSON. The node of a Raft member is its key, so it is dialed like any member, directly or
 //! through the cluster's relay; only members are let in.
 
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 
 use omnarc_network::protocol::{AcceptError, ProtocolHandler};
@@ -17,7 +17,7 @@ use openraft::raft::{
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 
-use super::{Command, Raft, TypeConfig};
+use super::{Command, Consensus, Raft, TypeConfig};
 use crate::ring::BoxError;
 
 /// ALPN of Raft between members.
@@ -38,6 +38,8 @@ enum Call {
     Snapshot(InstallSnapshotRequest<TypeConfig>),
     /// A change proposed on a follower, for the leader to commit.
     Write(Command),
+    /// A member to take out of the log's membership, for the leader to do.
+    RemoveNode(String),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -46,6 +48,7 @@ enum Answer {
     Vote(Result<VoteResponse<NodeId>, RaftError<NodeId>>),
     Snapshot(Result<InstallSnapshotResponse<NodeId>, RaftError<NodeId, InstallSnapshotError>>),
     Write(Result<(), String>),
+    RemoveNode(Result<(), String>),
 }
 
 async fn write_message<T: Serialize>(send: &mut SendStream, message: &T) -> Result<(), BoxError> {
@@ -73,6 +76,8 @@ async fn read_message<T: for<'de> Deserialize<'de>>(recv: &mut RecvStream) -> Re
 #[derive(Clone)]
 pub struct RaftHandler {
     raft: Raft,
+    // the node's consensus, set once it exists, for the calls only the leader answers
+    consensus: Arc<OnceLock<Consensus>>,
 }
 
 impl std::fmt::Debug for RaftHandler {
@@ -82,8 +87,8 @@ impl std::fmt::Debug for RaftHandler {
 }
 
 impl RaftHandler {
-    pub(super) fn new(raft: Raft) -> Self {
-        Self { raft }
+    pub(super) fn new(raft: Raft, consensus: Arc<OnceLock<Consensus>>) -> Self {
+        Self { raft, consensus }
     }
 
     async fn answer(&self, mut send: SendStream, mut recv: RecvStream) -> Result<(), BoxError> {
@@ -95,6 +100,10 @@ impl RaftHandler {
             Call::Write(command) => {
                 Answer::Write(self.raft.client_write(command).await.map(|_| ()).map_err(|e| e.to_string()))
             }
+            Call::RemoveNode(id) => Answer::RemoveNode(match (self.consensus.get(), id.parse()) {
+                (Some(consensus), Ok(member)) => consensus.remove_node(member).await.map_err(|e| e.to_string()),
+                _ => Err("not a member id".into()),
+            }),
         };
         write_message(&mut send, &answer).await
     }
@@ -121,6 +130,15 @@ pub struct Network {
 impl Network {
     pub(super) fn new(endpoint: Endpoint) -> Self {
         Self { endpoint }
+    }
+
+    /// Asks the leader `leader` to take `member` out of the log's membership.
+    pub(super) async fn forward_removal(&self, leader: &BasicNode, member: EndpointId) -> Result<(), BoxError> {
+        let mut client = Client::new(self.endpoint.clone(), 0, leader);
+        match client.call(Call::RemoveNode(member.to_string())).await.map_err(|e| e.to_string())? {
+            Answer::RemoveNode(result) => result.map_err(Into::into),
+            _ => Err("the leader answered something else".into()),
+        }
     }
 
     /// Hands `command` to the leader `leader` to commit.

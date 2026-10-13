@@ -249,6 +249,11 @@ async fn the_computers_agree_and_a_removed_member_is_let_in_no_more() {
     tokio::time::sleep(Duration::from_secs(1)).await;
     assert!(!laptop.members().contains(&phone_id) && !desktop.members().contains(&phone_id));
 
+    // two computers: one votes, so the desktop goes on alone once the laptop is removed too
+    desktop.remove_member(laptop_id).await.unwrap();
+    eventually("the desktop lets the laptop in no more", || !desktop.members().contains(&laptop_id)).await;
+    assert!(desktop.agreed().is_some_and(|agreed| agreed.removed.contains(&hex(laptop_id))));
+
     phone.shutdown().await;
     laptop.shutdown().await;
     desktop.shutdown().await;

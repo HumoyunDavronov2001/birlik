@@ -1,10 +1,16 @@
 <script lang="ts">
-  import { Card, Icon, Status } from '@omnarc/ui';
+  import { Button, Card, Icon, Status } from '@omnarc/ui';
+  import RemoveDevice from '$lib/RemoveDevice.svelte';
   import { cluster } from '$lib/cluster.svelte';
+  import type { DeviceInfo } from '$lib/gen/omnarc/v1/device_pb';
   import { deviceName, formatGib, formatLink, isOnline, linkTo, platformIcon, platformName, short } from '$lib/model';
 
   const view = $derived(cluster.view);
   const ids = $derived(Object.keys(view.devices));
+
+  // the device an admin is about to remove
+  let removing = $state<DeviceInfo | null>(null);
+  let confirming = $state(false);
 </script>
 
 <svelte:head><title>Devices · {view.name || 'Omnarc'}</title></svelte:head>
@@ -20,7 +26,8 @@
           <th class="py-2 pr-3 text-right font-normal">Memory</th>
           <th class="py-2 pr-3 font-normal">Link from this device</th>
           <th class="py-2 pr-3 font-normal">State</th>
-          <th class="py-2 font-normal">Id</th>
+          <th class="py-2 pr-3 font-normal">Id</th>
+          {#if view.canInvite}<th class="py-2 font-normal"><span class="sr-only">Actions</span></th>{/if}
         </tr>
       </thead>
       <tbody>
@@ -43,10 +50,28 @@
             </td>
             <td class="py-2.5 pr-3 whitespace-nowrap text-text-2">{online && link ? formatLink(link) : '—'}</td>
             <td class="py-2.5 pr-3"><Status kind={online ? 'good' : 'warning'} label={online ? 'Online' : 'Offline'} /></td>
-            <td class="py-2.5 font-mono text-12 text-text-3">{short(id)}</td>
+            <td class="py-2.5 pr-3 font-mono text-12 text-text-3">{short(id)}</td>
+            {#if view.canInvite}
+              <td class="py-2.5 text-right">
+                {#if id !== view.thisNode}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    label="Remove"
+                    aria-label="Remove {deviceName(view, id)}"
+                    onclick={() => {
+                      removing = device;
+                      confirming = true;
+                    }}
+                  />
+                {/if}
+              </td>
+            {/if}
           </tr>
         {/each}
       </tbody>
     </table>
   </div>
 </Card>
+
+<RemoveDevice device={removing} bind:open={confirming} />

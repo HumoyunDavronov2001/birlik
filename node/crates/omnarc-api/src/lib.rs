@@ -14,6 +14,7 @@ use axum::extract::State;
 use axum::http::{HeaderMap, HeaderValue, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use axum::routing::post;
+use futures_util::future::BoxFuture;
 use futures_util::stream::{BoxStream, StreamExt as _};
 use omnarc_protocol::v1;
 use prost::Message;
@@ -103,6 +104,12 @@ pub trait Cluster: Send + Sync + 'static {
     /// # Errors
     /// The request names no device.
     fn answer_join(&self, request: &v1::AnswerJoinRequest) -> Result<bool, Error>;
+
+    /// Removes a member from the cluster, once the cluster agrees.
+    ///
+    /// # Errors
+    /// This node is no admin, the member is unknown, or the cluster cannot agree now.
+    fn remove_member(&self, member: v1::NodeId) -> BoxFuture<'static, Result<(), Error>>;
 }
 
 /// The API's routes for `cluster`, and the panel's files from `panel` when given.
@@ -112,6 +119,7 @@ pub fn router(cluster: Arc<dyn Cluster>, panel: Option<PathBuf>) -> Router {
         .route(&format!("{SERVICE}/WatchCluster"), post(watch_cluster))
         .route(&format!("{SERVICE}/CreateTicket"), post(create_ticket))
         .route(&format!("{SERVICE}/AnswerJoin"), post(answer_join))
+        .route(&format!("{SERVICE}/RemoveMember"), post(remove_member))
         .with_state(cluster);
     match panel {
         Some(dir) => {
@@ -140,29 +148,48 @@ async fn answer_join(State(cluster): ClusterState, headers: HeaderMap, body: Byt
     })
 }
 
+async fn remove_member(State(cluster): ClusterState, headers: HeaderMap, body: Bytes) -> Response {
+    let request: v1::RemoveMemberRequest = match decode(&headers, &body) {
+        Ok(request) => request,
+        Err(error) => return error.into_response(),
+    };
+    let Some(member) = request.member else {
+        return Error::new(Code::InvalidArgument, "the request names no member").into_response();
+    };
+    match cluster.remove_member(member).await {
+        Ok(()) => respond(&v1::RemoveMemberResponse {}),
+        Err(error) => error.into_response(),
+    }
+}
+
+// The request of a unary call: one binary Protobuf message.
+fn decode<Req: Message + Default>(headers: &HeaderMap, body: &[u8]) -> Result<Req, Error> {
+    if !content_type_is(headers, "application/proto") {
+        return Err(Error::new(
+            Code::Unimplemented,
+            "this API speaks Connect with binary messages (application/proto)",
+        ));
+    }
+    if body.len() > MAX_REQUEST {
+        return Err(Error::new(Code::InvalidArgument, "the request is too large"));
+    }
+    Req::decode(body).map_err(|e| Error::new(Code::InvalidArgument, format!("the request is malformed: {e}")))
+}
+
+fn respond<Resp: Message>(response: &Resp) -> Response {
+    let mut response = (StatusCode::OK, response.encode_to_vec()).into_response();
+    response.headers_mut().insert(header::CONTENT_TYPE, HeaderValue::from_static("application/proto"));
+    response
+}
+
 // A unary call: one binary Protobuf message in, one out.
 fn unary<Req: Message + Default, Resp: Message>(
     headers: &HeaderMap,
     body: &[u8],
     call: impl FnOnce(Req) -> Result<Resp, Error>,
 ) -> Response {
-    if !content_type_is(headers, "application/proto") {
-        return Error::new(Code::Unimplemented, "this API speaks Connect with binary messages (application/proto)")
-            .into_response();
-    }
-    if body.len() > MAX_REQUEST {
-        return Error::new(Code::InvalidArgument, "the request is too large").into_response();
-    }
-    let request = match Req::decode(body) {
-        Ok(request) => request,
-        Err(e) => return Error::new(Code::InvalidArgument, format!("the request is malformed: {e}")).into_response(),
-    };
-    match call(request) {
-        Ok(response) => {
-            let mut response = (StatusCode::OK, response.encode_to_vec()).into_response();
-            response.headers_mut().insert(header::CONTENT_TYPE, HeaderValue::from_static("application/proto"));
-            response
-        }
+    match decode(headers, body).and_then(call) {
+        Ok(response) => respond(&response),
         Err(error) => error.into_response(),
     }
 }
@@ -217,6 +244,82 @@ fn open_envelope<M: Message + Default>(body: &[u8]) -> Result<M, Error> {
     M::decode(&body[5..]).map_err(|e| Error::new(Code::InvalidArgument, format!("the request is malformed: {e}")))
 }
 
+/// Calls the API of the node on this device, as the command line does while the node's service runs.
+pub mod client {
+    use std::net::SocketAddr;
+
+    use prost::Message;
+    use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
+
+    use super::SERVICE;
+
+    /// The largest answer read.
+    const MAX_RESPONSE: u64 = 16 << 20;
+
+    /// Calls `procedure` (such as `GetCluster`) of the API at `api` with `request`.
+    ///
+    /// # Errors
+    /// No service answers there, or the call fails; the error is the service's message.
+    pub async fn call<Req: Message, Resp: Message + Default>(
+        api: SocketAddr,
+        procedure: &str,
+        request: &Req,
+    ) -> Result<Resp, String> {
+        let body = request.encode_to_vec();
+        let mut stream = tokio::net::TcpStream::connect(api)
+            .await
+            .map_err(|e| format!("no Omnarc service answers on {api} ({e}): is omnarc-node serve running?"))?;
+        let head = format!(
+            "POST {SERVICE}/{procedure} HTTP/1.1\r\nHost: {api}\r\nContent-Type: application/proto\r\n\
+             Content-Length: {}\r\nConnection: close\r\n\r\n",
+            body.len()
+        );
+        let io = |e: std::io::Error| format!("the call to {api} broke: {e}");
+        stream.write_all(head.as_bytes()).await.map_err(io)?;
+        stream.write_all(&body).await.map_err(io)?;
+        let mut response = Vec::new();
+        stream.take(MAX_RESPONSE).read_to_end(&mut response).await.map_err(io)?;
+        let (status, chunked, body) = parse(&response).ok_or("the service answered something that is not HTTP")?;
+        let body = if chunked { dechunk(body).ok_or("a malformed chunked answer")? } else { body.to_vec() };
+        if status == 200 {
+            return Resp::decode(body.as_slice()).map_err(|e| format!("a malformed answer: {e}"));
+        }
+        let message = serde_json::from_slice::<serde_json::Value>(&body)
+            .ok()
+            .and_then(|error| error.get("message").and_then(|m| m.as_str()).map(str::to_owned))
+            .unwrap_or_else(|| format!("the service answered {status}"));
+        Err(message)
+    }
+
+    // The status, whether the body is chunked, and the body.
+    fn parse(response: &[u8]) -> Option<(u16, bool, &[u8])> {
+        let end = response.windows(4).position(|w| w == b"\r\n\r\n")?;
+        let head = std::str::from_utf8(&response[..end]).ok()?;
+        let status = head.split_whitespace().nth(1)?.parse().ok()?;
+        let chunked = head.lines().any(|line| {
+            let line = line.to_ascii_lowercase();
+            line.starts_with("transfer-encoding:") && line.contains("chunked")
+        });
+        Some((status, chunked, &response[end + 4..]))
+    }
+
+    fn dechunk(mut body: &[u8]) -> Option<Vec<u8>> {
+        let mut out = Vec::new();
+        loop {
+            let line_end = body.windows(2).position(|w| w == b"\r\n")?;
+            let size =
+                usize::from_str_radix(std::str::from_utf8(&body[..line_end]).ok()?.split(';').next()?.trim(), 16)
+                    .ok()?;
+            body = &body[line_end + 2..];
+            if size == 0 {
+                return Some(out);
+            }
+            out.extend_from_slice(body.get(..size)?);
+            body = body.get(size + 2..)?;
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -251,10 +354,43 @@ mod tests {
         fn answer_join(&self, request: &v1::AnswerJoinRequest) -> Result<bool, Error> {
             Ok(request.matches)
         }
+
+        fn remove_member(&self, member: v1::NodeId) -> BoxFuture<'static, Result<(), Error>> {
+            Box::pin(async move {
+                if member.ed25519_public_key == [9; 32] {
+                    Ok(())
+                } else {
+                    Err(Error::new(Code::NotFound, "no such member"))
+                }
+            })
+        }
     }
 
     fn app() -> Router {
         router(Arc::new(Fake), None)
+    }
+
+    #[tokio::test]
+    async fn the_command_line_calls_the_api() {
+        use std::future::IntoFuture as _;
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(axum::serve(listener, app()).into_future());
+
+        let got: v1::GetClusterResponse = client::call(addr, "GetCluster", &v1::GetClusterRequest {}).await.unwrap();
+        assert_eq!(got.cluster.unwrap(), Fake.snapshot());
+        let member = |byte| v1::RemoveMemberRequest { member: Some(v1::NodeId { ed25519_public_key: vec![byte; 32] }) };
+        let _: v1::RemoveMemberResponse = client::call(addr, "RemoveMember", &member(9)).await.unwrap();
+        let refused = client::call::<_, v1::RemoveMemberResponse>(addr, "RemoveMember", &member(1)).await;
+        assert_eq!(refused.unwrap_err(), "no such member");
+
+        // nothing listens on port 1
+        let nobody = client::call::<_, v1::GetClusterResponse>(
+            "127.0.0.1:1".parse().unwrap(),
+            "GetCluster",
+            &v1::GetClusterRequest {},
+        );
+        assert!(nobody.await.unwrap_err().contains("is omnarc-node serve running"));
     }
 
     fn call(path: &str, content_type: &str, body: Vec<u8>) -> Request<Body> {

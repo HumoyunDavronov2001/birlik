@@ -172,6 +172,7 @@ omnarc-node members
 omnarc-node serve                          # on every device: it hears the others and shows their load;
                                            # the control API answers on http://127.0.0.1:7600
 omnarc-node serve --invite                 # the admin's service can invite while it runs
+omnarc-node remove Laptop                  # an admin removes a member while its own service runs
 ```
 
 Devices on different networks meet through a relay you run (`relay/README.md`): create the cluster with

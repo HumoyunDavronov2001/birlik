@@ -85,6 +85,13 @@ impl Agreed {
     }
 }
 
+/// The largest odd number of voters at most `n` and at most [`MAX_VOTERS`], and at least one.
+#[must_use]
+pub fn odd_voters(n: usize) -> usize {
+    let n = n.clamp(1, MAX_VOTERS);
+    if n % 2 == 0 { n - 1 } else { n }
+}
+
 /// The Raft id of a node: the first eight bytes of its key. Collisions among five voters are out of the question.
 #[must_use]
 pub fn raft_id(id: EndpointId) -> u64 {
@@ -134,8 +141,11 @@ impl Consensus {
         let config = Arc::new(config.validate()?);
         let network = network::Network::new(endpoint);
         let raft = Raft::new(raft_id(me), config, network.clone(), log, machine).await?;
-        let handler = network::RaftHandler::new(raft.clone());
-        Ok((Self { raft, me, network, agreed }, handler))
+        let slot = Arc::new(std::sync::OnceLock::new());
+        let handler = network::RaftHandler::new(raft.clone(), Arc::clone(&slot));
+        let consensus = Self { raft, me, network, agreed };
+        let _ = slot.set(consensus.clone());
+        Ok((consensus, handler))
     }
 
     /// Starts a log with this node as its only voter, unless it has one already.
@@ -198,7 +208,8 @@ impl Consensus {
         }
     }
 
-    /// On the leader: makes learners that keep up with the log voters, until [`MAX_VOTERS`] vote.
+    /// On the leader: makes learners that keep up with the log voters, two at a time so that an odd number vote —
+    /// one, three or five. With two voters, losing either would stop the log; with one or three, it would not.
     ///
     /// # Errors
     /// Raft has stopped.
@@ -211,11 +222,12 @@ impl Consensus {
         let voters: BTreeSet<u64> = membership.voter_ids().collect();
         let Some(last) = metrics.last_log_index else { return Ok(()) };
         let matched = metrics.replication.unwrap_or_default();
-        let ready: BTreeSet<u64> = membership
+        let ready: Vec<u64> = membership
             .learner_ids()
             .filter(|id| matched.get(id).copied().flatten().is_some_and(|log_id| log_id.index + 1 >= last))
-            .take(MAX_VOTERS.saturating_sub(voters.len()))
             .collect();
+        let target = odd_voters(voters.len() + ready.len()).max(voters.len());
+        let ready: BTreeSet<u64> = ready.into_iter().take(target - voters.len()).collect();
         if ready.is_empty() {
             return Ok(());
         }
@@ -225,8 +237,72 @@ impl Consensus {
         }
     }
 
+    /// Takes `member` out of the log's membership, as voter or learner, before the cluster removes it, so the log
+    /// never waits for a device it no longer lets in. Done by the leader; elsewhere it is forwarded.
+    ///
+    /// # Errors
+    /// No leader is known, or the change cannot be committed now.
+    pub async fn remove_node(&self, member: EndpointId) -> Result<(), BoxError> {
+        let metrics = self.raft.metrics().borrow().clone();
+        if metrics.state != ServerState::Leader {
+            let leader = metrics
+                .current_leader
+                .and_then(|id| metrics.membership_config.membership().get_node(&id).cloned())
+                .ok_or("no leader is known yet")?;
+            return self.network.forward_removal(&leader, member).await;
+        }
+        let id = raft_id(member);
+        let membership = metrics.membership_config.membership().clone();
+        let change = if membership.voter_ids().any(|voter| voter == id) {
+            // a voter goes, and with it a second one if an even number would remain
+            let mut gone = BTreeSet::from([id]);
+            let left: Vec<u64> = membership.voter_ids().filter(|voter| *voter != id).collect();
+            if left.len() > 1 && left.len() % 2 == 0 {
+                if let Some(extra) = left.iter().rev().find(|voter| **voter != raft_id(self.me)) {
+                    gone.insert(*extra);
+                }
+            }
+            ChangeMembers::RemoveVoters(gone)
+        } else if membership.learner_ids().any(|learner| learner == id) {
+            ChangeMembers::RemoveNodes(BTreeSet::from([id]))
+        } else {
+            return Ok(());
+        };
+        // a voter removed with others stays a learner (retain); the member itself is then dropped
+        self.raft.change_membership(change, true).await?;
+        let still = self.raft.metrics().borrow().membership_config.membership().learner_ids().any(|l| l == id);
+        if still {
+            self.raft.change_membership(ChangeMembers::RemoveNodes(BTreeSet::from([id])), false).await?;
+        }
+        Ok(())
+    }
+
     /// Stops this node's Raft.
     pub async fn shutdown(&self) {
         let _ = tokio::time::timeout(Duration::from_secs(2), self.raft.shutdown()).await;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn an_odd_number_votes() {
+        let got: Vec<usize> = (0..=8).map(odd_voters).collect();
+        assert_eq!(got, vec![1, 1, 1, 3, 3, 5, 5, 5, 5]);
+    }
+
+    #[test]
+    fn the_agreed_state_follows_the_commands() {
+        let mut agreed = Agreed::default();
+        agreed.apply(&Command::SetName("Home".into()));
+        agreed.apply(&Command::AddMember { id: "aa".into(), token: vec![1] });
+        agreed.apply(&Command::RemoveMember { id: "aa".into(), revocation_ids: vec!["r1".into()] });
+        assert!(agreed.members.is_empty() && agreed.removed.contains("aa") && agreed.revoked.contains("r1"));
+        // invited again with a new token, it is back
+        agreed.apply(&Command::AddMember { id: "aa".into(), token: vec![2] });
+        assert!(agreed.members.contains_key("aa") && !agreed.removed.contains("aa"));
+        assert_eq!(agreed.name, "Home");
     }
 }
