@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation';
   import { Card, Icon, Meter, Ring, Table, Tooltip, loadLevel, type Column } from '@omnarc/ui';
   import { cluster } from '$lib/cluster.svelte';
-  import { deviceName, formatGib, gib, isOnline, platformIcon, platformName } from '$lib/model';
+  import { deviceName, formatGib, gib, isOnline, markers, platformIcon, platformName, thermal } from '$lib/model';
 
   const view = $derived(cluster.view);
 
@@ -52,12 +52,19 @@
         layers: Math.max(1, Math.round(gib(view.devices[id].memoryTotalBytes) * 10)),
         level: online ? loadLevel(load) : 1,
         note: `${formatGib(view.devices[id].memoryTotalBytes)} · ${online ? `${Math.round(load * 100)}% CPU` : 'offline'}`,
+        // charging, the battery, the temperature: what an offline device last said no longer holds
+        markers: online ? markers(view.telemetry[id]) : [],
       };
     }),
   );
   const summary = $derived(
     `${ids.length} ${ids.length === 1 ? 'device' : 'devices'} with ${formatGib(totalBytes)} of memory together; ` +
-      arcs.map((arc, i) => `${arc.name} ${isOnline(view, ids[i], cluster.now) ? 'online' : 'offline'}`).join(', ') +
+      arcs
+        .map((arc, i) => {
+          const state = `${arc.name} ${isOnline(view, ids[i], cluster.now) ? 'online' : 'offline'}`;
+          return arc.markers.length ? `${state} (${arc.markers.map((m) => m.label.toLowerCase()).join(', ')})` : state;
+        })
+        .join(', ') +
       '.',
   );
 </script>
@@ -138,13 +145,18 @@
           {@const device = view.devices[id]}
           {@const telemetry = view.telemetry[id]}
           {@const online = isOnline(view, id, cluster.now)}
+          {@const warmth = online ? thermal(telemetry?.thermal) : null}
           <li class="grid grid-cols-[20px_minmax(0,1fr)_72px_44px] items-center gap-3 py-2">
             <span class="text-text-3"><Icon name={platformIcon(device.platform)} size={18} /></span>
             <span class="min-w-0">
               <span class="block truncate text-13 text-text-1">
                 {deviceName(view, id)}{#if id === view.thisNode}<span class="text-text-3"> · this device</span>{/if}
               </span>
-              <span class="block text-12 text-text-3">{platformName(device.platform)} · {online ? 'online' : 'offline'}</span>
+              <span class="block text-12 text-text-3">
+                {platformName(device.platform)} · {online ? 'online' : 'offline'}{warmth && warmth.kind !== 'good'
+                  ? ` · ${warmth.label.toLowerCase()}`
+                  : ''}
+              </span>
             </span>
             <Meter value={online ? (telemetry?.cpuLoad ?? 0) : 0} label={`CPU of ${deviceName(view, id)}`} level={online ? loadLevel(telemetry?.cpuLoad ?? 0) : 1} />
             <span class="text-right font-mono text-12 text-text-2">{online ? `${Math.round((telemetry?.cpuLoad ?? 0) * 100)}%` : '—'}</span>

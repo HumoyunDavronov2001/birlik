@@ -1,5 +1,14 @@
 <script lang="ts">
-  import { arcPath, layoutArcs, point } from '../geometry';
+  import { arcPath, layoutArcs, point, type Arc } from '../geometry';
+  import { ICONS } from '../icons';
+
+  /** A thin outer marker on a device's arc (PLAN.md §9.4): charging, the battery, the temperature — always an icon. */
+  export interface RingMarker {
+    icon: 'bolt' | 'battery' | 'temp';
+    kind: 'good' | 'warning' | 'serious' | 'critical';
+    /** Said with the arc and shown on hover, e.g. "Charging · 81%" or "Hot". */
+    label: string;
+  }
 
   export interface RingDeviceView {
     name: string;
@@ -13,6 +22,7 @@
     draftMs?: number;
     /** The line under the name instead of layers and time, e.g. while no model runs: "8 GiB · 23% CPU". */
     note?: string;
+    markers?: RingMarker[];
   }
 
   interface Props {
@@ -63,7 +73,9 @@
   }
 
   function arcLabel(i: number): string {
-    return `${devices[i].name}: ${devices[i].note ?? `${devices[i].layers} layers, ${stageMs[i]} ms`}`;
+    const marks = devices[i].markers ?? [];
+    const said = `${devices[i].name}: ${devices[i].note ?? `${devices[i].layers} layers, ${stageMs[i]} ms`}`;
+    return marks.length ? `${said}; ${marks.map((m) => m.label).join(', ')}` : said;
   }
 
   const full = $derived(variant === 'full');
@@ -76,6 +88,21 @@
   const slowest = $derived(devices.some((d) => d.ms !== undefined) ? stageMs.indexOf(Math.max(...stageMs)) : -1);
   // a long name would run past the edge of the drawing
   const shortName = (name: string) => (name.length > 18 ? `${name.slice(0, 17)}…` : name);
+
+  // the markers run just outside the arcs; a badge holds each one's icon
+  const markerR = $derived(box.r + box.width / 2 + (full ? 7 : 5));
+  const badgeR = $derived(full ? 10 : 8);
+  const iconSize = $derived(full ? 13 : 11);
+  const SEVERITY = ['good', 'warning', 'serious', 'critical'] as const;
+  const worst = (marks: RingMarker[]) =>
+    marks.reduce((a, b) => (SEVERITY.indexOf(b.kind) > SEVERITY.indexOf(a.kind) ? b : a)).kind;
+
+  // badges sit near the clockwise end of an arc, clear of the name at its middle; on a short arc, at its middle
+  function badgeAngles(arc: Arc, n: number): number[] {
+    const step = ((badgeR * 2 + 3) / markerR) * (180 / Math.PI);
+    if (arc.a1 - arc.a0 >= step * (n + 1.5)) return Array.from({ length: n }, (_, k) => arc.a1 - step / 2 - 1 - k * step);
+    return Array.from({ length: n }, (_, k) => arc.mid + (k - (n - 1) / 2) * step);
+  }
 
   // Token time -> angle: compute happens inside an arc, network time is spent crossing a gap.
   function angleAt(t: number): number {
@@ -110,10 +137,11 @@
     return `var(--load-${devices[i].level})`;
   }
 
-  function labelPos(mid: number) {
+  // a device with markers starts its leader line beyond them
+  function labelPos(mid: number, marked: boolean) {
     const rad = (mid * Math.PI) / 180;
     const [x, y] = point(box.cx, box.cy, box.r + box.width / 2 + 18, mid);
-    const [x2, y2] = point(box.cx, box.cy, box.r + box.width / 2 + 4, mid);
+    const [x2, y2] = point(box.cx, box.cy, marked ? markerR + 4 : box.r + box.width / 2 + 4, mid);
     const anchor = Math.abs(Math.sin(rad)) < 0.2 ? 'middle' : Math.sin(rad) >= 0 ? 'start' : 'end';
     const dy = Math.cos(rad) > 0.6 ? -14 : Math.cos(rad) < -0.6 ? 10 : 0;
     const tx = x + (anchor === 'start' ? 6 : anchor === 'end' ? -6 : 0);
@@ -159,9 +187,31 @@
       </path>
     {/if}
   {/each}
+  {#each arcs as arc, i (i)}
+    {@const marks = devices[i].markers ?? []}
+    {#if marks.length}
+      <path
+        d={arcPath(box.cx, box.cy, markerR, arc.a0, arc.a1)}
+        fill="none"
+        stroke-width={full ? 3 : 2.5}
+        class="marker"
+        style:stroke="var(--status-{worst(marks)})"
+      />
+      {#each badgeAngles(arc, marks.length) as angle, k (k)}
+        {@const [x, y] = point(box.cx, box.cy, markerR, angle)}
+        <g class="badge" style:color="var(--status-{marks[k].kind})" aria-hidden="true">
+          <title>{marks[k].label}</title>
+          <circle cx={x} cy={y} r={badgeR} />
+          <svg x={x - iconSize / 2} y={y - iconSize / 2} width={iconSize} height={iconSize} viewBox="0 0 24 24">
+            {@html ICONS[marks[k].icon]}
+          </svg>
+        </g>
+      {/each}
+    {/if}
+  {/each}
   {#if full}
     {#each arcs as arc, i (i)}
-      {@const p = labelPos(arc.mid)}
+      {@const p = labelPos(arc.mid, !!devices[i].markers?.length)}
       <line x1={p.x2} y1={p.y2} x2={p.x} y2={p.y} class="t-line" stroke-width="1" />
       <text x={p.tx} y={p.y + p.dy} text-anchor={p.anchor} class="t-name">{shortName(devices[i].name)}</text>
       <text x={p.tx} y={p.y + p.dy + 15} text-anchor={p.anchor} class="t-note"
@@ -229,6 +279,21 @@
   }
   .t-line {
     stroke: var(--line-2);
+  }
+  .marker {
+    stroke-linecap: round;
+  }
+  .badge circle {
+    fill: var(--surface-1);
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+  .badge svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
   .halo {
     fill: var(--turquoise);

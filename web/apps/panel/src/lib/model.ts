@@ -1,5 +1,6 @@
 // The cluster as the panel keeps it, and the pure functions that change and describe it.
 
+import type { RingMarker } from '@omnarc/ui';
 import type { ClusterSnapshot, JoinAttempt, WatchClusterResponse } from './gen/omnarc/v1/cluster_service_pb';
 import { Backend, Platform, type DeviceInfo, type NodeId } from './gen/omnarc/v1/device_pb';
 import { LinkKind, ThermalState, type LinkSample, type PowerState, type Telemetry } from './gen/omnarc/v1/telemetry_pb';
@@ -248,6 +249,23 @@ export function power(state: PowerState | undefined): string | null {
   if (state.charging) return `Charging · ${percent}`;
   if (state.onBattery) return `On battery · ${percent}`;
   return 'Plugged in';
+}
+
+/**
+ * The thin outer markers of a device's arc on the ring (PLAN.md §9.4): charging, the battery and the temperature,
+ * when there is something to say — a device plugged in at a normal temperature has none.
+ */
+export function markers(telemetry: Telemetry | undefined): RingMarker[] {
+  const out: RingMarker[] = [];
+  const state = telemetry?.power;
+  const supply = power(state);
+  if (state && supply && state.charging) out.push({ icon: 'bolt', kind: 'good', label: supply });
+  else if (state && supply && state.onBattery) {
+    out.push({ icon: 'battery', kind: state.batteryFraction < 0.2 ? 'serious' : 'warning', label: supply });
+  }
+  const warmth = thermal(telemetry?.thermal);
+  if (warmth && warmth.kind !== 'good') out.push({ icon: 'temp', kind: warmth.kind, label: warmth.label });
+  return out;
 }
 
 /** Seconds since a device was last heard from; nothing if never. */

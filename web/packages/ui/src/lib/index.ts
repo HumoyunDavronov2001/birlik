@@ -21,6 +21,6 @@ export { default as Table, type Column } from './components/Table.svelte';
 export { default as Toaster } from './components/Toaster.svelte';
 export { default as Tooltip } from './components/Tooltip.svelte';
 export { toasts, type Toast, type ToastKind } from './toasts.svelte';
-export type { RingDeviceView } from './components/Ring.svelte';
+export type { RingDeviceView, RingMarker } from './components/Ring.svelte';
 export { ICONS, ICON_NAMES, type IconName } from './icons';
 export { arcPath, capGap, layoutArcs, loadLevel, point, type Arc } from './geometry';

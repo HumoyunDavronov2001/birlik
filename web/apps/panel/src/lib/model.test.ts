@@ -18,6 +18,7 @@ import {
   hex,
   isOnline,
   linkTo,
+  markers,
   ONLINE_MS,
   platformName,
   power,
@@ -108,6 +109,21 @@ describe("a device's state", () => {
     expect(power(create(PowerStateSchema, { onBattery: true, batteryFraction: 0.5 }))).toBe('On battery · 50%');
     expect(power(create(PowerStateSchema, {}))).toBe('Plugged in');
     expect(power(undefined)).toBeNull();
+
+    // the ring's markers: only what is worth saying, the battery before the temperature
+    const telemetry = (fields: object) => create(TelemetrySchema, fields);
+    expect(markers(telemetry({ power: { charging: false }, thermal: ThermalState.NOMINAL }))).toEqual([]);
+    expect(markers(undefined)).toEqual([]);
+    expect(
+      markers(telemetry({ power: { charging: true, batteryFraction: 0.81 }, thermal: ThermalState.SERIOUS })),
+    ).toEqual([
+      { icon: 'bolt', kind: 'good', label: 'Charging · 81%' },
+      { icon: 'temp', kind: 'serious', label: 'Hot' },
+    ]);
+    expect(markers(telemetry({ power: { onBattery: true, batteryFraction: 0.18 } }))).toEqual([
+      { icon: 'battery', kind: 'serious', label: 'On battery · 18%' },
+    ]);
+    expect(markers(telemetry({ power: { onBattery: true, batteryFraction: 0.6 } }))[0].kind).toBe('warning');
 
     // what a device computes with: each backend once, or the processor
     const unit = (backend: Backend) => create(AcceleratorSchema, { backend });
