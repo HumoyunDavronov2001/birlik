@@ -337,15 +337,49 @@ fn describe() -> DeviceInfo {
     sys.refresh_cpu_all();
     sys.refresh_memory();
     let cpu_model = sys.cpus().first().map(|c| c.brand().trim().to_owned()).unwrap_or_default();
+    // cores, not the threads the processor runs on them
+    let cores = System::physical_core_count().unwrap_or_else(|| sys.cpus().len());
     DeviceInfo {
         name: System::host_name().unwrap_or_default(),
         platform: platform() as i32,
         os_version: System::long_os_version().unwrap_or_default(),
         cpu_model,
-        cpu_cores: u32::try_from(sys.cpus().len()).unwrap_or(u32::MAX),
+        cpu_cores: u32::try_from(cores).unwrap_or(u32::MAX),
         memory_total_bytes: sys.total_memory(),
+        accelerators: accelerators(&ring::default_engine_path()),
         agent_version: env!("CARGO_PKG_VERSION").to_owned(),
         ..DeviceInfo::default()
+    }
+}
+
+/// The GPUs the engine at `engine` can run layers on, as the engine itself names them: a device says it computes
+/// with what Omnarc can use, not with every graphics card it has. None without an engine, or when the engine does
+/// not answer within ten seconds (a GPU driver can hang; the service starts all the same).
+fn accelerators(engine: &Path) -> Vec<omnarc_protocol::v1::Accelerator> {
+    if !engine.is_file() {
+        return Vec::new();
+    }
+    let (tx, rx) = std::sync::mpsc::channel();
+    let engine = engine.to_path_buf();
+    std::thread::spawn(move || {
+        let devices = omnarc_engine_host::Engine::spawn(&engine, 1 << 16).and_then(|mut e| {
+            let devices = e.devices();
+            let _ = e.quit();
+            devices
+        });
+        let _ = tx.send(devices);
+    });
+    match rx.recv_timeout(Duration::from_secs(10)) {
+        Ok(Ok(devices)) => devices
+            .into_iter()
+            .map(|device| omnarc_protocol::v1::Accelerator {
+                backend: device.backend as i32,
+                name: device.name,
+                memory_bytes: device.memory_bytes,
+                ..Default::default()
+            })
+            .collect(),
+        _ => Vec::new(),
     }
 }
 
@@ -885,6 +919,11 @@ fn main() {
                     "cpu_model": info.cpu_model,
                     "cpu_cores": info.cpu_cores,
                     "memory_total_bytes": info.memory_total_bytes,
+                    "accelerators": info.accelerators.iter().map(|unit| serde_json::json!({
+                        "backend": Backend::try_from(unit.backend).unwrap_or(Backend::Unspecified).as_str_name(),
+                        "name": unit.name,
+                        "memory_bytes": unit.memory_bytes,
+                    })).collect::<Vec<_>>(),
                     "agent_version": info.agent_version,
                 });
                 println!("{value:#}");
@@ -894,6 +933,13 @@ fn main() {
                 println!("OS           {}", info.os_version);
                 println!("CPU          {} ({} cores)", info.cpu_model, info.cpu_cores);
                 println!("Memory       {:.1} GiB", gib(info.memory_total_bytes));
+                for unit in &info.accelerators {
+                    let backend = Backend::try_from(unit.backend).unwrap_or(Backend::Unspecified);
+                    println!("GPU          {} ({:?}, {:.1} GiB)", unit.name, backend, gib(unit.memory_bytes));
+                }
+                if info.accelerators.is_empty() {
+                    println!("GPU          none that this engine can use: it computes on the processor");
+                }
                 println!("Agent        {}", info.agent_version);
             }
         }

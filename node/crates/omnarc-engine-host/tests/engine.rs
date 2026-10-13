@@ -99,6 +99,19 @@ fn split_shards_match_the_whole_model() {
 }
 
 #[test]
+fn the_engine_names_the_gpus_it_can_use() {
+    let (exe, _) = paths();
+    let mut engine = Engine::spawn(&exe, 1 << 20).unwrap();
+    assert!(engine.abi_version() >= 3);
+    // a build for the processor names none; a GPU build names each GPU with its backend
+    for device in engine.devices().unwrap() {
+        assert!(!matches!(device.backend, Backend::Cpu | Backend::Unspecified), "{device:?}");
+        assert!(!device.name.is_empty(), "{device:?}");
+    }
+    engine.quit().unwrap();
+}
+
+#[test]
 fn errors_are_reported() {
     let (exe, model) = paths();
     let mut engine = Engine::spawn(&exe, 1 << 20).unwrap();

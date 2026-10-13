@@ -121,7 +121,7 @@
               {#each device.accelerators as unit, i (i)}
                 <span>{unit.name}{unit.memoryBytes ? ` · ${formatGib(unit.memoryBytes)}` : ''}</span>
               {:else}
-                <span class="text-text-3">None found — the processor computes</span>
+                <span class="text-text-3">None that Omnarc can use — the processor computes</span>
               {/each}
             </dd>
           </div>

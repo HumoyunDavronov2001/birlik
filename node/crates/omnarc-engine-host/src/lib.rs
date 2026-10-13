@@ -95,6 +95,16 @@ pub struct ModelInfo {
     pub splittable: bool,
 }
 
+/// A GPU the engine can run layers on.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Device {
+    pub backend: Backend,
+    /// As its driver names it, e.g. `NVIDIA GeForce GTX 1050`.
+    pub name: String,
+    /// Its memory as its backend reports it; 0 if unknown.
+    pub memory_bytes: u64,
+}
+
 /// An open shard: a window of layers loaded in the engine.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShardInfo {
@@ -201,6 +211,7 @@ mod op {
     pub const SAMPLE: u16 = 13;
     pub const SAMPLER_CLOSE: u16 = 14;
     pub const QUIT: u16 = 15;
+    pub const DEVICES: u16 = 16;
 }
 
 const EL_TOKENS: u8 = 0;
@@ -285,6 +296,27 @@ impl Engine {
     #[must_use]
     pub fn area_size(&self) -> usize {
         self.shm.half()
+    }
+
+    /// The GPUs this build of the engine can run layers on; none means it computes on the processor. An engine older
+    /// than ABI 3 names none.
+    ///
+    /// # Errors
+    /// The engine is gone, or it answers something this host does not understand.
+    pub fn devices(&mut self) -> Result<Vec<Device>> {
+        if self.abi_version < 3 {
+            return Ok(Vec::new());
+        }
+        let mut r = self.request(op::DEVICES, &[])?;
+        let count = r.u32()?;
+        (0..count)
+            .map(|_| {
+                let backend = Backend::try_from(i32::try_from(r.u32()?).unwrap_or(0)).unwrap_or(Backend::Unspecified);
+                let memory_bytes = r.u64()?;
+                let name = r.string()?;
+                Ok(Device { backend, name, memory_bytes })
+            })
+            .collect()
     }
 
     /// Reads a model's metadata without loading its weights.

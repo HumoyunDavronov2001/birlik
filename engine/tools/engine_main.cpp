@@ -1,5 +1,6 @@
 // omnarc-engine — libomnarc in its own process, driven by omnarc-node over stdin/stdout with the bulk data in shared
 // memory. The protocol is specified in engine/HOST.md.
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -45,6 +46,7 @@ enum opcode : uint16_t {
     OP_SAMPLE = 13,
     OP_SAMPLER_CLOSE = 14,
     OP_QUIT = 15,
+    OP_DEVICES = 16,
 };
 
 enum element : uint8_t { EL_TOKENS = 0, EL_F32 = 1, EL_F16 = 2, EL_BF16 = 3 };
@@ -193,6 +195,17 @@ struct engine {
                 out.put(om_abi_version());
                 out.str(om_version_string());
                 out.put(static_cast<uint64_t>(shm.size()));
+                return OM_OK;
+            }
+            case OP_DEVICES: {
+                std::vector<om_device> devices(om_devices(nullptr, 0));
+                devices.resize(std::min(devices.size(), om_devices(devices.data(), devices.size())));
+                out.put(static_cast<uint32_t>(devices.size()));
+                for (const om_device &device : devices) {
+                    out.put(static_cast<uint32_t>(device.backend));
+                    out.put(device.memory_bytes);
+                    out.str(device.name);
+                }
                 return OM_OK;
             }
             case OP_MODEL_INFO: {

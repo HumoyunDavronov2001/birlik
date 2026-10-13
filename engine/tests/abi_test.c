@@ -15,11 +15,21 @@ static int failures = 0;
 
 int main(void) {
     CHECK(om_abi_version() == OMNARC_ABI_VERSION);
-    CHECK(OMNARC_ABI_VERSION == 2u);
+    CHECK(OMNARC_ABI_VERSION == 3u);
     CHECK(strcmp(om_version_string(), "0.1.0") == 0);
     CHECK(strcmp(om_status_string(OM_OK), "ok") == 0);
     CHECK(strcmp(om_status_string(OM_ERR_NOT_IMPLEMENTED), "not implemented") == 0);
     CHECK(strcmp(om_status_string(OM_ERR_CAPACITY), "capacity exhausted") == 0);
+
+    /* the GPUs of this build: the count alone, then the devices; a build for the processor has none */
+    size_t gpus = om_devices(NULL, 0);
+    om_device devices[8];
+    size_t listed = om_devices(devices, 8);
+    CHECK(listed == gpus);
+    for (size_t i = 0; i < listed && i < 8; i++) {
+        CHECK(devices[i].backend != OM_BACKEND_CPU && devices[i].backend != OM_BACKEND_AUTO);
+        CHECK(strlen(devices[i].name) > 0);
+    }
 
     om_shard *shard = (om_shard *)1;
     CHECK(om_shard_open(NULL, &shard) == OM_ERR_INVALID_ARGUMENT);

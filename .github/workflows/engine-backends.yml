@@ -99,6 +99,18 @@ jobs:
         run: |
           grep -E "error C[0-9]+|: error:|fatal error|error LNK" build/engine-build.log | sort -u | head -40 |
             while IFS= read -r line; do echo "::error::${line}"; done
+      - name: The Vulkan engine, to try on a Windows GPU next to omnarc-node
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp build/engine/Release/omnarc-engine.exe build/engine/Release/omnarc-gate.exe dist/
+      - if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: omnarc-engine-vulkan-Windows-X64
+          path: dist/
+          retention-days: 30
 
   cuda-linux:
     name: CUDA (Linux, build)

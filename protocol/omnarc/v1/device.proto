@@ -65,6 +65,7 @@ message DeviceInfo {
   Platform platform = 3;
   string os_version = 4;
   string cpu_model = 5;
+  // Physical cores, not the threads they run.
   uint32 cpu_cores = 6;
   uint64 memory_total_bytes = 7;
   repeated Accelerator accelerators = 8;

@@ -48,6 +48,7 @@ status carries one string, the error message, as its payload.
 | 13 | `SAMPLE` | `u32` sampler, `u32` vocabulary size | `i32` token |
 | 14 | `SAMPLER_CLOSE` | `u32` sampler | — |
 | 15 | `QUIT` | — | — |
+| 16 | `DEVICES` | — | `u32` count, then per GPU: `u32` backend, `u64` memory in bytes, string name (ABI 3) |
 
 - **Model info:** string architecture, `u32` layer count, `u32` hidden size, `u32` vocabulary size, `u32` context
   length, `u64` file size, `u8` splittable.

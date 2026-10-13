@@ -142,6 +142,8 @@ export type DeviceInfo = Message<"omnarc.v1.DeviceInfo"> & {
   cpuModel: string;
 
   /**
+   * Physical cores, not the threads they run.
+   *
    * @generated from field: uint32 cpu_cores = 6;
    */
   cpuCores: number;

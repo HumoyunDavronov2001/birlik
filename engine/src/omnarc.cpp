@@ -263,6 +263,26 @@ uint32_t om_abi_version(void) { return OMNARC_ABI_VERSION; }
 
 const char *om_version_string(void) { return kVersion; }
 
+size_t om_devices(om_device *out, size_t capacity) {
+    init_once();
+    size_t count = 0;
+    for (size_t i = 0; i < ggml_backend_dev_count(); ++i) {
+        ggml_backend_dev_t dev = ggml_backend_dev_get(i);
+        if (!is_gpu(dev)) continue;
+        if (out != nullptr && count < capacity) {
+            om_device &device = out[count];
+            device.backend = device_backend(dev);
+            size_t free_mem = 0;
+            size_t total_mem = 0;
+            ggml_backend_dev_memory(dev, &free_mem, &total_mem);
+            device.memory_bytes = total_mem;
+            std::snprintf(device.name, sizeof device.name, "%s", ggml_backend_dev_description(dev));
+        }
+        ++count;
+    }
+    return count;
+}
+
 const char *om_status_string(om_status status) {
     switch (status) {
         case OM_OK: return "ok";

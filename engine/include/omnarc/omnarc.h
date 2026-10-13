@@ -22,8 +22,8 @@ extern "C" {
 #endif
 
 /* 1: stage B0 interface. 2: shards on llama.cpp — model info, om_shard_run, KV management, prefetching,
- * tokenizer and sampler. */
-#define OMNARC_ABI_VERSION 2u
+ * tokenizer and sampler. 3: om_devices. */
+#define OMNARC_ABI_VERSION 3u
 
 typedef enum om_status {
     OM_OK = 0,
@@ -70,6 +70,17 @@ const char *om_version_string(void);
 
 /* A short English description of a status code. The string is static. */
 const char *om_status_string(om_status status);
+
+/* A GPU this build of the engine can run layers on. */
+typedef struct om_device {
+    om_backend backend;    /* CUDA, Vulkan, Metal, ... */
+    uint64_t memory_bytes; /* its memory as its backend reports it; 0 if unknown */
+    char name[128];        /* e.g. "NVIDIA GeForce GTX 1050", NUL-terminated */
+} om_device;
+
+/* Lists the GPUs this build of the engine can run layers on: writes up to capacity of them to out and returns how
+ * many there are. None means the engine computes on the processor. */
+size_t om_devices(om_device *out, size_t capacity);
 
 /* Loads layers [layer_begin, layer_end) of a model. Only the weights of those layers are read; the shard that
  * starts at layer 0 also loads the token embeddings. [layer_count, layer_count + 1) is the output head alone: it
