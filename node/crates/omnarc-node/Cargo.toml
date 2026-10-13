@@ -37,6 +37,7 @@ n0-future.workspace = true
 omnarc-api.workspace = true
 omnarc-store.workspace = true
 openraft.workspace = true
+futures-util.workspace = true
 serde.workspace = true
 axum.workspace = true
 

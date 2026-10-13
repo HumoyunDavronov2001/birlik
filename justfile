@@ -7,7 +7,7 @@ export CARGO_BUILD_JOBS := jobs
 # Run every check that CI runs (Linux subset).
 default: check
 
-check: design docs protocol rust engine web
+check: design docs protocol rust simulate engine web
 
 # Tokens for every platform, the contrast gate, and the design concept page.
 design:
@@ -24,7 +24,11 @@ protocol:
 rust:
     cargo fmt --all -- --check
     cargo clippy --workspace --all-targets --all-features -- -D warnings
-    cargo test --workspace
+    cargo test --workspace --exclude omnarc-simulation
+
+# The cluster's agreed state through 1,000 simulated scenarios of crashes, partitions and lost messages (~10 min).
+simulate:
+    cargo test -p omnarc-simulation --release -- --nocapture
 
 # The engine on llama.cpp, its accuracy gate and the engine in its own process (needs Python with numpy).
 engine:

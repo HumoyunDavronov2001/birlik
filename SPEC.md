@@ -15,8 +15,8 @@ design concept (its section number), or "—".
 | Part | Screens | Functions | ✓ done | ◐ partly | ○ not started | Ready |
 |---|---|---|---|---|---|---|
 | Engine | 0 | 30 | 8 | 2 | 20 | 30 % |
-| Node agent and API | 0 | 40 | 7 | 11 | 22 | 31 % |
-| Panel | 24 | 7 | 1 | 7 | 23 | 15 % |
+| Node agent and API | 0 | 40 | 7 | 12 | 21 | 32 % |
+| Panel | 24 | 7 | 1 | 8 | 22 | 16 % |
 | Desktop app | 4 | 5 | 0 | 0 | 9 | 0 % |
 | Android app | 7 | 8 | 0 | 2 | 13 | 7 % |
 | iOS app | 8 | 6 | 0 | 2 | 12 | 7 % |
@@ -27,7 +27,7 @@ design concept (its section number), or "—".
 | Islands | 0 | 3 | 0 | 0 | 3 | 0 % |
 | Benchmarks, sites and releases | 3 | 9 | 2 | 1 | 9 | 21 % |
 | Design system and quality across all apps | 1 | 13 | 6 | 2 | 6 | 50 % |
-| **All** | **50** | **141** | **24** | **27** | **140** | **20 %** |
+| **All** | **50** | **141** | **24** | **29** | **138** | **20 %** |
 
 "Ready" counts a partly done item as half. By stage — what each stage has to deliver:
 
@@ -35,7 +35,7 @@ design concept (its section number), or "—".
 |---|---|---|---|---|
 | B0 | 10 | 9 | 1 | 0 |
 | B1 | 16 | 12 | 1 | 3 |
-| B2 | 28 | 3 | 19 | 6 |
+| B2 | 28 | 3 | 21 | 4 |
 | B3 | 14 | 0 | 0 | 14 |
 | B4 | 18 | 0 | 0 | 18 |
 | B5 | 53 | 0 | 5 | 48 |
@@ -151,7 +151,7 @@ design concept (its section number), or "—".
 | NO-47 | Battery, heat, schedule and idle limits hand work to a replica | function | Q5 | B5 | 03 | ○ |
 | NO-48 | Plan suggestions: where moving layers would make the ring faster | function | R1 | B3 | 01 | ○ |
 | NO-49 | Re-planning and KV copies modeled in TLA+ and checked in TLC | function | P§8 | B3 | — | ○ |
-| NO-50 | 1,000 random drop and join scenarios in a network simulation without a lost answer | function | P§8 | B2 | — | ○ |
+| NO-50 | 1,000 random drop and join scenarios in a network simulation without a lost answer | function | P§8 | B2 | — | ◐ |
 
 ### 4.5 API
 
@@ -174,7 +174,7 @@ nine sections in a rail: Ring, Devices, Models, Chat, Observe, Training, Network
 | ID | What | Kind | Req | Stage | Design | State |
 |---|---|---|---|---|---|---|
 | PA-01 | Frame: the rail of sections, the top bar, the footer | screen | U1 | B2 | 01 | ◐ |
-| PA-02 | First run | screen | U6 | B2 | — | ○ |
+| PA-02 | First run | screen | U6 | B2 | — | ◐ |
 | PA-03 | Ring (home) | screen | U1 | B2 | 01 | ◐ |
 | PA-04 | Add a device | screen | U6 | B2 | 02 | ◐ |
 | PA-05 | Devices | screen | — | B2 | 01 | ◐ |

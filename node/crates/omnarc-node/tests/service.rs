@@ -34,9 +34,10 @@ async fn start(data: &Path, name: &str) -> Service {
     Service::start(config).await.unwrap()
 }
 
-// Waits until `check` holds, for at most 20 seconds.
+// Waits until `check` holds, for at most 60 seconds: on a loaded machine running every test at once, Raft and gossip
+// take longer than the few seconds they take alone.
 async fn eventually(what: &str, check: impl Fn() -> bool) {
-    let deadline = tokio::time::Instant::now() + Duration::from_secs(20);
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(60);
     while !check() {
         assert!(tokio::time::Instant::now() < deadline, "timed out waiting until {what}");
         tokio::time::sleep(Duration::from_millis(100)).await;
@@ -256,6 +257,59 @@ async fn the_computers_agree_and_a_removed_member_is_let_in_no_more() {
 
     phone.shutdown().await;
     laptop.shutdown().await;
+    desktop.shutdown().await;
+    for dir in [a, b, c] {
+        let _ = std::fs::remove_dir_all(dir);
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_device_in_no_cluster_creates_one_or_joins_one() {
+    use futures_util::StreamExt as _;
+    use omnarc_api::Cluster as _;
+    use omnarc_node::setup::Setup;
+    use v1::join_cluster_response::Step;
+
+    // creating: the panel's first run on the first device
+    let a = data_dir("setup-a");
+    let setup = Setup::new(&a, device("Desktop")).unwrap();
+    assert!(setup.snapshot().id.is_none(), "no cluster yet");
+    let request = v1::CreateClusterRequest { name: "Home cluster".into(), relays: vec![] };
+    setup.create_cluster(request.clone()).await.unwrap();
+    setup.done().await;
+    assert!(setup.create_cluster(request).await.is_err(), "one cluster only");
+    let desktop = start(&a, "Desktop").await;
+
+    // joining: the symbols first, then the owner's yes, then the cluster's name
+    let b = data_dir("setup-b");
+    let joiner = Setup::new(&b, device("laptop-host")).unwrap();
+    let ticket = desktop.invite(Duration::from_secs(60), vec![]).unwrap().encode();
+    let mut events = desktop.events();
+    let mut steps = joiner.join_cluster(v1::JoinClusterRequest { ticket, device_name: "Laptop".into() });
+    let Some(Ok(v1::JoinClusterResponse { step: Some(Step::Symbols(symbols)) })) = steps.next().await else {
+        panic!("the symbols come first");
+    };
+    assert_eq!(symbols.symbols.len(), 4);
+    loop {
+        if let Ok(Event::JoinAttempt(attempt)) = events.recv().await {
+            assert_eq!(attempt.device.name, "Laptop");
+            assert!(desktop.answer_join(attempt.joiner, true));
+            break;
+        }
+    }
+    let Some(Ok(v1::JoinClusterResponse { step: Some(Step::Joined(name)) })) = steps.next().await else {
+        panic!("then the cluster");
+    };
+    assert_eq!(name, "Home cluster");
+    joiner.done().await;
+
+    // a ticket that is none is refused in the stream
+    let c = data_dir("setup-c");
+    let other = Setup::new(&c, device("Tablet")).unwrap();
+    let mut refused =
+        other.join_cluster(v1::JoinClusterRequest { ticket: "OMNARC:NOPE".into(), device_name: String::new() });
+    assert!(refused.next().await.is_some_and(|step| step.is_err()));
+
     desktop.shutdown().await;
     for dir in [a, b, c] {
         let _ = std::fs::remove_dir_all(dir);

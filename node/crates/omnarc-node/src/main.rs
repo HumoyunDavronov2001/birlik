@@ -359,6 +359,13 @@ async fn serve(
     panel: Option<PathBuf>,
 ) -> Result<(), ring::BoxError> {
     use omnarc_node::service::{Config, Event, Service};
+    // a device in no cluster yet: the panel creates one or joins one, then the service starts
+    if Store::open(data)?.cluster()?.is_none() {
+        let created = setup(data, api, panel.clone()).await?;
+        if !created {
+            return Ok(());
+        }
+    }
     let config = Config {
         data: data.to_path_buf(),
         listen,
@@ -416,6 +423,7 @@ async fn serve(
                 Ok(Event::MemberJoined(id)) => println!("A new device joined: {}.", names(id, &service)),
                 Ok(Event::MemberLeft(id)) => println!("{} left.", names(id, &service)),
                 Ok(Event::MemberRemoved(id)) => println!("{} was removed from the cluster.", id.fmt_short()),
+                Ok(Event::ClusterChanged) => println!("The cluster's name or relays changed."),
                 Ok(Event::Neighbor { id, up }) => println!("{} {}.", names(id, &service), if up { "connected" } else { "disconnected" }),
                 Ok(Event::JoinAttempt(attempt)) => {
                     // the owner answers here when someone sits at this terminal, otherwise in the panel
@@ -516,6 +524,27 @@ fn relay_command(data: &Path, command: RelayCommand) -> Result<(), ring::BoxErro
         }
     }
     Ok(())
+}
+
+/// Serves the panel and the setup API until this device creates or joins a cluster: whether it did, or was stopped.
+async fn setup(data: &Path, api: SocketAddr, panel: Option<PathBuf>) -> Result<bool, ring::BoxError> {
+    use std::future::IntoFuture as _;
+    let setup = omnarc_node::setup::Setup::new(data, describe())?;
+    let listener = tokio::net::TcpListener::bind(api).await.map_err(|e| format!("the control API on {api}: {e}"))?;
+    if panel.is_some() {
+        println!("This device belongs to no cluster yet. Create one or join one in the panel: http://{api}");
+    } else {
+        println!("This device belongs to no cluster yet: run omnarc-node create, or omnarc-node join <ticket>.");
+    }
+    let server = tokio::spawn(axum::serve(listener, omnarc_api::router(setup.clone(), panel)).into_future());
+    let created = tokio::select! {
+        () = setup.done() => true,
+        _ = tokio::signal::ctrl_c() => false,
+    };
+    // the panel's open streams end with the server; it reconnects to the service on the same address
+    server.abort();
+    let _ = server.await;
+    Ok(created)
 }
 
 fn cluster_command(data: &Path, command: Command) -> Result<(), ring::BoxError> {

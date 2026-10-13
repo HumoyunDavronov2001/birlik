@@ -16,8 +16,8 @@ maketi dizayn konsepsiyasida bo'lsa — uning bo'lim raqami, bo'lmasa «—».
 | Qism | Ekranlar | Funksiyalar | ✓ tayyor | ◐ qisman | ○ boshlanmagan | Tayyorlik |
 |---|---|---|---|---|---|---|
 | Dvigatel | 0 | 30 | 8 | 2 | 20 | 30 % |
-| Tugun agenti va API | 0 | 40 | 7 | 11 | 22 | 31 % |
-| Panel | 24 | 7 | 1 | 7 | 23 | 15 % |
+| Tugun agenti va API | 0 | 40 | 7 | 12 | 21 | 32 % |
+| Panel | 24 | 7 | 1 | 8 | 22 | 16 % |
 | Ish stoli ilovasi | 4 | 5 | 0 | 0 | 9 | 0 % |
 | Android ilovasi | 7 | 8 | 0 | 2 | 13 | 7 % |
 | iOS ilovasi | 8 | 6 | 0 | 2 | 12 | 7 % |
@@ -28,7 +28,7 @@ maketi dizayn konsepsiyasida bo'lsa — uning bo'lim raqami, bo'lmasa «—».
 | Orollar | 0 | 3 | 0 | 0 | 3 | 0 % |
 | O'lchovlar, saytlar va relizlar | 3 | 9 | 2 | 1 | 9 | 21 % |
 | Dizayn tizimi va barcha ilovalardagi sifat | 1 | 13 | 6 | 2 | 6 | 50 % |
-| **Jami** | **50** | **141** | **24** | **27** | **140** | **20 %** |
+| **Jami** | **50** | **141** | **24** | **29** | **138** | **20 %** |
 
 «Tayyorlik» ustunida qisman bajarilgan band yarim hisoblanadi. Bosqichlar bo'yicha — har bosqich nimani topshirishi
 kerak:
@@ -37,7 +37,7 @@ kerak:
 |---|---|---|---|---|
 | B0 | 10 | 9 | 1 | 0 |
 | B1 | 16 | 12 | 1 | 3 |
-| B2 | 28 | 3 | 19 | 6 |
+| B2 | 28 | 3 | 21 | 4 |
 | B3 | 14 | 0 | 0 | 14 |
 | B4 | 18 | 0 | 0 | 18 |
 | B5 | 53 | 0 | 5 | 48 |
@@ -152,7 +152,7 @@ kerak:
 | NO-47 | Batareya, qizish, jadval va bo'sh turish chegaralari ishni zaxiraga o'tkazadi | funksiya | Q5 | B5 | 03 | ○ |
 | NO-48 | Reja takliflari: qatlamlarni qayerga ko'chirsa, halqa tezlashadi | funksiya | R1 | B3 | 01 | ○ |
 | NO-49 | Qayta rejalash va KV nusxalari TLA+ da modellanadi va TLC'da tekshiriladi | funksiya | P§8 | B3 | — | ○ |
-| NO-50 | Tarmoq simulyatsiyasida 1000 ta tasodifiy uzilish va qo'shilish ssenariysi — birorta javob yo'qolmaydi | funksiya | P§8 | B2 | — | ○ |
+| NO-50 | Tarmoq simulyatsiyasida 1000 ta tasodifiy uzilish va qo'shilish ssenariysi — birorta javob yo'qolmaydi | funksiya | P§8 | B2 | — | ◐ |
 
 ### 4.5 API
 
@@ -176,7 +176,7 @@ Sozlamalar.
 | ID | Nima | Turi | Talab | Bosqich | Dizayn | Holat |
 |---|---|---|---|---|---|---|
 | PA-01 | Ramka: bo'limlar yon menyusi, yuqori qator, pastki qator | ekran | U1 | B2 | 01 | ◐ |
-| PA-02 | Birinchi ishga tushirish | ekran | U6 | B2 | — | ○ |
+| PA-02 | Birinchi ishga tushirish | ekran | U6 | B2 | — | ◐ |
 | PA-03 | Halqa (bosh ekran) | ekran | U1 | B2 | 01 | ◐ |
 | PA-04 | Qurilma qo'shish | ekran | U6 | B2 | 02 | ◐ |
 | PA-05 | Qurilmalar | ekran | — | B2 | 01 | ◐ |

@@ -179,8 +179,9 @@ Devices on different networks meet through a relay you run (`relay/README.md`): 
 `--relay "https://relay.example.com?token=..."`, or add one later with `omnarc-node relay add`. Devices on one
 network find each other by mDNS without one.
 
-The panel — the ring of your devices, the device list and adding a device with its QR code and four symbols — is
-built once with `cd web && pnpm install && pnpm build`, then served by the node:
+The panel — the first run that creates or joins a cluster, the ring of your devices, the device list, adding a device
+with its QR code and four symbols, removing one — is built once with `cd web && pnpm install && pnpm build`, then served
+by the node:
 
 ```bash
 omnarc-node serve --panel web/apps/panel/build   # open http://127.0.0.1:7600
@@ -218,7 +219,7 @@ omnarc-node ring --model model.gguf --layers 0:40,80:81 --listen 0.0.0.0:7700 \
 ```
 protocol/   Protobuf messages (omnarc.v1) and the tensor frame spec
 node/       Rust workspace: omnarc-protocol, omnarc-engine-host, omnarc-network, omnarc-store, omnarc-api,
-            omnarc-node; fuzz targets in node/fuzz
+            omnarc-node, omnarc-simulation (1,000 network scenarios); fuzz targets in node/fuzz
 engine/     libomnarc — C++20 engine on llama.cpp with a C ABI
 relay/      running the relay for devices on different networks
 design/     design tokens, the living ring, the design concept

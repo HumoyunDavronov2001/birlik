@@ -70,9 +70,22 @@ jobs:
       - name: Clippy
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings
       - name: Test
-        run: cargo test --workspace
+        # the 1,000 simulated scenarios run in the Simulation job, built for speed
+        run: cargo test --workspace --exclude omnarc-simulation
       - name: Describe the runner
         run: cargo run -q -p omnarc-node -- info
+
+  simulation:
+    name: Simulation (1,000 scenarios)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: simulation
+      - name: Crashes, restarts, partitions, lost and late messages — the agreed state survives
+        run: cargo test -p omnarc-simulation --release -- --nocapture
 
   fuzz:
     name: Fuzz (a minute per target)

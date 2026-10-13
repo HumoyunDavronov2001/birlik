@@ -172,4 +172,16 @@ header of a relay connection.
 ## 5. The control API
 
 Every node serves `ClusterService` (cluster_service.proto) over Connect RPC and the panel's files on
-`http://127.0.0.1:7600`. Only the device itself can reach it by default; serving it to the LAN is a setting.
+`http://127.0.0.1:7600`. Only the device itself can reach it by default; serving it to the LAN is a setting. Messages
+are binary Protobuf (`application/proto`; streams `application/connect+proto`), errors Connect's JSON.
+
+| Call | What it does |
+|---|---|
+| `GetCluster`, `WatchCluster` | the cluster as this node knows it, then every change: devices, telemetry, join attempts, removals |
+| `CreateTicket`, `AnswerJoin` | an admin invites a device and answers its join attempt (§2) |
+| `RemoveMember` | an admin removes a member once the cluster agrees (§3.2) |
+| `CreateCluster`, `JoinCluster` | a device in no cluster yet creates one or joins one; `JoinCluster` streams the four symbols, then the cluster's name |
+
+A node that belongs to no cluster yet answers only `GetCluster`, `WatchCluster`, `CreateCluster` and `JoinCluster`:
+the panel's first run. Once the cluster exists, the service starts on the same address and the panel follows it. The
+command line uses the same API while the service runs (`omnarc-node remove`).

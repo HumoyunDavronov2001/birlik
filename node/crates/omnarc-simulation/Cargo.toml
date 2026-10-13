@@ -1,0 +1,22 @@
+[package]
+name = "omnarc-simulation"
+description = "The cluster's agreed state under a simulated network: random crashes, restarts, partitions, lost and late messages."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+omnarc-node.workspace = true
+openraft.workspace = true
+redb.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio = { workspace = true }
+turmoil = "0.7.2"
+rand = "0.9"
+
+[lints]
+workspace = true

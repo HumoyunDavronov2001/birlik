@@ -19,6 +19,13 @@ service ClusterService {
   rpc AnswerJoin(AnswerJoinRequest) returns (AnswerJoinResponse);
   // Removes a member from the cluster: the computers of the cluster agree on it and let it in no more. Admins only.
   rpc RemoveMember(RemoveMemberRequest) returns (RemoveMemberResponse);
+  // Renames the cluster or changes its relays, once the cluster agrees. Admins only.
+  rpc UpdateCluster(UpdateClusterRequest) returns (UpdateClusterResponse);
+  // On a device that belongs to no cluster yet: creates one, with this device as its admin.
+  rpc CreateCluster(CreateClusterRequest) returns (CreateClusterResponse);
+  // On a device that belongs to no cluster yet: joins one with a ticket. First come the four symbols to compare with
+  // the inviting device's screen, then, once its owner confirms, the cluster's name.
+  rpc JoinCluster(JoinClusterRequest) returns (stream JoinClusterResponse);
 }
 
 message ClusterSnapshot {
@@ -31,6 +38,8 @@ message ClusterSnapshot {
   NodeId this_node = 6;
   // Whether this node can admit devices (it holds the cluster key).
   bool can_invite = 7;
+  // The cluster's relays (protocol/CLUSTER.md §3.5), without their tokens.
+  repeated string relays = 8;
 }
 
 message GetClusterRequest {}
@@ -97,3 +106,41 @@ message RemoveMemberRequest {
 }
 
 message RemoveMemberResponse {}
+
+message CreateClusterRequest {
+  string name = 1;
+  // Relays for devices on other networks (protocol/CLUSTER.md §3.5), with their tokens.
+  repeated string relays = 2;
+}
+
+message CreateClusterResponse {}
+
+message JoinClusterRequest {
+  // The text of the ticket, starting with OMNARC:.
+  string ticket = 1;
+  // This device's name in the cluster; empty: its host name.
+  string device_name = 2;
+}
+
+message JoinClusterResponse {
+  oneof step {
+    SasSymbols symbols = 1;
+    // The name of the cluster this device joined.
+    string joined = 2;
+  }
+}
+
+message SasSymbols {
+  repeated SasSymbol symbols = 1;
+}
+
+message UpdateClusterRequest {
+  // A new name; empty: the name stays.
+  string name = 1;
+  // A relay to add, with its token if it wants one; empty: none.
+  string add_relay = 2;
+  // A relay to remove, by its address; empty: none.
+  string remove_relay = 3;
+}
+
+message UpdateClusterResponse {}

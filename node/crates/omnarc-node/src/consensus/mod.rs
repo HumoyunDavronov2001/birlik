@@ -39,6 +39,9 @@ pub type Raft = openraft::Raft<TypeConfig>;
 /// Voters at most; more computers follow as learners.
 pub const MAX_VOTERS: usize = 5;
 
+/// How long a proposal waits for a leader: an election takes a few seconds.
+const PROPOSE_PATIENCE: Duration = Duration::from_secs(10);
+
 /// A change to the agreed state.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Command {
@@ -178,18 +181,31 @@ impl Consensus {
         self.raft.metrics().borrow().state == ServerState::Leader
     }
 
-    /// Commits `command` on the leader, wherever it is, and waits until it is committed.
+    /// Commits `command` on the leader, wherever it is, and waits until it is committed. While a leader is being
+    /// elected or this node still names the one that went away, it tries again for a few seconds.
     ///
     /// # Errors
-    /// No leader is known, it cannot be reached, or Raft has stopped.
+    /// No leader can be reached in that time, or Raft has stopped.
     pub async fn propose(&self, command: Command) -> Result<(), BoxError> {
-        match self.raft.client_write(command.clone()).await {
-            Ok(_) => Ok(()),
-            Err(openraft::error::RaftError::APIError(openraft::error::ClientWriteError::ForwardToLeader(forward))) => {
-                let leader = forward.leader_node.ok_or("no leader is known yet")?;
-                self.network.forward(&leader, command).await
+        let deadline = tokio::time::Instant::now() + PROPOSE_PATIENCE;
+        loop {
+            let failure: BoxError = match self.raft.client_write(command.clone()).await {
+                Ok(_) => return Ok(()),
+                Err(openraft::error::RaftError::APIError(openraft::error::ClientWriteError::ForwardToLeader(
+                    forward,
+                ))) => match forward.leader_node {
+                    Some(leader) => match self.network.forward(&leader, command.clone()).await {
+                        Ok(()) => return Ok(()),
+                        Err(e) => e,
+                    },
+                    None => "no leader is known yet".into(),
+                },
+                Err(e) => return Err(e.into()),
+            };
+            if tokio::time::Instant::now() >= deadline {
+                return Err(failure);
             }
-            Err(e) => Err(e.into()),
+            tokio::time::sleep(Duration::from_millis(200)).await;
         }
     }
 

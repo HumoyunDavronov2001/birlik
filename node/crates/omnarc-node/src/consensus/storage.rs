@@ -40,7 +40,15 @@ fn json<T: Serialize>(value: &T) -> Result<Vec<u8>, serde_json::Error> {
 /// # Errors
 /// The file cannot be opened or holds something else.
 pub fn open(path: &Path) -> Result<(LogStore, StateMachine, watch::Receiver<Agreed>), BoxError> {
-    let db = Arc::new(Database::create(path)?);
+    open_db(Arc::new(Database::create(path)?))
+}
+
+/// [`open`] on a database already open — in memory, for the network simulation, where a restarted node finds
+/// what it wrote before.
+///
+/// # Errors
+/// The database holds something else.
+pub fn open_db(db: Arc<Database>) -> Result<(LogStore, StateMachine, watch::Receiver<Agreed>), BoxError> {
     let tx = db.begin_write()?;
     tx.open_table(LOG)?;
     tx.open_table(META)?;

@@ -110,6 +110,37 @@ pub trait Cluster: Send + Sync + 'static {
     /// # Errors
     /// This node is no admin, the member is unknown, or the cluster cannot agree now.
     fn remove_member(&self, member: v1::NodeId) -> BoxFuture<'static, Result<(), Error>>;
+
+    /// Renames the cluster or changes its relays, once the cluster agrees.
+    ///
+    /// # Errors
+    /// This node is no admin, a relay is not one, or the cluster cannot agree now.
+    fn update_cluster(&self, request: v1::UpdateClusterRequest) -> BoxFuture<'static, Result<(), Error>> {
+        let _ = request;
+        Box::pin(async { Err(Error::new(Code::FailedPrecondition, "this device belongs to no cluster yet")) })
+    }
+
+    /// On a device that belongs to no cluster: creates one. A node in a cluster refuses.
+    ///
+    /// # Errors
+    /// The device belongs to a cluster already, or the cluster cannot be written.
+    fn create_cluster(&self, request: v1::CreateClusterRequest) -> BoxFuture<'static, Result<(), Error>> {
+        let _ = request;
+        Box::pin(async { Err(Error::new(Code::FailedPrecondition, "this device belongs to a cluster already")) })
+    }
+
+    /// On a device that belongs to no cluster: joins one with a ticket — the four symbols, then the cluster's name.
+    /// A node in a cluster refuses.
+    fn join_cluster(
+        &self,
+        request: v1::JoinClusterRequest,
+    ) -> BoxStream<'static, Result<v1::JoinClusterResponse, Error>> {
+        let _ = request;
+        futures_util::stream::once(async {
+            Err(Error::new(Code::FailedPrecondition, "this device belongs to a cluster already"))
+        })
+        .boxed()
+    }
 }
 
 /// The API's routes for `cluster`, and the panel's files from `panel` when given.
@@ -120,6 +151,9 @@ pub fn router(cluster: Arc<dyn Cluster>, panel: Option<PathBuf>) -> Router {
         .route(&format!("{SERVICE}/CreateTicket"), post(create_ticket))
         .route(&format!("{SERVICE}/AnswerJoin"), post(answer_join))
         .route(&format!("{SERVICE}/RemoveMember"), post(remove_member))
+        .route(&format!("{SERVICE}/UpdateCluster"), post(update_cluster))
+        .route(&format!("{SERVICE}/CreateCluster"), post(create_cluster))
+        .route(&format!("{SERVICE}/JoinCluster"), post(join_cluster))
         .with_state(cluster);
     match panel {
         Some(dir) => {
@@ -160,6 +194,60 @@ async fn remove_member(State(cluster): ClusterState, headers: HeaderMap, body: B
         Ok(()) => respond(&v1::RemoveMemberResponse {}),
         Err(error) => error.into_response(),
     }
+}
+
+async fn update_cluster(State(cluster): ClusterState, headers: HeaderMap, body: Bytes) -> Response {
+    let request: v1::UpdateClusterRequest = match decode(&headers, &body) {
+        Ok(request) => request,
+        Err(error) => return error.into_response(),
+    };
+    match cluster.update_cluster(request).await {
+        Ok(()) => respond(&v1::UpdateClusterResponse {}),
+        Err(error) => error.into_response(),
+    }
+}
+
+async fn create_cluster(State(cluster): ClusterState, headers: HeaderMap, body: Bytes) -> Response {
+    let request: v1::CreateClusterRequest = match decode(&headers, &body) {
+        Ok(request) => request,
+        Err(error) => return error.into_response(),
+    };
+    match cluster.create_cluster(request).await {
+        Ok(()) => respond(&v1::CreateClusterResponse {}),
+        Err(error) => error.into_response(),
+    }
+}
+
+async fn join_cluster(State(cluster): ClusterState, headers: HeaderMap, body: Bytes) -> Response {
+    if !content_type_is(&headers, "application/connect+proto") {
+        return Error::new(
+            Code::Unimplemented,
+            "a stream speaks Connect with binary messages (application/connect+proto)",
+        )
+        .into_response();
+    }
+    let request: v1::JoinClusterRequest = match open_envelope(&body) {
+        Ok(request) => request,
+        Err(error) => return error.into_response(),
+    };
+    // the messages, then Connect's end of the stream: empty, or the error that ended it
+    let steps = cluster.join_cluster(request);
+    let frames = futures_util::stream::unfold((steps, false), |(mut steps, done)| async move {
+        if done {
+            return None;
+        }
+        Some(match steps.next().await {
+            Some(Ok(step)) => (envelope(0, &step.encode_to_vec()), (steps, false)),
+            Some(Err(error)) => {
+                (envelope(2, serde_json::json!({ "error": error.json() }).to_string().as_bytes()), (steps, true))
+            }
+            None => (envelope(2, b"{}"), (steps, true)),
+        })
+    })
+    .map(Ok::<Bytes, std::convert::Infallible>);
+    let mut response = Response::new(Body::from_stream(frames));
+    response.headers_mut().insert(header::CONTENT_TYPE, HeaderValue::from_static("application/connect+proto"));
+    response
 }
 
 // The request of a unary call: one binary Protobuf message.

@@ -24,7 +24,17 @@ struct Node {
 
 async fn start(dir: &Path, key: SecretKey, lookup: MemoryLookup) -> Node {
     let endpoint = omnarc_network::bind_cluster(key, "127.0.0.1:0".parse().unwrap(), lookup, None, &[]).await.unwrap();
-    let (consensus, handler) = Consensus::start(dir, endpoint.clone()).await.unwrap();
+    // a node that stopped a moment ago may still be closing its log: a restart waits for it
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(20);
+    let (consensus, handler) = loop {
+        match Consensus::start(dir, endpoint.clone()).await {
+            Ok(started) => break started,
+            Err(e) if e.to_string().contains("already open") && tokio::time::Instant::now() < deadline => {
+                tokio::time::sleep(Duration::from_millis(100)).await;
+            }
+            Err(e) => panic!("starting the node: {e}"),
+        }
+    };
     let router = Router::builder(endpoint).accept(RAFT_ALPN, handler).spawn();
     Node { consensus, router }
 }
@@ -120,6 +130,7 @@ async fn three_computers_keep_one_log() {
     let key = keys[1].clone();
     survivor.consensus.shutdown().await;
     survivor.router.shutdown().await.unwrap();
+    drop(survivor);
     let again = start(&dirs[1], key, MemoryLookup::new()).await;
     let state = agreed(&again);
     assert_eq!(state.name, "Home cluster");

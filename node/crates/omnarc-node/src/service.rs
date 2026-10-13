@@ -49,6 +49,8 @@ pub enum Event {
     Neighbor { id: EndpointId, up: bool },
     /// A member was removed from the cluster: it is let in no more.
     MemberRemoved(EndpointId),
+    /// The cluster was renamed or its relays changed.
+    ClusterChanged,
     /// A device asks to join and waits for the owner to compare the symbols: answer with [`Service::answer_join`].
     JoinAttempt(JoinAttempt),
 }
@@ -102,6 +104,8 @@ struct Shared {
     consensus: Option<Consensus>,
     // members being removed: the steward does not bring them back into the log meanwhile
     removing: Mutex<HashSet<EndpointId>>,
+    // the cluster's name as the cluster last agreed on it
+    name: Mutex<String>,
 }
 
 /// Telemetry ticks between two announcements of the device even when nothing changed.
@@ -177,6 +181,7 @@ impl Service {
         let others: Vec<EndpointId> = members.list().into_iter().filter(|id| *id != key.public()).collect();
         let (sender, receiver) = gossip.subscribe(gossip::topic(cluster.id), others).await?.split();
         let (events, _) = broadcast::channel(1024);
+        let name = Mutex::new(cluster.name.clone());
         let shared = Arc::new(Shared {
             key,
             cluster,
@@ -195,6 +200,7 @@ impl Service {
             answers: Mutex::default(),
             announce: tokio::sync::Notify::new(),
             links: Mutex::default(),
+            name,
             consensus,
             removing: Mutex::default(),
         });
@@ -388,6 +394,36 @@ async fn remove_member(shared: &Arc<Shared>, member: EndpointId) -> Result<(), B
     result
 }
 
+// Renames the cluster or changes its relays once the computers of the cluster agree.
+async fn update_cluster(shared: &Arc<Shared>, request: v1::UpdateClusterRequest) -> Result<(), BoxError> {
+    let me = cluster::verify(shared.cluster.id, shared.key.public(), &shared.cluster.token, |_| false)?;
+    if !me.has(cluster::Right::Admin) {
+        return Err("only an admin changes the cluster".into());
+    }
+    let consensus = shared.consensus.as_ref().ok_or("only a computer of the cluster changes it")?;
+    let name = request.name.trim();
+    if !name.is_empty() {
+        consensus.propose(Command::SetName(name.to_owned())).await?;
+    }
+    if request.add_relay.trim().is_empty() && request.remove_relay.trim().is_empty() {
+        return Ok(());
+    }
+    // the same relay, whatever token is written with it
+    let same = |a: &str, b: &str| a.parse::<Relay>().ok().map(|r| r.url) == b.parse::<Relay>().ok().map(|r| r.url);
+    let mut relays = shared.store.relays()?;
+    let remove = request.remove_relay.trim();
+    if !remove.is_empty() {
+        relays.retain(|relay| !same(relay, remove));
+    }
+    let add = request.add_relay.trim();
+    if !add.is_empty() {
+        add.parse::<Relay>()?;
+        relays.retain(|relay| !same(relay, add));
+        relays.push(add.to_owned());
+    }
+    consensus.propose(Command::SetRelays(relays)).await
+}
+
 // What the control API sees of the service.
 struct ApiView(Arc<Shared>);
 
@@ -403,12 +439,17 @@ impl omnarc_api::Cluster for ApiView {
         let shared = &self.0;
         v1::ClusterSnapshot {
             id: Some(v1::ClusterId { ed25519_public_key: shared.cluster.id.as_bytes().to_vec() }),
-            name: shared.cluster.name.clone(),
+            name: shared.name.lock().expect("name").clone(),
             devices: shared.members.list().into_iter().map(|id| self.device(id)).collect(),
             telemetry: shared.telemetry.lock().expect("telemetry").values().cloned().collect(),
             plans: vec![],
             this_node: Some(node_id(shared.key.public())),
             can_invite: shared.cluster_key.is_some(),
+            relays: relay::parse_all(&shared.store.relays().unwrap_or_default())
+                .unwrap_or_default()
+                .iter()
+                .map(|relay| relay.url.to_string())
+                .collect(),
         }
     }
 
@@ -424,6 +465,7 @@ impl omnarc_api::Cluster for ApiView {
                     Ok(Event::MemberJoined(id)) => Out::DeviceJoined(view.device(id)),
                     Ok(Event::MemberLeft(id)) => Out::DeviceLeft(node_id(id)),
                     Ok(Event::MemberRemoved(id)) => Out::DeviceRemoved(node_id(id)),
+                    Ok(Event::ClusterChanged) => Out::Snapshot(view.snapshot()),
                     Ok(Event::JoinAttempt(attempt)) => Out::JoinAttempt(v1::JoinAttempt {
                         joiner: Some(node_id(attempt.joiner)),
                         device: Some(attempt.device),
@@ -478,6 +520,22 @@ impl omnarc_api::Cluster for ApiView {
             .ok_or_else(|| omnarc_api::Error::new(omnarc_api::Code::InvalidArgument, "no device named"))?;
         let waiting = self.0.answers.lock().expect("answers").remove(&joiner);
         Ok(waiting.is_some_and(|answer| answer.send(request.matches).is_ok()))
+    }
+
+    fn update_cluster(
+        &self,
+        request: v1::UpdateClusterRequest,
+    ) -> n0_future::boxed::BoxFuture<Result<(), omnarc_api::Error>> {
+        use omnarc_api::{Code, Error};
+        let shared = Arc::clone(&self.0);
+        Box::pin(async move {
+            update_cluster(&shared, request).await.map_err(|e| {
+                let message = e.to_string();
+                let code =
+                    if message.contains("only an admin") { Code::PermissionDenied } else { Code::FailedPrecondition };
+                Error::new(code, message)
+            })
+        })
     }
 
     fn remove_member(&self, member: v1::NodeId) -> n0_future::boxed::BoxFuture<Result<(), omnarc_api::Error>> {
@@ -537,6 +595,26 @@ async fn follow(shared: Arc<Shared>) {
                     let _ = shared.store.update_member(id, None, None);
                 }
                 let _ = shared.events.send(Event::MemberJoined(id));
+            }
+        }
+        // the name and the relays, once the log has them
+        if !state.name.is_empty() {
+            let renamed = {
+                let mut name = shared.name.lock().expect("name");
+                let renamed = *name != state.name;
+                name.clone_from(&state.name);
+                renamed
+            };
+            let relays_changed = shared.store.relays().is_ok_and(|relays| relays != state.relays);
+            if renamed {
+                let _ = shared.store.rename_cluster(&state.name);
+            }
+            if relays_changed {
+                // tickets name them at once; the endpoint uses them from its next start
+                let _ = shared.store.set_relays(&state.relays);
+            }
+            if renamed || relays_changed {
+                let _ = shared.events.send(Event::ClusterChanged);
             }
         }
         for id in state.removed.iter().filter_map(|id| parse_id(id)) {
@@ -842,7 +920,8 @@ impl ProtocolHandler for JoinHandler {
             return Ok(());
         };
         let members = shared.members.list();
-        let context = ClusterContext { key, name: &shared.cluster.name, members: &members };
+        let name = shared.name.lock().expect("name").clone();
+        let context = ClusterContext { key, name: &name, members: &members };
         let ask = |attempt: JoinAttempt| {
             let (tx, rx) = oneshot::channel();
             shared.answers.lock().expect("answers").insert(attempt.joiner, tx);

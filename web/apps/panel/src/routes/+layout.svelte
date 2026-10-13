@@ -3,6 +3,7 @@
   import { page } from '$app/state';
   import { Button, Icon, Logo, Status, type IconName } from '@omnarc/ui';
   import AddDevice from '$lib/AddDevice.svelte';
+  import FirstRun from '$lib/FirstRun.svelte';
   import { cluster } from '$lib/cluster.svelte';
   import { isOnline } from '$lib/model';
 
@@ -16,6 +17,8 @@
   });
 
   const ids = $derived(Object.keys(cluster.view.devices));
+  // the service answers, but this device belongs to no cluster yet
+  const firstRun = $derived(cluster.connected && !cluster.view.id);
   const online = $derived(ids.filter((id) => isOnline(cluster.view, id, cluster.now)).length);
   const health = $derived(
     online === ids.length
@@ -49,7 +52,7 @@
   <div class="flex min-w-0 flex-col">
     <header class="flex h-14 items-center gap-3 border-b border-line px-5">
       <h1 class="m-0 min-w-0 truncate text-16 font-semibold">{cluster.view.name || 'Omnarc'}</h1>
-      {#if cluster.connected && ids.length}
+      {#if cluster.connected && ids.length && !firstRun}
         <span class="hidden sm:inline-flex"><Status kind={online === ids.length ? 'good' : 'warning'} label={health} /></span>
       {/if}
       <div class="ml-auto shrink-0 whitespace-nowrap">
@@ -65,7 +68,11 @@
       </p>
     {/if}
     <main class="p-5">
-      {@render children()}
+      {#if firstRun}
+        <FirstRun />
+      {:else}
+        {@render children()}
+      {/if}
     </main>
   </div>
 </div>

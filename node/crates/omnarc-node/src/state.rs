@@ -278,6 +278,19 @@ impl Store {
         self.put_member(&member)
     }
 
+    /// Renames the cluster, as the cluster agreed.
+    ///
+    /// # Errors
+    /// The state cannot be written.
+    pub fn rename_cluster(&self, name: &str) -> Result<()> {
+        let tx = self.db.begin_write().map_err(|e| Error::new("state", e))?;
+        {
+            let mut meta = tx.open_table(META).map_err(|e| Error::new("state", e))?;
+            meta.insert("cluster_name", name.as_bytes()).map_err(|e| Error::new("state", e))?;
+        }
+        tx.commit().map_err(|e| Error::new("state", e))
+    }
+
     /// The relays the cluster meets through across networks (`protocol/CLUSTER.md` §3.5), with their tokens.
     ///
     /// # Errors

@@ -5,4 +5,5 @@ pub mod models;
 pub mod pairing;
 pub mod ring;
 pub mod service;
+pub mod setup;
 pub mod state;

@@ -14,6 +14,8 @@ export interface ClusterView {
   /** The node that serves this panel. */
   thisNode: string;
   canInvite: boolean;
+  /** The cluster's relays, without their tokens. */
+  relays: string[];
   /** Devices by node id (hex), in the order they became known. */
   devices: Record<string, DeviceInfo>;
   telemetry: Record<string, Telemetry>;
@@ -24,7 +26,17 @@ export interface ClusterView {
 }
 
 export function emptyView(): ClusterView {
-  return { name: '', id: '', thisNode: '', canInvite: false, devices: {}, telemetry: {}, heard: {}, joinAttempt: null };
+  return {
+    name: '',
+    id: '',
+    thisNode: '',
+    canInvite: false,
+    relays: [],
+    devices: {},
+    telemetry: {},
+    heard: {},
+    joinAttempt: null,
+  };
 }
 
 export function hex(id?: NodeId): string {
@@ -42,6 +54,7 @@ export function fromSnapshot(snapshot: ClusterSnapshot, now: number): ClusterVie
   view.id = snapshot.id ? Array.from(snapshot.id.ed25519PublicKey, (b) => b.toString(16).padStart(2, '0')).join('') : '';
   view.thisNode = hex(snapshot.thisNode);
   view.canInvite = snapshot.canInvite;
+  view.relays = [...snapshot.relays];
   for (const device of snapshot.devices) view.devices[hex(device.id)] = device;
   for (const telemetry of snapshot.telemetry) {
     const id = hex(telemetry.node);

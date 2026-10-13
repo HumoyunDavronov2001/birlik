@@ -18,7 +18,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file omnarc/v1/cluster_service.proto.
  */
 export const file_omnarc_v1_cluster_service: GenFile = /*@__PURE__*/
-  fileDesc("Ch9vbW5hcmMvdjEvY2x1c3Rlcl9zZXJ2aWNlLnByb3RvEglvbW5hcmMudjEi9QEKD0NsdXN0ZXJTbmFwc2hvdBIgCgJpZBgBIAEoCzIULm9tbmFyYy52MS5DbHVzdGVySWQSDAoEbmFtZRgCIAEoCRImCgdkZXZpY2VzGAMgAygLMhUub21uYXJjLnYxLkRldmljZUluZm8SJwoJdGVsZW1ldHJ5GAQgAygLMhQub21uYXJjLnYxLlRlbGVtZXRyeRInCgVwbGFucxgFIAMoCzIYLm9tbmFyYy52MS5QbGFjZW1lbnRQbGFuEiQKCXRoaXNfbm9kZRgGIAEoCzIRLm9tbmFyYy52MS5Ob2RlSWQSEgoKY2FuX2ludml0ZRgHIAEoCCITChFHZXRDbHVzdGVyUmVxdWVzdCJBChJHZXRDbHVzdGVyUmVzcG9uc2USKwoHY2x1c3RlchgBIAEoCzIaLm9tbmFyYy52MS5DbHVzdGVyU25hcHNob3QiFQoTV2F0Y2hDbHVzdGVyUmVxdWVzdCLjAgoUV2F0Y2hDbHVzdGVyUmVzcG9uc2USLgoIc25hcHNob3QYASABKAsyGi5vbW5hcmMudjEuQ2x1c3RlclNuYXBzaG90SAASLgoNZGV2aWNlX2pvaW5lZBgCIAEoCzIVLm9tbmFyYy52MS5EZXZpY2VJbmZvSAASKAoLZGV2aWNlX2xlZnQYAyABKAsyES5vbW5hcmMudjEuTm9kZUlkSAASKQoJdGVsZW1ldHJ5GAQgASgLMhQub21uYXJjLnYxLlRlbGVtZXRyeUgAEjAKDHBsYW5fY2hhbmdlZBgFIAEoCzIYLm9tbmFyYy52MS5QbGFjZW1lbnRQbGFuSAASLgoMam9pbl9hdHRlbXB0GAYgASgLMhYub21uYXJjLnYxLkpvaW5BdHRlbXB0SAASKwoOZGV2aWNlX3JlbW92ZWQYByABKAsyES5vbW5hcmMudjEuTm9kZUlkSABCBwoFZXZlbnQiKAoJU2FzU3ltYm9sEg0KBWVtb2ppGAEgASgJEgwKBG5hbWUYAiABKAkifgoLSm9pbkF0dGVtcHQSIQoGam9pbmVyGAEgASgLMhEub21uYXJjLnYxLk5vZGVJZBIlCgZkZXZpY2UYAiABKAsyFS5vbW5hcmMudjEuRGV2aWNlSW5mbxIlCgdzeW1ib2xzGAMgAygLMhQub21uYXJjLnYxLlNhc1N5bWJvbCIqChNDcmVhdGVUaWNrZXRSZXF1ZXN0EhMKC3R0bF9zZWNvbmRzGAEgASgNImQKFENyZWF0ZVRpY2tldFJlc3BvbnNlEigKBnRpY2tldBgBIAEoCzIYLm9tbmFyYy52MS5DbHVzdGVyVGlja2V0EhIKCnFyX3BheWxvYWQYAiABKAkSDgoGcXJfc3ZnGAMgASgJIkcKEUFuc3dlckpvaW5SZXF1ZXN0EiEKBmpvaW5lchgBIAEoCzIRLm9tbmFyYy52MS5Ob2RlSWQSDwoHbWF0Y2hlcxgCIAEoCCIkChJBbnN3ZXJKb2luUmVzcG9uc2USDgoGd2FpdGVkGAEgASgIIjgKE1JlbW92ZU1lbWJlclJlcXVlc3QSIQoGbWVtYmVyGAEgASgLMhEub21uYXJjLnYxLk5vZGVJZCIWChRSZW1vdmVNZW1iZXJSZXNwb25zZTKbAwoOQ2x1c3RlclNlcnZpY2USSQoKR2V0Q2x1c3RlchIcLm9tbmFyYy52MS5HZXRDbHVzdGVyUmVxdWVzdBodLm9tbmFyYy52MS5HZXRDbHVzdGVyUmVzcG9uc2USUQoMV2F0Y2hDbHVzdGVyEh4ub21uYXJjLnYxLldhdGNoQ2x1c3RlclJlcXVlc3QaHy5vbW5hcmMudjEuV2F0Y2hDbHVzdGVyUmVzcG9uc2UwARJPCgxDcmVhdGVUaWNrZXQSHi5vbW5hcmMudjEuQ3JlYXRlVGlja2V0UmVxdWVzdBofLm9tbmFyYy52MS5DcmVhdGVUaWNrZXRSZXNwb25zZRJJCgpBbnN3ZXJKb2luEhwub21uYXJjLnYxLkFuc3dlckpvaW5SZXF1ZXN0Gh0ub21uYXJjLnYxLkFuc3dlckpvaW5SZXNwb25zZRJPCgxSZW1vdmVNZW1iZXISHi5vbW5hcmMudjEuUmVtb3ZlTWVtYmVyUmVxdWVzdBofLm9tbmFyYy52MS5SZW1vdmVNZW1iZXJSZXNwb25zZWIGcHJvdG8z", [file_omnarc_v1_device, file_omnarc_v1_pairing, file_omnarc_v1_plan, file_omnarc_v1_telemetry]);
+  fileDesc("Ch9vbW5hcmMvdjEvY2x1c3Rlcl9zZXJ2aWNlLnByb3RvEglvbW5hcmMudjEihQIKD0NsdXN0ZXJTbmFwc2hvdBIgCgJpZBgBIAEoCzIULm9tbmFyYy52MS5DbHVzdGVySWQSDAoEbmFtZRgCIAEoCRImCgdkZXZpY2VzGAMgAygLMhUub21uYXJjLnYxLkRldmljZUluZm8SJwoJdGVsZW1ldHJ5GAQgAygLMhQub21uYXJjLnYxLlRlbGVtZXRyeRInCgVwbGFucxgFIAMoCzIYLm9tbmFyYy52MS5QbGFjZW1lbnRQbGFuEiQKCXRoaXNfbm9kZRgGIAEoCzIRLm9tbmFyYy52MS5Ob2RlSWQSEgoKY2FuX2ludml0ZRgHIAEoCBIOCgZyZWxheXMYCCADKAkiEwoRR2V0Q2x1c3RlclJlcXVlc3QiQQoSR2V0Q2x1c3RlclJlc3BvbnNlEisKB2NsdXN0ZXIYASABKAsyGi5vbW5hcmMudjEuQ2x1c3RlclNuYXBzaG90IhUKE1dhdGNoQ2x1c3RlclJlcXVlc3Qi4wIKFFdhdGNoQ2x1c3RlclJlc3BvbnNlEi4KCHNuYXBzaG90GAEgASgLMhoub21uYXJjLnYxLkNsdXN0ZXJTbmFwc2hvdEgAEi4KDWRldmljZV9qb2luZWQYAiABKAsyFS5vbW5hcmMudjEuRGV2aWNlSW5mb0gAEigKC2RldmljZV9sZWZ0GAMgASgLMhEub21uYXJjLnYxLk5vZGVJZEgAEikKCXRlbGVtZXRyeRgEIAEoCzIULm9tbmFyYy52MS5UZWxlbWV0cnlIABIwCgxwbGFuX2NoYW5nZWQYBSABKAsyGC5vbW5hcmMudjEuUGxhY2VtZW50UGxhbkgAEi4KDGpvaW5fYXR0ZW1wdBgGIAEoCzIWLm9tbmFyYy52MS5Kb2luQXR0ZW1wdEgAEisKDmRldmljZV9yZW1vdmVkGAcgASgLMhEub21uYXJjLnYxLk5vZGVJZEgAQgcKBWV2ZW50IigKCVNhc1N5bWJvbBINCgVlbW9qaRgBIAEoCRIMCgRuYW1lGAIgASgJIn4KC0pvaW5BdHRlbXB0EiEKBmpvaW5lchgBIAEoCzIRLm9tbmFyYy52MS5Ob2RlSWQSJQoGZGV2aWNlGAIgASgLMhUub21uYXJjLnYxLkRldmljZUluZm8SJQoHc3ltYm9scxgDIAMoCzIULm9tbmFyYy52MS5TYXNTeW1ib2wiKgoTQ3JlYXRlVGlja2V0UmVxdWVzdBITCgt0dGxfc2Vjb25kcxgBIAEoDSJkChRDcmVhdGVUaWNrZXRSZXNwb25zZRIoCgZ0aWNrZXQYASABKAsyGC5vbW5hcmMudjEuQ2x1c3RlclRpY2tldBISCgpxcl9wYXlsb2FkGAIgASgJEg4KBnFyX3N2ZxgDIAEoCSJHChFBbnN3ZXJKb2luUmVxdWVzdBIhCgZqb2luZXIYASABKAsyES5vbW5hcmMudjEuTm9kZUlkEg8KB21hdGNoZXMYAiABKAgiJAoSQW5zd2VySm9pblJlc3BvbnNlEg4KBndhaXRlZBgBIAEoCCI4ChNSZW1vdmVNZW1iZXJSZXF1ZXN0EiEKBm1lbWJlchgBIAEoCzIRLm9tbmFyYy52MS5Ob2RlSWQiFgoUUmVtb3ZlTWVtYmVyUmVzcG9uc2UiNAoUQ3JlYXRlQ2x1c3RlclJlcXVlc3QSDAoEbmFtZRgBIAEoCRIOCgZyZWxheXMYAiADKAkiFwoVQ3JlYXRlQ2x1c3RlclJlc3BvbnNlIjkKEkpvaW5DbHVzdGVyUmVxdWVzdBIOCgZ0aWNrZXQYASABKAkSEwoLZGV2aWNlX25hbWUYAiABKAkiWQoTSm9pbkNsdXN0ZXJSZXNwb25zZRIoCgdzeW1ib2xzGAEgASgLMhUub21uYXJjLnYxLlNhc1N5bWJvbHNIABIQCgZqb2luZWQYAiABKAlIAEIGCgRzdGVwIjMKClNhc1N5bWJvbHMSJQoHc3ltYm9scxgBIAMoCzIULm9tbmFyYy52MS5TYXNTeW1ib2wiTQoUVXBkYXRlQ2x1c3RlclJlcXVlc3QSDAoEbmFtZRgBIAEoCRIRCglhZGRfcmVsYXkYAiABKAkSFAoMcmVtb3ZlX3JlbGF5GAMgASgJIhcKFVVwZGF0ZUNsdXN0ZXJSZXNwb25zZTKTBQoOQ2x1c3RlclNlcnZpY2USSQoKR2V0Q2x1c3RlchIcLm9tbmFyYy52MS5HZXRDbHVzdGVyUmVxdWVzdBodLm9tbmFyYy52MS5HZXRDbHVzdGVyUmVzcG9uc2USUQoMV2F0Y2hDbHVzdGVyEh4ub21uYXJjLnYxLldhdGNoQ2x1c3RlclJlcXVlc3QaHy5vbW5hcmMudjEuV2F0Y2hDbHVzdGVyUmVzcG9uc2UwARJPCgxDcmVhdGVUaWNrZXQSHi5vbW5hcmMudjEuQ3JlYXRlVGlja2V0UmVxdWVzdBofLm9tbmFyYy52MS5DcmVhdGVUaWNrZXRSZXNwb25zZRJJCgpBbnN3ZXJKb2luEhwub21uYXJjLnYxLkFuc3dlckpvaW5SZXF1ZXN0Gh0ub21uYXJjLnYxLkFuc3dlckpvaW5SZXNwb25zZRJPCgxSZW1vdmVNZW1iZXISHi5vbW5hcmMudjEuUmVtb3ZlTWVtYmVyUmVxdWVzdBofLm9tbmFyYy52MS5SZW1vdmVNZW1iZXJSZXNwb25zZRJSCg1VcGRhdGVDbHVzdGVyEh8ub21uYXJjLnYxLlVwZGF0ZUNsdXN0ZXJSZXF1ZXN0GiAub21uYXJjLnYxLlVwZGF0ZUNsdXN0ZXJSZXNwb25zZRJSCg1DcmVhdGVDbHVzdGVyEh8ub21uYXJjLnYxLkNyZWF0ZUNsdXN0ZXJSZXF1ZXN0GiAub21uYXJjLnYxLkNyZWF0ZUNsdXN0ZXJSZXNwb25zZRJOCgtKb2luQ2x1c3RlchIdLm9tbmFyYy52MS5Kb2luQ2x1c3RlclJlcXVlc3QaHi5vbW5hcmMudjEuSm9pbkNsdXN0ZXJSZXNwb25zZTABYgZwcm90bzM", [file_omnarc_v1_device, file_omnarc_v1_pairing, file_omnarc_v1_plan, file_omnarc_v1_telemetry]);
 
 /**
  * @generated from message omnarc.v1.ClusterSnapshot
@@ -62,6 +62,13 @@ export type ClusterSnapshot = Message<"omnarc.v1.ClusterSnapshot"> & {
    * @generated from field: bool can_invite = 7;
    */
   canInvite: boolean;
+
+  /**
+   * The cluster's relays (protocol/CLUSTER.md §3.5), without their tokens.
+   *
+   * @generated from field: repeated string relays = 8;
+   */
+  relays: string[];
 };
 
 /**
@@ -354,6 +361,163 @@ export const RemoveMemberResponseSchema: GenMessage<RemoveMemberResponse> = /*@_
   messageDesc(file_omnarc_v1_cluster_service, 12);
 
 /**
+ * @generated from message omnarc.v1.CreateClusterRequest
+ */
+export type CreateClusterRequest = Message<"omnarc.v1.CreateClusterRequest"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * Relays for devices on other networks (protocol/CLUSTER.md §3.5), with their tokens.
+   *
+   * @generated from field: repeated string relays = 2;
+   */
+  relays: string[];
+};
+
+/**
+ * Describes the message omnarc.v1.CreateClusterRequest.
+ * Use `create(CreateClusterRequestSchema)` to create a new message.
+ */
+export const CreateClusterRequestSchema: GenMessage<CreateClusterRequest> = /*@__PURE__*/
+  messageDesc(file_omnarc_v1_cluster_service, 13);
+
+/**
+ * @generated from message omnarc.v1.CreateClusterResponse
+ */
+export type CreateClusterResponse = Message<"omnarc.v1.CreateClusterResponse"> & {
+};
+
+/**
+ * Describes the message omnarc.v1.CreateClusterResponse.
+ * Use `create(CreateClusterResponseSchema)` to create a new message.
+ */
+export const CreateClusterResponseSchema: GenMessage<CreateClusterResponse> = /*@__PURE__*/
+  messageDesc(file_omnarc_v1_cluster_service, 14);
+
+/**
+ * @generated from message omnarc.v1.JoinClusterRequest
+ */
+export type JoinClusterRequest = Message<"omnarc.v1.JoinClusterRequest"> & {
+  /**
+   * The text of the ticket, starting with OMNARC:.
+   *
+   * @generated from field: string ticket = 1;
+   */
+  ticket: string;
+
+  /**
+   * This device's name in the cluster; empty: its host name.
+   *
+   * @generated from field: string device_name = 2;
+   */
+  deviceName: string;
+};
+
+/**
+ * Describes the message omnarc.v1.JoinClusterRequest.
+ * Use `create(JoinClusterRequestSchema)` to create a new message.
+ */
+export const JoinClusterRequestSchema: GenMessage<JoinClusterRequest> = /*@__PURE__*/
+  messageDesc(file_omnarc_v1_cluster_service, 15);
+
+/**
+ * @generated from message omnarc.v1.JoinClusterResponse
+ */
+export type JoinClusterResponse = Message<"omnarc.v1.JoinClusterResponse"> & {
+  /**
+   * @generated from oneof omnarc.v1.JoinClusterResponse.step
+   */
+  step: {
+    /**
+     * @generated from field: omnarc.v1.SasSymbols symbols = 1;
+     */
+    value: SasSymbols;
+    case: "symbols";
+  } | {
+    /**
+     * The name of the cluster this device joined.
+     *
+     * @generated from field: string joined = 2;
+     */
+    value: string;
+    case: "joined";
+  } | { case: undefined; value?: undefined };
+};
+
+/**
+ * Describes the message omnarc.v1.JoinClusterResponse.
+ * Use `create(JoinClusterResponseSchema)` to create a new message.
+ */
+export const JoinClusterResponseSchema: GenMessage<JoinClusterResponse> = /*@__PURE__*/
+  messageDesc(file_omnarc_v1_cluster_service, 16);
+
+/**
+ * @generated from message omnarc.v1.SasSymbols
+ */
+export type SasSymbols = Message<"omnarc.v1.SasSymbols"> & {
+  /**
+   * @generated from field: repeated omnarc.v1.SasSymbol symbols = 1;
+   */
+  symbols: SasSymbol[];
+};
+
+/**
+ * Describes the message omnarc.v1.SasSymbols.
+ * Use `create(SasSymbolsSchema)` to create a new message.
+ */
+export const SasSymbolsSchema: GenMessage<SasSymbols> = /*@__PURE__*/
+  messageDesc(file_omnarc_v1_cluster_service, 17);
+
+/**
+ * @generated from message omnarc.v1.UpdateClusterRequest
+ */
+export type UpdateClusterRequest = Message<"omnarc.v1.UpdateClusterRequest"> & {
+  /**
+   * A new name; empty: the name stays.
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * A relay to add, with its token if it wants one; empty: none.
+   *
+   * @generated from field: string add_relay = 2;
+   */
+  addRelay: string;
+
+  /**
+   * A relay to remove, by its address; empty: none.
+   *
+   * @generated from field: string remove_relay = 3;
+   */
+  removeRelay: string;
+};
+
+/**
+ * Describes the message omnarc.v1.UpdateClusterRequest.
+ * Use `create(UpdateClusterRequestSchema)` to create a new message.
+ */
+export const UpdateClusterRequestSchema: GenMessage<UpdateClusterRequest> = /*@__PURE__*/
+  messageDesc(file_omnarc_v1_cluster_service, 18);
+
+/**
+ * @generated from message omnarc.v1.UpdateClusterResponse
+ */
+export type UpdateClusterResponse = Message<"omnarc.v1.UpdateClusterResponse"> & {
+};
+
+/**
+ * Describes the message omnarc.v1.UpdateClusterResponse.
+ * Use `create(UpdateClusterResponseSchema)` to create a new message.
+ */
+export const UpdateClusterResponseSchema: GenMessage<UpdateClusterResponse> = /*@__PURE__*/
+  messageDesc(file_omnarc_v1_cluster_service, 19);
+
+/**
  * The control API every node serves to the panel and to apps (Connect RPC, protocol/CLUSTER.md §5).
  *
  * @generated from service omnarc.v1.ClusterService
@@ -408,6 +572,37 @@ export const ClusterService: GenService<{
     methodKind: "unary";
     input: typeof RemoveMemberRequestSchema;
     output: typeof RemoveMemberResponseSchema;
+  },
+  /**
+   * Renames the cluster or changes its relays, once the cluster agrees. Admins only.
+   *
+   * @generated from rpc omnarc.v1.ClusterService.UpdateCluster
+   */
+  updateCluster: {
+    methodKind: "unary";
+    input: typeof UpdateClusterRequestSchema;
+    output: typeof UpdateClusterResponseSchema;
+  },
+  /**
+   * On a device that belongs to no cluster yet: creates one, with this device as its admin.
+   *
+   * @generated from rpc omnarc.v1.ClusterService.CreateCluster
+   */
+  createCluster: {
+    methodKind: "unary";
+    input: typeof CreateClusterRequestSchema;
+    output: typeof CreateClusterResponseSchema;
+  },
+  /**
+   * On a device that belongs to no cluster yet: joins one with a ticket. First come the four symbols to compare with
+   * the inviting device's screen, then, once its owner confirms, the cluster's name.
+   *
+   * @generated from rpc omnarc.v1.ClusterService.JoinCluster
+   */
+  joinCluster: {
+    methodKind: "server_streaming";
+    input: typeof JoinClusterRequestSchema;
+    output: typeof JoinClusterResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_omnarc_v1_cluster_service, 0);
