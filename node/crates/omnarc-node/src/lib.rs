@@ -1,6 +1,7 @@
 //! The Omnarc agent as a library: the pieces `omnarc-node` is built from, so that tests can drive them.
 
 pub mod consensus;
+pub mod download;
 pub mod models;
 pub mod pairing;
 pub mod ring;

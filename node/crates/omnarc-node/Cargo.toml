@@ -38,6 +38,10 @@ omnarc-api.workspace = true
 omnarc-store.workspace = true
 openraft.workspace = true
 futures-util.workspace = true
+# downloading a model once: the HTTP client, TLS and hashing iroh already brings
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "stream"] }
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
+ring = "0.17"
 serde.workspace = true
 axum.workspace = true
 

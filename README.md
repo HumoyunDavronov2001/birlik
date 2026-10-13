@@ -190,8 +190,9 @@ omnarc-node serve --panel web/apps/panel/build   # open http://127.0.0.1:7600
 Spread a model inside the cluster: the internet is used once, and each device fetches only the layers it runs.
 
 ```bash
-# on the device that downloaded the model: it is added where it lies, not copied
-omnarc-node model add DeepSeek-R1-Distill-Llama-70B-Q4_K_M.gguf   # prints its hash
+# one device downloads the model once, checks its SHA-256 and adds it (a broken download resumes)
+omnarc-node model pull bartowski/DeepSeek-R1-Distill-Llama-70B-GGUF DeepSeek-R1-Distill-Llama-70B-Q4_K_M.gguf
+omnarc-node model add DeepSeek-R1-Distill-Llama-70B-Q4_K_M.gguf   # or a file already there, added where it lies
 omnarc-node serve                                                  # the members fetch from it while it runs
 
 # on another member (with its own serve stopped): layers 40–79 and the output head, nothing else

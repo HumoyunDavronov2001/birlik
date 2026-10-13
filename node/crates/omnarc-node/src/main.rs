@@ -6,8 +6,8 @@
 //! - `omnarc-node ring` runs windows of a model as one node of a ring of devices given by hand (stage B1).
 //! - `omnarc-node create`, `invite`, `join` and `members` form a cluster (stage B2, `protocol/CLUSTER.md`).
 //! - `omnarc-node serve` runs the device's service: gossip with the cluster, and devices invited while it runs.
-//! - `omnarc-node model` adds, lists, fetches and exports models: a window of layers travels from another member,
-//!   not from the internet (`protocol/CLUSTER.md` §4).
+//! - `omnarc-node model` downloads a model once, adds, lists, fetches and exports models: a window of layers travels
+//!   from another member, not from the internet (`protocol/CLUSTER.md` §4).
 
 use std::io::Write as _;
 use std::net::SocketAddr;
@@ -135,6 +135,20 @@ enum RelayCommand {
 
 #[derive(Debug, Subcommand)]
 enum ModelCommand {
+    /// Download a model once, from Hugging Face, check it against its published SHA-256 and add it; the other members
+    /// then fetch its layers from this device. A download that broke off resumes. Stop `serve` on this device first.
+    Pull {
+        /// The repository, such as bartowski/Meta-Llama-3.1-8B-Instruct-GGUF.
+        repo: String,
+        /// The file in it, such as Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf.
+        file: String,
+        /// Where the file is kept (default: the node's data directory, downloads).
+        #[arg(long)]
+        to: Option<PathBuf>,
+        /// Another source that answers like Hugging Face.
+        #[arg(long, default_value = omnarc_node::download::HUGGING_FACE)]
+        source: String,
+    },
     /// Add a GGUF file. It stays where it is — do not change it afterwards — and the other members can fetch it
     /// while `serve` runs.
     Add {
@@ -640,9 +654,46 @@ fn progress_line(what: &str) -> impl FnMut(u64, Option<u64>) {
     }
 }
 
+/// Downloads a model once and adds it to this device's store.
+async fn pull_model(
+    data: &Path,
+    repo: &str,
+    file: &str,
+    to: Option<PathBuf>,
+    source: &str,
+) -> Result<(), ring::BoxError> {
+    // the store is opened first: the service must not hold it
+    let store = omnarc_node::models::open(data).await?;
+    let dir = to.unwrap_or_else(|| data.join("downloads"));
+    let pulled = omnarc_node::download::pull(source, repo, file, &dir, progress_line("Downloaded")).await;
+    let pulled = match pulled {
+        Ok(pulled) => pulled,
+        Err(e) => {
+            store.shutdown().await;
+            return Err(e);
+        }
+    };
+    println!();
+    if pulled.verified {
+        println!("{} matches its published SHA-256.", pulled.path.display());
+    } else {
+        println!("{} — the source published no SHA-256; it is {}.", pulled.path.display(), pulled.sha256);
+    }
+    let total = pulled.bytes;
+    let mut line = progress_line("Hashing");
+    let model = store.add(&pulled.path, |done| line(done, Some(total))).await;
+    store.shutdown().await;
+    let model = model?;
+    println!();
+    println!("Added {} — {} layers, {}.", model.name, model.layout.layers, size(model.layout.file_len));
+    println!("Hash {}", model.hash);
+    Ok(())
+}
+
 async fn model_command(data: &Path, command: ModelCommand) -> Result<(), ring::BoxError> {
     use omnarc_node::models;
     match command {
+        ModelCommand::Pull { repo, file, to, source } => pull_model(data, &repo, &file, to, &source).await?,
         ModelCommand::Add { path } => {
             let total = std::fs::metadata(&path).map_err(|e| format!("{}: {e}", path.display()))?.len();
             let store = models::open(data).await?;

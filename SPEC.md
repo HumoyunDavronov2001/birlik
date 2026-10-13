@@ -15,7 +15,7 @@ design concept (its section number), or "—".
 | Part | Screens | Functions | ✓ done | ◐ partly | ○ not started | Ready |
 |---|---|---|---|---|---|---|
 | Engine | 0 | 30 | 8 | 2 | 20 | 30 % |
-| Node agent and API | 0 | 40 | 7 | 12 | 21 | 32 % |
+| Node agent and API | 0 | 40 | 9 | 10 | 21 | 35 % |
 | Panel | 24 | 7 | 1 | 8 | 22 | 16 % |
 | Desktop app | 4 | 5 | 0 | 0 | 9 | 0 % |
 | Android app | 7 | 8 | 0 | 2 | 13 | 7 % |
@@ -27,7 +27,7 @@ design concept (its section number), or "—".
 | Islands | 0 | 3 | 0 | 0 | 3 | 0 % |
 | Benchmarks, sites and releases | 3 | 9 | 2 | 1 | 9 | 21 % |
 | Design system and quality across all apps | 1 | 13 | 6 | 2 | 6 | 50 % |
-| **All** | **50** | **141** | **24** | **29** | **138** | **20 %** |
+| **All** | **50** | **141** | **26** | **27** | **138** | **21 %** |
 
 "Ready" counts a partly done item as half. By stage — what each stage has to deliver:
 
@@ -35,7 +35,7 @@ design concept (its section number), or "—".
 |---|---|---|---|---|
 | B0 | 10 | 9 | 1 | 0 |
 | B1 | 16 | 12 | 1 | 3 |
-| B2 | 28 | 3 | 21 | 4 |
+| B2 | 28 | 5 | 19 | 4 |
 | B3 | 14 | 0 | 0 | 14 |
 | B4 | 18 | 0 | 0 | 18 |
 | B5 | 53 | 0 | 5 | 48 |
@@ -120,7 +120,7 @@ design concept (its section number), or "—".
 | NO-10 | QUIC links dialed by node key (iroh); tensor frames on streams; only the expected neighbor is accepted | function | T2 | B1 | — | ✓ |
 | NO-11 | NAT hole punching, and our own relay when punching fails | function | T2 | B2 | — | ◐ |
 | NO-12 | Discovery: mDNS on the LAN, DNS/pkarr on the internet | function | T2 | B2 | — | ◐ |
-| NO-13 | Pairing: QR ticket with a 10-minute secret, four-emoji confirmation on both screens | function | P§3 | B2 | 02 | ◐ |
+| NO-13 | Pairing: QR ticket with a 10-minute secret, four-emoji confirmation on both screens | function | P§3 | B2 | 02 | ✓ |
 | NO-14 | Cluster key and membership tokens (Biscuit) with node, user and admin rights | function | P§3 | B2 | — | ◐ |
 | NO-15 | Telemetry once per second over gossip | function | P§3 | B2 | — | ◐ |
 | NO-16 | Raft on 3–5 stable nodes: plan version, placement, keys | function | P§3 | B2 | — | ◐ |
@@ -133,7 +133,7 @@ design concept (its section number), or "—".
 
 | ID | What | Kind | Req | Stage | Design | State |
 |---|---|---|---|---|---|---|
-| NO-30 | A model is downloaded from Hugging Face once, hashed with BLAKE3 and shared peer to peer (iroh-blobs) | function | T5 | B2 | — | ◐ |
+| NO-30 | A model is downloaded from Hugging Face once, hashed with BLAKE3 and shared peer to peer (iroh-blobs) | function | T5 | B2 | — | ✓ |
 | NO-31 | Each device fetches only its own tensors as byte ranges and resumes after a drop | function | T5 | B2 | — | ✓ |
 | NO-32 | The models a cluster can run: catalog with sizes, quantizations and licenses | function | — | B8 | — | ○ |
 
