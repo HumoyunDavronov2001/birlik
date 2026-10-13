@@ -65,6 +65,9 @@ enum Command {
     /// The relays this device meets the cluster's devices on other networks through.
     #[command(subcommand)]
     Relay(RelayCommand),
+    /// Run this device's service whenever the device is on: a systemd user unit, a launch agent, or a task at sign-in.
+    #[command(subcommand)]
+    Service(ServiceCommand),
     /// Invite one device: show a ticket as a QR code, then confirm the four symbols when the device asks to join.
     /// While `serve` runs, use `serve --invite` instead.
     Invite {
@@ -115,6 +118,31 @@ enum Command {
     /// Models on this device: add a file, list them, fetch a window of layers from another member, export it.
     #[command(subcommand)]
     Model(ModelCommand),
+}
+
+#[derive(Debug, Subcommand)]
+enum ServiceCommand {
+    /// Install it and start it now.
+    Install {
+        /// Where the service listens.
+        #[arg(long, default_value = "0.0.0.0:7700")]
+        listen: SocketAddr,
+        /// Where the control API and the panel listen.
+        #[arg(long, default_value = "127.0.0.1:7600")]
+        api: SocketAddr,
+        /// The panel's built files (web/apps/panel/build).
+        #[arg(long)]
+        panel: Option<PathBuf>,
+        /// Show what would be done, and do nothing.
+        #[arg(long)]
+        print: bool,
+    },
+    /// Stop it and remove it.
+    Uninstall {
+        /// Show what would be done, and do nothing.
+        #[arg(long)]
+        print: bool,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -502,6 +530,40 @@ async fn remove(member: &str, api: SocketAddr) -> Result<(), ring::BoxError> {
     Ok(())
 }
 
+fn service_command(data: &Path, command: ServiceCommand) -> Result<(), ring::BoxError> {
+    use omnarc_node::autostart;
+    let (plan, print) = match command {
+        ServiceCommand::Install { listen, api, panel, print } => {
+            let exe = std::env::current_exe()?;
+            let data = std::path::absolute(data)?;
+            let mut args: Vec<String> = vec![
+                "--data".into(),
+                data.display().to_string(),
+                "serve".into(),
+                "--listen".into(),
+                listen.to_string(),
+                "--api".into(),
+                api.to_string(),
+            ];
+            if let Some(panel) = panel {
+                args.extend(["--panel".into(), std::path::absolute(panel)?.display().to_string()]);
+            }
+            (autostart::install(&exe, &args)?, print)
+        }
+        ServiceCommand::Uninstall { print } => (autostart::uninstall()?, print),
+    };
+    if print {
+        print!("{}", plan.describe());
+        return Ok(());
+    }
+    plan.apply()?;
+    println!("Done.");
+    if !plan.note.is_empty() {
+        println!("{}", plan.note);
+    }
+    Ok(())
+}
+
 fn relay_command(data: &Path, command: RelayCommand) -> Result<(), ring::BoxError> {
     use omnarc_network::relay::Relay;
     let store = Store::open(data)?;
@@ -612,6 +674,7 @@ fn cluster_command(data: &Path, command: Command) -> Result<(), ring::BoxError> 
             runtime.block_on(serve(data, listen, invite, api, panel))?;
         }
         Command::Relay(command) => relay_command(data, command)?,
+        Command::Service(command) => service_command(data, command)?,
         Command::Remove { member, api } => {
             let runtime = tokio::runtime::Runtime::new()?;
             runtime.block_on(remove(&member, api))?;
@@ -790,6 +853,7 @@ fn main() {
         | Command::Members
         | Command::Serve { .. }
         | Command::Relay(_)
+        | Command::Service(_)
         | Command::Remove { .. }
         | Command::Model(_)) => {
             if let Err(e) = cluster_command(&data, command) {
