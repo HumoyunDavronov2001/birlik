@@ -14,6 +14,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 use n0_future::StreamExt as _;
+use n0_future::task::AbortOnDropHandle;
 use omnarc_network::cluster::{self, ClusterKey};
 use omnarc_network::gossip::{
     self, GOSSIP_ALPN, Gossip, GossipEvent, GossipReceiver, GossipSender, Members, MembersOnly,
@@ -369,10 +370,17 @@ impl Service {
         for task in &self.tasks {
             task.abort();
         }
+        // the tasks hold the shared state and with it the open state database: once they have ended, a service can
+        // start again on the same data (Windows keeps the database locked until then)
+        for task in self.tasks {
+            let _ = task.await;
+        }
         if let Some(consensus) = &self.shared.consensus {
             consensus.shutdown().await;
         }
         let _ = self.router.shutdown().await;
+        // the model store closes its database now, not whenever its last handle happens to go
+        self.shared.models.shutdown().await;
     }
 }
 
@@ -708,24 +716,26 @@ async fn discover(shared: Arc<Shared>, lan: omnarc_network::MdnsAddressLookup) {
     }
 }
 
-// Measures the link to every other member, each in a task of its own, as members come and go.
+// Measures the link to every other member, each in a task of its own, as members come and go. The handles stop their
+// tasks when they are dropped: with a member that leaves, and with this task when the service stops.
 async fn measure(shared: Arc<Shared>, every: Duration) {
-    let mut tasks: HashMap<EndpointId, tokio::task::JoinHandle<()>> = HashMap::new();
+    let mut tasks: HashMap<EndpointId, AbortOnDropHandle<()>> = HashMap::new();
     let mut ticks = tokio::time::interval(every);
     loop {
         ticks.tick().await;
         let me = shared.key.public();
         let members: HashSet<EndpointId> = shared.members.list().into_iter().filter(|id| *id != me).collect();
-        tasks.retain(|id, task| {
+        tasks.retain(|id, _| {
             let keep = members.contains(id);
             if !keep {
-                task.abort();
                 shared.links.lock().expect("links").remove(id);
             }
             keep
         });
         for id in members {
-            tasks.entry(id).or_insert_with(|| tokio::spawn(measure_link(Arc::clone(&shared), id, every)));
+            tasks
+                .entry(id)
+                .or_insert_with(|| AbortOnDropHandle::new(tokio::spawn(measure_link(Arc::clone(&shared), id, every))));
         }
     }
 }

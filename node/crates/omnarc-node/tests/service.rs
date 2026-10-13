@@ -137,6 +137,9 @@ async fn a_device_keeps_the_name_it_joined_with_before_it_ever_runs() {
     let desktop = start(&a, "Desktop").await;
     admit(&desktop, &b, "Laptop").await;
     desktop.shutdown().await;
+    // once stopped, nothing of the service holds its state: it opens again at once (Windows keeps a database locked
+    // while anything still holds it, and the link tasks once outlived the service)
+    drop(omnarc_node::state::Store::open(&a).expect("the state is free once the service stopped"));
 
     // the admin starts again; the laptop has not run once, and the cluster still knows what it is
     let desktop = start(&a, "Desktop").await;
