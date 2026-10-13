@@ -86,6 +86,13 @@ impl ModelStore {
     /// # Errors
     /// The directory cannot be created, or another process holds the store.
     pub async fn open(dir: &Path) -> Result<Self> {
+        // iroh-blobs never answers when another process holds its database, so that is asked first: the lock redb
+        // takes (flock, LockFileEx) is the one File::try_lock asks for
+        if let Ok(db) = std::fs::OpenOptions::new().read(true).write(true).open(dir.join("blobs.db"))
+            && let Err(std::fs::TryLockError::WouldBlock) = db.try_lock()
+        {
+            return Err(Error("opening the model store: Database already open by another process".into()));
+        }
         let store = FsStore::load(dir).await.map_err(|e| Error::new("opening the model store", e))?;
         Ok(Self { store, dir: dir.to_path_buf() })
     }

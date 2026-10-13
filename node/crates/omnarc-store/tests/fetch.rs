@@ -151,3 +151,16 @@ async fn a_fetch_cut_short_resumes_where_it_stopped() {
     std::fs::remove_dir_all(a).unwrap();
     std::fs::remove_dir_all(b).unwrap();
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_store_held_by_another_process_says_so_at_once() {
+    // the service holds its store while it runs; a command that opens it too must say so, not wait forever
+    let held = dir("held");
+    let first = ModelStore::open(&held.join("models")).await.unwrap();
+    let second = tokio::time::timeout(std::time::Duration::from_secs(5), ModelStore::open(&held.join("models"))).await;
+    let error = second.expect("an answer at once").unwrap_err();
+    assert!(error.to_string().contains("already open"), "{error}");
+    first.shutdown().await;
+    // and once it is let go, the store opens
+    ModelStore::open(&held.join("models")).await.unwrap().shutdown().await;
+}
