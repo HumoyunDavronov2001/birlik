@@ -195,9 +195,14 @@ pub fn verify(
         cluster = cluster.to_hex(),
         node = hex(node.as_bytes()),
     )
+    // biscuit's default allows a millisecond, which a loaded device can overrun and so refuse a good token
+    .set_limits(biscuit_auth::AuthorizerLimits { max_time: std::time::Duration::from_secs(1), ..Default::default() })
     .build(&token)
     .map_err(|e| Error::new("membership token", e))?;
-    authorizer.authorize().map_err(|_| Error::new("membership token", "issued to another device or cluster"))?;
+    authorizer.authorize().map_err(|e| match e {
+        biscuit_auth::error::Token::RunLimit(limit) => Error::new("membership token", limit),
+        _ => Error::new("membership token", "issued to another device or cluster"),
+    })?;
     let names: Vec<(String,)> =
         authorizer.query(rule!(r#"data($right) <- right($right)"#)).map_err(|e| Error::new("membership token", e))?;
     let rights = Right::ALL
