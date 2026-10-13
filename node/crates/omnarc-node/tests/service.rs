@@ -23,15 +23,25 @@ fn device(name: &str) -> v1::DeviceInfo {
 }
 
 async fn start(data: &Path, name: &str) -> Service {
-    let config = Config {
-        data: data.to_path_buf(),
-        listen: "127.0.0.1:0".parse().unwrap(),
-        device: device(name),
-        telemetry_every: Duration::from_millis(200),
-        // the tests find each other through tickets and gossip, as across networks
-        lan: false,
-    };
-    Service::start(config).await.unwrap()
+    // a service that stopped a moment ago may still be closing its state: a restart waits for it
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(20);
+    loop {
+        let config = Config {
+            data: data.to_path_buf(),
+            listen: "127.0.0.1:0".parse().unwrap(),
+            device: device(name),
+            telemetry_every: Duration::from_millis(200),
+            // the tests find each other through tickets and gossip, as across networks
+            lan: false,
+        };
+        match Service::start(config).await {
+            Ok(service) => return service,
+            Err(e) if e.to_string().contains("already open") && tokio::time::Instant::now() < deadline => {
+                tokio::time::sleep(Duration::from_millis(100)).await;
+            }
+            Err(e) => panic!("starting the service in {}: {e}", data.display()),
+        }
+    }
 }
 
 // Waits until `check` holds, for at most 60 seconds: on a loaded machine running every test at once, Raft and gossip
@@ -116,6 +126,27 @@ async fn devices_admitted_by_an_admin_hear_each_other() {
     laptop.shutdown().await;
     desktop.shutdown().await;
     for dir in [a, b, c] {
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_device_keeps_the_name_it_joined_with_before_it_ever_runs() {
+    let (a, b) = (data_dir("names-admin"), data_dir("names-member"));
+    pairing::create(&a, "Home cluster", device("Desktop"), &[]).unwrap();
+    let desktop = start(&a, "Desktop").await;
+    admit(&desktop, &b, "Laptop").await;
+    desktop.shutdown().await;
+
+    // the admin starts again; the laptop has not run once, and the cluster still knows what it is
+    let desktop = start(&a, "Desktop").await;
+    let devices = desktop.api().snapshot().devices;
+    assert!(
+        devices.iter().any(|d| d.name == "Laptop" && d.platform == v1::Platform::Linux as i32),
+        "the laptop is known by what it said when it joined: {devices:?}"
+    );
+    desktop.shutdown().await;
+    for dir in [a, b] {
         std::fs::remove_dir_all(dir).unwrap();
     }
 }

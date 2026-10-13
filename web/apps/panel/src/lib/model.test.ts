@@ -5,21 +5,23 @@ import {
   JoinAttemptSchema,
   WatchClusterResponseSchema,
 } from './gen/omnarc/v1/cluster_service_pb';
-import { DeviceInfoSchema, NodeIdSchema, Platform } from './gen/omnarc/v1/device_pb';
+import { AcceleratorSchema, Backend, DeviceInfoSchema, NodeIdSchema, Platform } from './gen/omnarc/v1/device_pb';
 import { LinkKind, LinkSampleSchema, PowerStateSchema, TelemetrySchema, ThermalState } from './gen/omnarc/v1/telemetry_pb';
 import {
   apply,
+  backends,
   deviceName,
+  formatAgo,
   formatGib,
   formatLink,
   fromSnapshot,
-  heardAgo,
   hex,
   isOnline,
   linkTo,
   ONLINE_MS,
   platformName,
   power,
+  seenAgo,
   thermal,
 } from './model';
 
@@ -107,8 +109,34 @@ describe("a device's state", () => {
     expect(power(create(PowerStateSchema, {}))).toBe('Plugged in');
     expect(power(undefined)).toBeNull();
 
-    const view = fromSnapshot(create(ClusterSnapshotSchema, { telemetry: [create(TelemetrySchema, { node: id(1) })] }), 1_000);
-    expect(heardAgo(view, hex(id(1)), 4_400)).toBe(3);
-    expect(heardAgo(view, 'never', 4_400)).toBeNull();
+    // what a device computes with: each backend once, or the processor
+    const unit = (backend: Backend) => create(AcceleratorSchema, { backend });
+    expect(backends(create(DeviceInfoSchema, {}))).toBe('CPU');
+    expect(backends(create(DeviceInfoSchema, { accelerators: [unit(Backend.CUDA), unit(Backend.CUDA)] }))).toBe('CUDA');
+    expect(backends(create(DeviceInfoSchema, { accelerators: [unit(Backend.HIP), unit(Backend.VULKAN)] }))).toBe('ROCm, Vulkan');
+
+    expect(formatAgo(12)).toBe('12 s ago');
+    expect(formatAgo(5 * 60 + 59)).toBe('5 min ago');
+    expect(formatAgo(3 * 3_600)).toBe('3 h ago');
+    expect(formatAgo(86_400)).toBe('1 day ago');
+    expect(formatAgo(5 * 86_400)).toBe('5 days ago');
+  });
+
+  it('remembers when a device was last seen, also after it went quiet', () => {
+    const quiet = create(TelemetrySchema, { node: id(2), unixMs: 1_000n });
+    const live = create(TelemetrySchema, { node: id(1), unixMs: 600_000n });
+    const devices = [create(DeviceInfoSchema, { id: id(1) }), create(DeviceInfoSchema, { id: id(2) })];
+    let view = fromSnapshot(create(ClusterSnapshotSchema, { devices, telemetry: [live, quiet] }), 601_000);
+    // the service still holds the quiet device's last telemetry, sent ten minutes ago: offline at once
+    expect(isOnline(view, hex(id(1)), 601_000)).toBe(true);
+    expect(isOnline(view, hex(id(2)), 601_000)).toBe(false);
+    expect(seenAgo(view, hex(id(2)), 601_000)).toBe(600);
+
+    // a device that leaves is offline at once and keeps the time it was last seen, through a new snapshot
+    view = apply(view, create(WatchClusterResponseSchema, { event: { case: 'deviceLeft', value: id(1) } }), 602_000);
+    expect(isOnline(view, hex(id(1)), 602_000)).toBe(false);
+    view = apply(view, create(WatchClusterResponseSchema, { event: { case: 'snapshot', value: create(ClusterSnapshotSchema, { devices }) } }), 603_000);
+    expect(seenAgo(view, hex(id(1)), 610_000)).toBe(10);
+    expect(seenAgo(view, 'never', 610_000)).toBeNull();
   });
 });

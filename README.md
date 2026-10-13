@@ -181,9 +181,9 @@ Devices on different networks meet through a relay you run (`relay/README.md`): 
 network find each other by mDNS without one.
 
 The panel — the first run that creates or joins a cluster, the ring of your devices (also as a table, and from arc to
-arc by keyboard), the device list and each device's own page with its temperature, power and links, adding a device
-with its QR code and four symbols, removing one — is built once with `cd web && pnpm install && pnpm build`, then served
-by the node:
+arc by keyboard), the device list that sorts and filters and each device's own page with its temperature, power and
+links, adding a device with its QR code and four symbols, removing one — is built once with
+`cd web && pnpm install && pnpm build`, then served by the node:
 
 ```bash
 omnarc-node serve --panel web/apps/panel/build   # open http://127.0.0.1:7600

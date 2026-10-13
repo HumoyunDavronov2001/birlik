@@ -1,7 +1,7 @@
 // The cluster as the panel keeps it, and the pure functions that change and describe it.
 
 import type { ClusterSnapshot, JoinAttempt, WatchClusterResponse } from './gen/omnarc/v1/cluster_service_pb';
-import { Platform, type DeviceInfo, type NodeId } from './gen/omnarc/v1/device_pb';
+import { Backend, Platform, type DeviceInfo, type NodeId } from './gen/omnarc/v1/device_pb';
 import { LinkKind, ThermalState, type LinkSample, type PowerState, type Telemetry } from './gen/omnarc/v1/telemetry_pb';
 
 /** A device is online while its telemetry keeps arriving; it is sent every second. */
@@ -19,8 +19,10 @@ export interface ClusterView {
   /** Devices by node id (hex), in the order they became known. */
   devices: Record<string, DeviceInfo>;
   telemetry: Record<string, Telemetry>;
-  /** When the panel last heard from each device (its own clock, ms). */
+  /** When the panel last heard from each device (its own clock, ms); gone once the device leaves. */
   heard: Record<string, number>;
+  /** When each device was last heard from, kept after it goes offline: its "last seen". */
+  seen: Record<string, number>;
   /** A device that asks to join and waits for the owner. */
   joinAttempt: JoinAttempt | null;
 }
@@ -35,6 +37,7 @@ export function emptyView(): ClusterView {
     devices: {},
     telemetry: {},
     heard: {},
+    seen: {},
     joinAttempt: null,
   };
 }
@@ -59,7 +62,10 @@ export function fromSnapshot(snapshot: ClusterSnapshot, now: number): ClusterVie
   for (const telemetry of snapshot.telemetry) {
     const id = hex(telemetry.node);
     view.telemetry[id] = telemetry;
-    view.heard[id] = now;
+    // the service keeps a device's last telemetry after it goes quiet: it was heard when it was sent
+    const sent = Number(telemetry.unixMs);
+    view.heard[id] = sent > 0 ? Math.min(now, sent) : now;
+    view.seen[id] = view.heard[id];
   }
   return view;
 }
@@ -68,8 +74,12 @@ export function fromSnapshot(snapshot: ClusterSnapshot, now: number): ClusterVie
 export function apply(view: ClusterView, response: WatchClusterResponse, now: number): ClusterView {
   const event = response.event;
   switch (event.case) {
-    case 'snapshot':
-      return fromSnapshot(event.value, now);
+    case 'snapshot': {
+      const next = fromSnapshot(event.value, now);
+      // a device that left is in the new snapshot without telemetry; it keeps its last-seen time
+      for (const [id, at] of Object.entries(view.seen)) if (next.devices[id] && !(id in next.seen)) next.seen[id] = at;
+      return next;
+    }
     case 'deviceJoined': {
       const id = hex(event.value.id);
       if (id) view.devices[id] = event.value;
@@ -84,11 +94,13 @@ export function apply(view: ClusterView, response: WatchClusterResponse, now: nu
       delete view.devices[hex(event.value)];
       delete view.telemetry[hex(event.value)];
       delete view.heard[hex(event.value)];
+      delete view.seen[hex(event.value)];
       break;
     case 'telemetry': {
       const id = hex(event.value.node);
       view.telemetry[id] = event.value;
       view.heard[id] = now;
+      view.seen[id] = now;
       break;
     }
     case 'joinAttempt':
@@ -146,6 +158,44 @@ export function platformIcon(platform: Platform): 'desktop' | 'laptop' | 'phone'
   }
 }
 
+/** A compute backend's name, as people know it. */
+export function backendName(backend: Backend): string {
+  switch (backend) {
+    case Backend.CUDA:
+      return 'CUDA';
+    case Backend.HIP:
+      return 'ROCm';
+    case Backend.VULKAN:
+      return 'Vulkan';
+    case Backend.METAL:
+      return 'Metal';
+    case Backend.OPENCL:
+      return 'OpenCL';
+    case Backend.HEXAGON:
+      return 'Hexagon';
+    case Backend.SYCL:
+      return 'SYCL';
+    case Backend.CANN:
+      return 'CANN';
+    case Backend.WEBGPU:
+      return 'WebGPU';
+    case Backend.MLX:
+      return 'MLX';
+    case Backend.VLLM:
+      return 'vLLM';
+    case Backend.SGLANG:
+      return 'SGLang';
+    default:
+      return 'CPU';
+  }
+}
+
+/** What a device computes with: its accelerators' backends, or its processor. */
+export function backends(device: DeviceInfo): string {
+  const names = [...new Set(device.accelerators.map((unit) => backendName(unit.backend)))];
+  return names.length ? names.join(', ') : 'CPU';
+}
+
 /** A device's name, or its short id before it has told the cluster what it is. */
 export function deviceName(view: ClusterView, id: string): string {
   return view.devices[id]?.name || short(id);
@@ -200,8 +250,17 @@ export function power(state: PowerState | undefined): string | null {
   return 'Plugged in';
 }
 
-/** Seconds since the panel last heard from a device; nothing if never. */
-export function heardAgo(view: ClusterView, id: string, now: number): number | null {
-  const at = view.heard[id];
+/** Seconds since a device was last heard from; nothing if never. */
+export function seenAgo(view: ClusterView, id: string, now: number): number | null {
+  const at = view.seen[id];
   return at === undefined ? null : Math.max(0, Math.round((now - at) / 1000));
+}
+
+/** A time in the past in words: "12 s ago", "5 min ago", "3 h ago", "2 days ago". */
+export function formatAgo(seconds: number): string {
+  if (seconds < 60) return `${seconds} s ago`;
+  if (seconds < 3_600) return `${Math.floor(seconds / 60)} min ago`;
+  if (seconds < 86_400) return `${Math.floor(seconds / 3_600)} h ago`;
+  const days = Math.floor(seconds / 86_400);
+  return `${days} ${days === 1 ? 'day' : 'days'} ago`;
 }

@@ -195,7 +195,14 @@ impl Service {
             sender,
             events,
             telemetry: Mutex::default(),
-            devices: Mutex::default(),
+            // what each member said when it joined stands until it speaks for itself, also after a restart
+            devices: Mutex::new(
+                known
+                    .iter()
+                    .filter(|member| !member.device.name.is_empty())
+                    .map(|member| (member.id, member.device.clone()))
+                    .collect(),
+            ),
             invitation: Mutex::default(),
             answers: Mutex::default(),
             announce: tokio::sync::Notify::new(),

@@ -8,16 +8,17 @@
   import type { LinkSample } from '$lib/gen/omnarc/v1/telemetry_pb';
   import {
     deviceName,
+    formatAgo,
     formatGib,
     formatLink,
     gib,
-    heardAgo,
     hex,
     isOnline,
     linkTo,
     platformIcon,
     platformName,
     power,
+    seenAgo,
     thermal,
   } from '$lib/model';
 
@@ -26,7 +27,7 @@
   const device = $derived(view.devices[id]);
   const telemetry = $derived(view.telemetry[id]);
   const online = $derived(isOnline(view, id, cluster.now));
-  const ago = $derived(heardAgo(view, id, cluster.now));
+  const ago = $derived(seenAgo(view, id, cluster.now));
   const warmth = $derived(thermal(telemetry?.thermal));
   const supply = $derived(power(telemetry?.power));
   const memoryShare = $derived(
@@ -66,7 +67,7 @@
       <div class="grid min-w-0 gap-1">
         <h2 class="m-0 text-28 font-semibold tracking-[-0.02em] wrap-anywhere">{deviceName(view, id)}</h2>
         <div class="flex flex-wrap gap-2">
-          <Status kind={online ? 'good' : 'warning'} label={online ? 'Online' : ago === null ? 'Not heard from yet' : `Offline · last heard ${ago} s ago`} />
+          <Status kind={online ? 'good' : 'warning'} label={online ? 'Online' : ago === null ? 'Not seen yet' : `Offline · last seen ${formatAgo(ago)}`} />
           <!-- the system's own name says the platform already, as "Linux (Ubuntu 26.04)" -->
           <Chip label={device.osVersion || platformName(device.platform)} />
           {#if id === view.thisNode}<Chip label="This device" selected />{/if}
