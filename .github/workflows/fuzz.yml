@@ -25,7 +25,10 @@ jobs:
     timeout-minutes: 350
     steps:
       - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@nightly
+      # a fixed nightly: the nightly of 2026-10-12 panics compiling iroh-blobs
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-09-20
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-fuzz
@@ -42,7 +45,7 @@ jobs:
         # cargo-fuzz would build for musl unless told the target
         run: |
           seconds=$(python3 -c "print(int(float('$HOURS') * 3600))")
-          cargo +nightly fuzz run --target x86_64-unknown-linux-gnu --fuzz-dir node/fuzz ${{ matrix.target }} -- -max_total_time="$seconds" -rss_limit_mb=2048
+          cargo +nightly-2026-09-20 fuzz run --target x86_64-unknown-linux-gnu --fuzz-dir node/fuzz ${{ matrix.target }} -- -max_total_time="$seconds" -rss_limit_mb=2048
       - name: The input that failed
         if: failure()
         uses: actions/upload-artifact@v4
