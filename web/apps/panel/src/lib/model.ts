@@ -67,6 +67,11 @@ export function apply(view: ClusterView, response: WatchClusterResponse, now: nu
       delete view.telemetry[hex(event.value)];
       delete view.heard[hex(event.value)];
       break;
+    case 'deviceRemoved':
+      delete view.devices[hex(event.value)];
+      delete view.telemetry[hex(event.value)];
+      delete view.heard[hex(event.value)];
+      break;
     case 'telemetry': {
       const id = hex(event.value.node);
       view.telemetry[id] = event.value;

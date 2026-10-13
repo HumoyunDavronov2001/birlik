@@ -49,6 +49,8 @@ message WatchClusterResponse {
     PlacementPlan plan_changed = 5;
     // A device asks to join and waits for the owner: answer with AnswerJoin.
     JoinAttempt join_attempt = 6;
+    // A device was removed from the cluster: it is let in no more.
+    NodeId device_removed = 7;
   }
 }
 

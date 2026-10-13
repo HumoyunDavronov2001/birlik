@@ -28,6 +28,8 @@ use omnarc_protocol::v1;
 use omnarc_store::{BLOBS_ALPN, Hash, Model, ModelStore, Window};
 use tokio::sync::{broadcast, oneshot};
 
+use crate::consensus::network::RAFT_ALPN;
+use crate::consensus::{Agreed, Command, Consensus};
 use crate::pairing::now_unix_ms;
 use crate::ring::BoxError;
 use crate::state::{Cluster, Member, Store};
@@ -45,6 +47,8 @@ pub enum Event {
     MemberLeft(EndpointId),
     /// A direct gossip neighbor came up or went down.
     Neighbor { id: EndpointId, up: bool },
+    /// A member was removed from the cluster: it is let in no more.
+    MemberRemoved(EndpointId),
     /// A device asks to join and waits for the owner to compare the symbols: answer with [`Service::answer_join`].
     JoinAttempt(JoinAttempt),
 }
@@ -94,6 +98,8 @@ struct Shared {
     announce: tokio::sync::Notify,
     // the latest measurement of the link to each member, and when it was taken
     links: Mutex<HashMap<EndpointId, (v1::LinkSample, Instant)>>,
+    // this computer's part in the cluster's Raft; phones and browsers have none
+    consensus: Option<Consensus>,
 }
 
 /// Telemetry ticks between two announcements of the device even when nothing changed.
@@ -101,6 +107,22 @@ const ANNOUNCE_EVERY: u32 = 60;
 
 /// How often the bandwidth of a link is probed, besides when the link changes.
 const BANDWIDTH_EVERY: Duration = Duration::from_secs(60);
+
+/// How often the leader of the cluster's Raft brings computers into it.
+const STEWARD_EVERY: Duration = Duration::from_secs(2);
+
+/// Whether a device of this platform keeps the cluster's Raft: computers do, phones and browsers do not.
+fn keeps_raft(platform: i32) -> bool {
+    matches!(v1::Platform::try_from(platform), Ok(v1::Platform::Linux | v1::Platform::Windows | v1::Platform::Macos))
+}
+
+fn hex(bytes: &[u8]) -> String {
+    use std::fmt::Write as _;
+    bytes.iter().fold(String::with_capacity(bytes.len() * 2), |mut out, b| {
+        let _ = write!(out, "{b:02x}");
+        out
+    })
+}
 
 impl Service {
     /// Starts the service of the node in `config.data`, which must belong to a cluster.
@@ -131,12 +153,24 @@ impl Service {
             omnarc_network::bind_cluster(key.clone(), config.listen, lookup.clone(), lan.clone(), &relays).await?;
         let gossip = Gossip::builder().spawn(endpoint.clone());
         let joins = JoinHandler(Arc::new(OnceLock::new()));
-        let router = Router::builder(endpoint.clone())
+        let raft = if keeps_raft(config.device.platform) {
+            Some(Consensus::start(&config.data, endpoint.clone()).await?)
+        } else {
+            None
+        };
+        let mut router = Router::builder(endpoint.clone())
             .accept(GOSSIP_ALPN, MembersOnly::new(gossip.clone(), members.clone()))
             .accept(JOIN_ALPN, joins.clone())
             .accept(BLOBS_ALPN, MembersOnly::new(models.protocol(), members.clone()))
-            .accept(PROBE_ALPN, MembersOnly::new(ProbeHandler, members.clone()))
-            .spawn();
+            .accept(PROBE_ALPN, MembersOnly::new(ProbeHandler, members.clone()));
+        let consensus = match raft {
+            Some((consensus, handler)) => {
+                router = router.accept(RAFT_ALPN, MembersOnly::new(handler, members.clone()));
+                Some(consensus)
+            }
+            None => None,
+        };
+        let router = router.spawn();
 
         let others: Vec<EndpointId> = members.list().into_iter().filter(|id| *id != key.public()).collect();
         let (sender, receiver) = gossip.subscribe(gossip::topic(cluster.id), others).await?.split();
@@ -159,6 +193,7 @@ impl Service {
             answers: Mutex::default(),
             announce: tokio::sync::Notify::new(),
             links: Mutex::default(),
+            consensus,
         });
         joins.0.set(Arc::clone(&shared)).expect("set once");
 
@@ -177,6 +212,10 @@ impl Service {
         ];
         if let Some(lan) = lan {
             tasks.push(tokio::spawn(discover(Arc::clone(&shared), lan)));
+        }
+        if shared.consensus.is_some() {
+            tasks.push(tokio::spawn(follow(Arc::clone(&shared))));
+            tasks.push(tokio::spawn(steward(Arc::clone(&shared))));
         }
         Ok(Self { shared, router, tasks })
     }
@@ -292,12 +331,42 @@ impl Service {
         Arc::new(ApiView(Arc::clone(&self.shared)))
     }
 
+    /// What the cluster agreed on, when this device keeps the cluster's Raft.
+    #[must_use]
+    pub fn agreed(&self) -> Option<Agreed> {
+        self.shared.consensus.as_ref().map(|c| c.agreed().borrow().clone())
+    }
+
+    /// Removes `member` from the cluster: the computers of the cluster agree on it, let it in no more and refuse its
+    /// token. Only an admin removes members.
+    ///
+    /// # Errors
+    /// This device is no admin or keeps no Raft, the member is unknown, or the cluster cannot agree now.
+    pub async fn remove_member(&self, member: EndpointId) -> Result<(), BoxError> {
+        let me = cluster::verify(self.shared.cluster.id, self.id(), &self.shared.cluster.token, |_| false)?;
+        if !me.has(cluster::Right::Admin) {
+            return Err("only an admin removes members".into());
+        }
+        if member == self.id() {
+            return Err("a device cannot remove itself".into());
+        }
+        let consensus = self.shared.consensus.as_ref().ok_or("only a computer of the cluster removes members")?;
+        let known = self.shared.store.member(member)?.ok_or("no such member")?;
+        let revocation_ids = cluster::verify(self.shared.cluster.id, member, &known.token, |_| false)
+            .map(|m| m.revocation_ids.iter().map(|id| hex(id)).collect())
+            .unwrap_or_default();
+        consensus.propose(Command::RemoveMember { id: hex(member.as_bytes()), revocation_ids }).await
+    }
+
     /// Tells the cluster that this device leaves, then stops.
     pub async fn shutdown(self) {
         let leave = v1::GossipPayload { kind: Some(v1::gossip_payload::Kind::Leave(v1::LeaveNotice {})) };
         let _ = self.shared.sender.broadcast(gossip::seal(&self.shared.key, &leave, now_unix_ms()).into()).await;
         for task in &self.tasks {
             task.abort();
+        }
+        if let Some(consensus) = &self.shared.consensus {
+            consensus.shutdown().await;
         }
         let _ = self.router.shutdown().await;
     }
@@ -338,6 +407,7 @@ impl omnarc_api::Cluster for ApiView {
                     Ok(Event::Device(_, device)) => Out::DeviceJoined(device),
                     Ok(Event::MemberJoined(id)) => Out::DeviceJoined(view.device(id)),
                     Ok(Event::MemberLeft(id)) => Out::DeviceLeft(node_id(id)),
+                    Ok(Event::MemberRemoved(id)) => Out::DeviceRemoved(node_id(id)),
                     Ok(Event::JoinAttempt(attempt)) => Out::JoinAttempt(v1::JoinAttempt {
                         joiner: Some(node_id(attempt.joiner)),
                         device: Some(attempt.device),
@@ -362,11 +432,13 @@ impl omnarc_api::Cluster for ApiView {
             return Err(Error::new(Code::FailedPrecondition, "this device holds no cluster key"));
         }
         let ttl = Duration::from_secs(u64::from(ttl_seconds.clamp(1, 600)));
+        // the cluster's relays, so a device on another network can join from the panel's ticket too
+        let relays = shared.store.relays().map_err(|e| Error::new(Code::Internal, e.to_string()))?;
         let ticket = Ticket::new(
             shared.cluster.id,
             shared.key.public(),
             own_addrs(&shared.endpoint),
-            vec![],
+            relays,
             ttl,
             now_unix_ms(),
         )
@@ -410,6 +482,90 @@ pub(crate) fn reach(id: EndpointId, addrs: &[SocketAddr], relay_url: &str, relay
 
 fn own_addrs(endpoint: &Endpoint) -> Vec<SocketAddr> {
     endpoint.addr().ip_addrs().copied().filter(|addr| !addr.ip().is_unspecified()).collect()
+}
+
+// Applies what the cluster agreed on: agreed members are let in, removed ones no more.
+async fn follow(shared: Arc<Shared>) {
+    let Some(consensus) = shared.consensus.clone() else { return };
+    let mut agreed = consensus.agreed();
+    loop {
+        let state = agreed.borrow_and_update().clone();
+        for (id, token) in &state.members {
+            let Some(id) = parse_id(id) else { continue };
+            let revoked = |rid: &[u8]| state.revoked.contains(&hex(rid));
+            if !shared.members.contains(&id) && cluster::verify(shared.cluster.id, id, token, revoked).is_ok() {
+                let _ = shared.members.insert(id);
+                if shared.store.member(id).ok().flatten().is_none() {
+                    let _ = shared.store.update_member(id, None, None);
+                }
+                let _ = shared.events.send(Event::MemberJoined(id));
+            }
+        }
+        for id in state.removed.iter().filter_map(|id| parse_id(id)) {
+            if id != shared.key.public() && shared.members.remove(&id) {
+                let _ = shared.store.remove_member(id);
+                shared.devices.lock().expect("devices").remove(&id);
+                shared.telemetry.lock().expect("telemetry").remove(&id);
+                let _ = shared.events.send(Event::MemberRemoved(id));
+            }
+        }
+        if agreed.changed().await.is_err() {
+            return;
+        }
+    }
+}
+
+fn parse_id(hex_id: &str) -> Option<EndpointId> {
+    let bytes: Vec<u8> = (0..hex_id.len())
+        .step_by(2)
+        .map(|i| hex_id.get(i..i + 2).and_then(|b| u8::from_str_radix(b, 16).ok()))
+        .collect::<Option<_>>()?;
+    EndpointId::from_bytes(&<[u8; 32]>::try_from(bytes.as_slice()).ok()?).ok()
+}
+
+// On the creator: starts the cluster's log, writes what it knows into it, and keeps bringing the computers of the
+// cluster in — as learners, then as voters once they keep up. On the others: nothing until they lead.
+async fn steward(shared: Arc<Shared>) {
+    let Some(consensus) = shared.consensus.clone() else { return };
+    if shared.cluster_key.is_some() {
+        if consensus.initialize_alone().await.is_err() {
+            return;
+        }
+        // a cluster that existed before its log: what this device knows becomes the agreed state
+        if consensus.agreed().borrow().name.is_empty() {
+            let mut commands = vec![
+                Command::SetName(shared.cluster.name.clone()),
+                Command::SetRelays(shared.store.relays().unwrap_or_default()),
+            ];
+            for member in shared.store.members().unwrap_or_default() {
+                if !member.token.is_empty() {
+                    commands.push(Command::AddMember { id: hex(member.id.as_bytes()), token: member.token });
+                }
+            }
+            for command in commands {
+                let _ = consensus.propose(command).await;
+            }
+        }
+    }
+    let mut ticks = tokio::time::interval(STEWARD_EVERY);
+    loop {
+        ticks.tick().await;
+        if !consensus.is_leader() {
+            continue;
+        }
+        let in_raft: HashSet<u64> = {
+            let metrics = consensus.raft().metrics().borrow().clone();
+            metrics.membership_config.membership().nodes().map(|(id, _)| *id).collect()
+        };
+        let devices = shared.devices.lock().expect("devices").clone();
+        for id in shared.members.list() {
+            let computer = devices.get(&id).is_some_and(|device| keeps_raft(device.platform));
+            if computer && !in_raft.contains(&crate::consensus::raft_id(id)) {
+                let _ = consensus.add_learner(id).await;
+            }
+        }
+        let _ = consensus.promote().await;
+    }
 }
 
 // Keeps the addresses at which mDNS finds members on the local network, so they are known after a restart too.
@@ -606,7 +762,13 @@ fn admit_announced(shared: &Shared, member: &v1::Member) {
         return;
     };
     let Ok(id) = EndpointId::from_bytes(&id) else { return };
-    if cluster::verify(shared.cluster.id, id, &member.membership_token, |_| false).is_err() {
+    // a member the cluster removed stays out, whoever announces it
+    let agreed = shared.consensus.as_ref().map(|c| c.agreed().borrow().clone()).unwrap_or_default();
+    if agreed.removed.contains(&id.to_string()) {
+        return;
+    }
+    let revoked = |rid: &[u8]| agreed.revoked.contains(&hex(rid));
+    if cluster::verify(shared.cluster.id, id, &member.membership_token, revoked).is_err() {
         return;
     }
     let addrs: Vec<SocketAddr> = member.direct_addresses.iter().filter_map(|addr| addr.parse().ok()).collect();
@@ -661,6 +823,13 @@ impl ProtocolHandler for JoinHandler {
         admit_announced(shared, &member);
         let announcement = v1::GossipPayload { kind: Some(v1::gossip_payload::Kind::Member(member)) };
         let _ = shared.sender.broadcast(gossip::seal(&shared.key, &announcement, now_unix_ms()).into()).await;
+        // the computers of the cluster agree on the new member
+        if let Some(consensus) = shared.consensus.clone() {
+            let command = Command::AddMember { id: hex(admitted.joiner.as_bytes()), token: admitted.token };
+            tokio::spawn(async move {
+                let _ = consensus.propose(command).await;
+            });
+        }
         Ok(())
     }
 }

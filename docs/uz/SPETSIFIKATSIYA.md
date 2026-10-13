@@ -16,7 +16,7 @@ maketi dizayn konsepsiyasida bo'lsa — uning bo'lim raqami, bo'lmasa «—».
 | Qism | Ekranlar | Funksiyalar | ✓ tayyor | ◐ qisman | ○ boshlanmagan | Tayyorlik |
 |---|---|---|---|---|---|---|
 | Dvigatel | 0 | 30 | 8 | 2 | 20 | 30 % |
-| Tugun agenti va API | 0 | 40 | 7 | 10 | 23 | 30 % |
+| Tugun agenti va API | 0 | 40 | 7 | 11 | 22 | 31 % |
 | Panel | 24 | 7 | 1 | 7 | 23 | 15 % |
 | Ish stoli ilovasi | 4 | 5 | 0 | 0 | 9 | 0 % |
 | Android ilovasi | 7 | 8 | 0 | 2 | 13 | 7 % |
@@ -28,7 +28,7 @@ maketi dizayn konsepsiyasida bo'lsa — uning bo'lim raqami, bo'lmasa «—».
 | Orollar | 0 | 3 | 0 | 0 | 3 | 0 % |
 | O'lchovlar, saytlar va relizlar | 3 | 9 | 2 | 1 | 9 | 21 % |
 | Dizayn tizimi va barcha ilovalardagi sifat | 1 | 13 | 6 | 2 | 6 | 50 % |
-| **Jami** | **50** | **141** | **24** | **26** | **141** | **19 %** |
+| **Jami** | **50** | **141** | **24** | **27** | **140** | **20 %** |
 
 «Tayyorlik» ustunida qisman bajarilgan band yarim hisoblanadi. Bosqichlar bo'yicha — har bosqich nimani topshirishi
 kerak:
@@ -37,7 +37,7 @@ kerak:
 |---|---|---|---|---|
 | B0 | 10 | 9 | 1 | 0 |
 | B1 | 16 | 12 | 1 | 3 |
-| B2 | 28 | 3 | 18 | 7 |
+| B2 | 28 | 3 | 19 | 6 |
 | B3 | 14 | 0 | 0 | 14 |
 | B4 | 18 | 0 | 0 | 18 |
 | B5 | 53 | 0 | 5 | 48 |
@@ -124,7 +124,7 @@ kerak:
 | NO-13 | Juftlash: ichida 10 daqiqalik sir bo'lgan QR chipta; ikkala ekranda to'rtta emoji bilan tasdiqlash | funksiya | P§3 | B2 | 02 | ◐ |
 | NO-14 | Klaster kaliti va a'zolik tokenlari (Biscuit): tugun, foydalanuvchi va admin huquqlari | funksiya | P§3 | B2 | — | ◐ |
 | NO-15 | Gossip orqali sekundiga bir marta telemetriya | funksiya | P§3 | B2 | — | ◐ |
-| NO-16 | 3–5 barqaror tugunda Raft: reja versiyasi, joylashuv, kalitlar | funksiya | P§3 | B2 | — | ○ |
+| NO-16 | 3–5 barqaror tugunda Raft: reja versiyasi, joylashuv, kalitlar | funksiya | P§3 | B2 | — | ◐ |
 | NO-17 | Har havolaning kechikishi va o'tkazuvchanligi jonli o'lchanadi | funksiya | T4 | B2 | — | ✓ |
 | NO-18 | Barcha aloqa turlari (Wi-Fi, Ethernet, USB-C, Thunderbolt, Wi-Fi Direct), bir vaqtda bir nechtasi | funksiya | T3, Y6 | B5 | — | ○ |
 | NO-19 | Brauzer tugunlariga WebRTC, signal rele orqali | funksiya | Q4 | B5 | — | ○ |

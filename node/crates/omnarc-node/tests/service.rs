@@ -17,7 +17,9 @@ fn data_dir(name: &str) -> PathBuf {
 }
 
 fn device(name: &str) -> v1::DeviceInfo {
-    v1::DeviceInfo { name: name.into(), platform: v1::Platform::Linux as i32, ..Default::default() }
+    // the phone is a phone: it keeps no Raft
+    let platform = if name == "Phone" { v1::Platform::Android } else { v1::Platform::Linux };
+    v1::DeviceInfo { name: name.into(), platform: platform as i32, ..Default::default() }
 }
 
 async fn start(data: &Path, name: &str) -> Service {
@@ -208,6 +210,49 @@ async fn a_member_that_knows_no_address_comes_through_the_relay() {
     laptop.shutdown().await;
     desktop.shutdown().await;
     for dir in [a, b] {
+        let _ = std::fs::remove_dir_all(dir);
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn the_computers_agree_and_a_removed_member_is_let_in_no_more() {
+    let (a, b, c) = (data_dir("agree-a"), data_dir("agree-b"), data_dir("agree-c"));
+    pairing::create(&a, "Home cluster", device("Desktop"), &[]).unwrap();
+    let desktop = start(&a, "Desktop").await;
+    admit(&desktop, &b, "Laptop").await;
+    let laptop = start(&b, "Laptop").await;
+    admit(&desktop, &c, "Phone").await;
+    let phone = start(&c, "Phone").await;
+    let (laptop_id, phone_id) = (laptop.id(), phone.id());
+
+    // the desktop started the log; the laptop, a computer, follows it and agrees
+    // an id in the agreed state is its key in lowercase hex, as it prints
+    let hex = |id: EndpointId| id.to_string();
+    eventually("the laptop agrees on all three members", || {
+        laptop.agreed().is_some_and(|agreed| {
+            agreed.name == "Home cluster"
+                && [desktop.id(), laptop_id, phone_id].iter().all(|id| agreed.members.contains_key(&hex(*id)))
+        })
+    })
+    .await;
+    eventually("the laptop hears the phone", || laptop.telemetry().contains_key(&phone_id)).await;
+
+    // only an admin removes, and a device cannot remove itself
+    assert!(laptop.remove_member(phone_id).await.is_err(), "the laptop is no admin");
+    assert!(desktop.remove_member(desktop.id()).await.is_err());
+
+    desktop.remove_member(phone_id).await.unwrap();
+    eventually("the laptop lets the phone in no more", || !laptop.members().contains(&phone_id)).await;
+    eventually("the desktop lets the phone in no more", || !desktop.members().contains(&phone_id)).await;
+    assert!(laptop.agreed().is_some_and(|agreed| agreed.removed.contains(&hex(phone_id))));
+    // announced again, the phone stays out
+    tokio::time::sleep(Duration::from_secs(1)).await;
+    assert!(!laptop.members().contains(&phone_id) && !desktop.members().contains(&phone_id));
+
+    phone.shutdown().await;
+    laptop.shutdown().await;
+    desktop.shutdown().await;
+    for dir in [a, b, c] {
         let _ = std::fs::remove_dir_all(dir);
     }
 }

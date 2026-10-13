@@ -93,10 +93,22 @@ so a new device that only knows its inviter finds the others.
 
 ### 3.2 Raft
 
-The agreed state — members and their rights, the revocation list, the cluster name and settings, and from stage B3
-the placement plans — is a log replicated with [openraft](https://github.com/databendlabs/openraft) on the ALPN
-`omnarc/raft/1`. Only computers and servers vote, 3 to 5 of them; phones and browsers follow the state through gossip.
-A cluster of one or two computers runs Raft with that many voters.
+The agreed state — the members and their tokens, the removed members and the revocation ids of their tokens, the
+cluster's name and relays, and from stage B3 the placement plans — is a log replicated with
+[openraft](https://github.com/databendlabs/openraft) on the ALPN `omnarc/raft/1` (members only). Each call is a short
+stream carrying a length-prefixed JSON request and its answer; the log and the state are kept in `raft.redb` and
+committed before Raft hears they are written.
+
+- Only computers (Linux, Windows, macOS) keep the log; phones and browsers follow the state through gossip.
+- The device that creates the cluster starts the log alone and writes into it what it knows: the name, the relays and
+  the members.
+- The leader adds every computer of the cluster as a learner and makes it a voter once its log keeps up, until five
+  vote; a computer that has not caught up never stalls the vote.
+- An admit is written into the log by the admin that admits; a change proposed on a follower goes to the leader.
+- An admin removes a member: once the removal is committed, every computer lets the member in no more and refuses its
+  token's revocation ids, also when the member is announced again.
+
+Heartbeats go every 300 ms and an election starts after 1.5–3 s without one, since links reach across networks.
 
 ### 3.3 Links
 

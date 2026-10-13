@@ -36,6 +36,8 @@ qrcode.workspace = true
 n0-future.workspace = true
 omnarc-api.workspace = true
 omnarc-store.workspace = true
+openraft.workspace = true
+serde.workspace = true
 axum.workspace = true
 
 [dev-dependencies]

@@ -406,6 +406,7 @@ async fn serve(
                 }
                 Ok(Event::MemberJoined(id)) => println!("A new device joined: {}.", names(id, &service)),
                 Ok(Event::MemberLeft(id)) => println!("{} left.", names(id, &service)),
+                Ok(Event::MemberRemoved(id)) => println!("{} was removed from the cluster.", id.fmt_short()),
                 Ok(Event::Neighbor { id, up }) => println!("{} {}.", names(id, &service), if up { "connected" } else { "disconnected" }),
                 Ok(Event::JoinAttempt(attempt)) => {
                     // the owner answers here when someone sits at this terminal, otherwise in the panel

@@ -230,6 +230,19 @@ impl Store {
         Ok(members)
     }
 
+    /// Forgets a member that was removed from the cluster.
+    ///
+    /// # Errors
+    /// The state cannot be written.
+    pub fn remove_member(&self, id: EndpointId) -> Result<()> {
+        let tx = self.db.begin_write().map_err(|e| Error::new("state", e))?;
+        {
+            let mut members = tx.open_table(MEMBERS).map_err(|e| Error::new("state", e))?;
+            members.remove(id.as_bytes().as_slice()).map_err(|e| Error::new("state", e))?;
+        }
+        tx.commit().map_err(|e| Error::new("state", e))
+    }
+
     /// The member with this id, if this node knows it.
     ///
     /// # Errors
