@@ -53,6 +53,25 @@ omnarc-node ring --model R1-Distill-70B.gguf --layers 0:40,80:81 --listen 0.0.0.
 The head prints the answer, the time to the first token and the time per output token. Windows Firewall must let
 `omnarc-node` receive UDP on port 7700 (it asks the first time the program listens).
 
+The Windows computer does not need a copy of the whole file: it can fetch only its own layers from the Linux one, over
+the cluster (stage B2, `protocol/CLUSTER.md` §4). About half of the 42 GB travels, each chunk checked against BLAKE3:
+
+```bash
+# Linux: a cluster, the model in its store, and the service that shares it
+omnarc-node create --name "Gate"
+omnarc-node model add ~/models/DeepSeek-R1-Distill-Llama-70B-Q4_K_M.gguf      # prints the hash
+omnarc-node serve --invite                                                  # shows a ticket
+```
+```powershell
+# Windows: join with the ticket, fetch layers 40-79 only, write the engine's file
+omnarc-node join OMNARC:...
+omnarc-node model fetch <hash> --layers 40:80
+omnarc-node model export <hash> --layers 40:80 --out D:\models\R1-Distill-70B.gguf
+```
+
+Stop `serve` on Linux before it runs the ring on the same port, or give the ring another `--listen` port. On Windows
+the written file takes the model's full size on disk until the desktop app marks it sparse.
+
 ## 3. TPOT against prima.cpp
 
 prima.cpp runs on Linux and macOS but not on Windows, so this comparison uses two Linux (or macOS) computers. Both
