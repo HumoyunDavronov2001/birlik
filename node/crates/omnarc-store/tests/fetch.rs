@@ -60,6 +60,11 @@ async fn a_device_fetches_only_its_window() {
     }
     let header = usize::try_from(fetched.header.data_offset).unwrap();
     assert_eq!(exported[..header], original[..header]);
+    // the store's file of the part and the engine's file take only the window's space: on Windows they are sparse
+    for path in [store_b.part_path(added.hash), out.clone()] {
+        let file = std::fs::File::open(&path).unwrap();
+        assert!(omnarc_store::sparse::is_sparse(&file).unwrap(), "{} is not sparse", path.display());
+    }
 
     // a second fetch of the same window moves nothing; the next window brings only its own layers
     let mut again = 0;

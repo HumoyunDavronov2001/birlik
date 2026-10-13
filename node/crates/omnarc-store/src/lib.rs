@@ -6,6 +6,7 @@
 
 pub mod gguf;
 pub mod layers;
+pub mod sparse;
 pub mod store;
 #[cfg(feature = "testing")]
 pub mod testing;

@@ -25,6 +25,7 @@ pub use iroh_blobs::{ALPN as BLOBS_ALPN, Hash};
 
 use crate::gguf::{self, Header};
 use crate::layers::{Layout, Window};
+use crate::sparse;
 
 /// The first piece of a header asked for; it doubles until the header is whole, so at most the header's own
 /// length of tensor bytes comes along with it.
@@ -76,6 +77,7 @@ impl Model {
 #[derive(Debug, Clone)]
 pub struct ModelStore {
     store: FsStore,
+    dir: PathBuf,
 }
 
 impl ModelStore {
@@ -85,7 +87,7 @@ impl ModelStore {
     /// The directory cannot be created, or another process holds the store.
     pub async fn open(dir: &Path) -> Result<Self> {
         let store = FsStore::load(dir).await.map_err(|e| Error::new("opening the model store", e))?;
-        Ok(Self { store })
+        Ok(Self { store, dir: dir.to_path_buf() })
     }
 
     /// The handler that serves this store's blobs to other devices (`iroh_blobs::ALPN`).
@@ -238,6 +240,9 @@ impl ModelStore {
                 Err(e) => return Err(Error::new("the model header from the other device", e)),
             }
         };
+        // the layers land at their places in the store's file of the model: on Windows the file must be sparse before
+        // they arrive, or every byte before them takes disk space
+        self.make_part_sparse(hash);
         // the tag keeps a part of a model as much as a whole one
         let name = self.tag(name.map(str::to_owned), default_name(&header, hash), hash).await?;
         let model = Model::new(name, hash, header)?;
@@ -254,6 +259,22 @@ impl ModelStore {
         Ok(model)
     }
 
+    /// The store's file of the model `hash` — iroh-blobs keeps a blob that outgrows its database in
+    /// `data/<hash>.data` — marked sparse; its content stays as it is.
+    fn make_part_sparse(&self, hash: Hash) {
+        let path = self.part_path(hash);
+        if let Ok(file) = std::fs::OpenOptions::new().write(true).open(&path) {
+            // without sparse files the holes are written out, as they always were
+            let _ = sparse::make_sparse(&file);
+        }
+    }
+
+    /// Where the store keeps the bytes of the model `hash` once they outgrow its database.
+    #[must_use]
+    pub fn part_path(&self, hash: Hash) -> PathBuf {
+        self.dir.join("data").join(format!("{}.data", hash.to_hex()))
+    }
+
     async fn get(&self, connection: &Connection, request: GetRequest, progress: &mut impl FnMut(u64)) -> Result<()> {
         let mut stream = self.store.remote().execute_get(connection.clone(), request).stream();
         while let Some(item) = stream.next().await {
@@ -267,7 +288,7 @@ impl ModelStore {
     }
 
     /// Writes `window` of the model to `target` for the engine: a file of the model's full size with the window's
-    /// bytes at their places and holes elsewhere, which take no disk space on Linux and macOS.
+    /// bytes at their places and holes elsewhere, which take no disk space (on Windows the file is marked sparse).
     ///
     /// # Errors
     /// The store does not hold the whole window, or the file cannot be written.
@@ -277,7 +298,10 @@ impl ModelStore {
             return Err(Error(format!("{missing} bytes of the layers {window} of {} are not here yet", model.name)));
         }
         let target_name = target.display().to_string();
-        let mut file = tokio::fs::File::create(target).await.map_err(|e| Error::new(&target_name, e))?;
+        let file = std::fs::File::create(target).map_err(|e| Error::new(&target_name, e))?;
+        // sparse before it grows, or Windows allocates the whole length; without sparse files the holes are written
+        let _ = sparse::make_sparse(&file);
+        let mut file = tokio::fs::File::from_std(file);
         file.set_len(model.layout.file_len).await.map_err(|e| Error::new(&target_name, e))?;
         for range in model.layout.ranges(window).map_err(Error)? {
             // the store hands out 1 KiB leaves; they are gathered into large writes
