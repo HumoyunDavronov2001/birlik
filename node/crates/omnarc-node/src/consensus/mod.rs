@@ -89,7 +89,7 @@ impl Agreed {
 #[must_use]
 pub fn odd_voters(n: usize) -> usize {
     let n = n.clamp(1, MAX_VOTERS);
-    if n % 2 == 0 { n - 1 } else { n }
+    if n.is_multiple_of(2) { n - 1 } else { n }
 }
 
 /// The Raft id of a node: the first eight bytes of its key. Collisions among five voters are out of the question.
@@ -257,10 +257,11 @@ impl Consensus {
             // a voter goes, and with it a second one if an even number would remain
             let mut gone = BTreeSet::from([id]);
             let left: Vec<u64> = membership.voter_ids().filter(|voter| *voter != id).collect();
-            if left.len() > 1 && left.len() % 2 == 0 {
-                if let Some(extra) = left.iter().rev().find(|voter| **voter != raft_id(self.me)) {
-                    gone.insert(*extra);
-                }
+            if left.len() > 1
+                && left.len().is_multiple_of(2)
+                && let Some(extra) = left.iter().rev().find(|voter| **voter != raft_id(self.me))
+            {
+                gone.insert(*extra);
             }
             ChangeMembers::RemoveVoters(gone)
         } else if membership.learner_ids().any(|learner| learner == id) {
